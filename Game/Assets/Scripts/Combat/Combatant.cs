@@ -164,6 +164,13 @@ namespace Pixel.Combat
             UpdateBar();
         }
 
+        public void Heal(int amount)
+        {
+            if (IsDown || amount <= 0) return;
+            hp = Mathf.Min(maxHp, hp + amount);
+            UpdateBar();
+        }
+
         public void HealFull()
         {
             hp = maxHp;

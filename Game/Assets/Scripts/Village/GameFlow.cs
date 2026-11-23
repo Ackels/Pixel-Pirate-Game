@@ -34,6 +34,10 @@ namespace Pixel.Village
         public ShipBlockDef raftHull, raftMast, raftSail;
 
         public ShipLayout Ship { get; private set; }
+        /// <summary>Mapa-múndi (gerado uma vez por jogo).</summary>
+        public WorldMap World { get; private set; }
+        [Tooltip("Semente do mapa. 0 = aleatória a cada jogo.")]
+        public int worldSeed;
         public bool AtSea { get; private set; }
         /// <summary>Dano no casco que continua até ser consertado nas docas.</summary>
         public int ShipDamage { get; set; }
@@ -46,6 +50,7 @@ namespace Pixel.Village
         {
             Instance = this;
             Ship = ShipLayout.Raft(raftHull, raftMast, raftSail);
+            World = WorldMap.Generate(worldSeed != 0 ? worldSeed : System.Environment.TickCount);
         }
 
         void OnDestroy() { if (Instance == this) Instance = null; }

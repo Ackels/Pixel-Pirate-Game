@@ -58,5 +58,33 @@
   - Dano do casco persiste em `GameFlow.ShipDamage`. O conserto nas docas custa 1 ouro por ponto; não dá para zarpar com o casco em 0.
   - Embarque: tripulantes **sem posto de trabalho** embarcam (`CrewManager.Embark`), até MaxCrew − 1 (o capitão ocupa uma vaga). Quem é nocauteado volta com −15 de moral.
   - `SeaCamera` desliza para enquadrar os dois navios.
+- **Fase 5 (concluída em 23/11/2026): mapa-múndi e ilhas**
+  - `Ship/WorldMap`: 12 ilhas (Enseada + Porto, Selvagem, Acampamento pirata) geradas pela semente em `GameFlow.World`. `worldSeed` 0 = aleatória.
+    - A névoa revela ilhas num raio de 32 milhas de onde você esteve.
+    - As 2 primeiras ilhas ficam perto de casa (uma selvagem e um porto).
+    - Perigo = distância de casa ÷ 18, de 0 a 5.
+  - Viagem (`SeaController.SetCourse`):
+    - "Zarpar" abre o `MapPanel` (só dá para traçar rumo parado).
+    - Tempo = milhas ÷ nós × 3 s.
+    - Provisões = ⌈milhas ÷ 12⌉ × pessoas a bordo, em peixe tirado do estoque da vila. Se faltar, a tripulação chega com −10 de moral.
+    - O combate pausa a viagem. `EncounterDirector.ScheduleLeg` sorteia no máximo 1 encontro por trecho (55% + 5% por nível de perigo).
+    - 40% de chance de evento por trecho: náufrago entra no bando se houver vaga; garrafa revela uma ilha com X de tesouro ou dá ouro; tempestade tira 8–18% do casco.
+    - O destino "Enseada" encerra a viagem (`ReturnToVillage`).
+  - `Ship/IslandBuilder` monta a ilha lateral, coluna por coluna (praia de 5 colunas e depois morros de até +3), que chega deslizando, mais uma prancha (`Combat/Gangplank`).
+    - Selvagem: baús e caranguejos (`SimpleFigure`).
+    - Acampamento: tenda, fogueira, baús com rum e piratas.
+    - Porto: comerciante (E) que vende 5 peixes por 12 e compra rum a 22.
+    - X de tesouro: um baú extra de 120–200.
+    - Os estados `visited`, `looted` e `cleared` ficam guardados na ilha.
+  - Na ilha: os inimigos defendem a região (`CombatAI.regionMin/Max`) e a tripulação ataca (`charge`).
+    - Zarpar com inimigos vivos é uma retirada.
+    - Ao zarpar, a ilha perde a colisão na hora e passa para trás do navio (ordem −40).
+      - Seguindo para outra ilha: sai pela **esquerda**.
+      - Voltando para a Enseada: sai pela **direita**.
+      - Encontros só começam depois que ela some (`IslandBuilder.Present`).
+    - Ordem de desenho da ilha: topo −45 (na frente da água de trás, −49); enchimento −60 (atrás da água, para esconder a parte submersa).
+    - Na chegada, a tripulação recupera metade da vida que faltava.
+    - A câmera acompanha o capitão.
+  - `Ship/Interactable`: E para abrir baú ou negociar.
 - Repositório: https://github.com/Ackels/Pixel-Pirate-Game (privado, branch `main`). O `gh` CLI não está instalado; o push usa o gerenciador de credenciais do git.
 - Outro projeto do usuário, PirateRPG (`C:\Users\jhona\Projetos\PirateRPG`), é **separado**. Não misturar.

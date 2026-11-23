@@ -12,6 +12,10 @@ namespace Pixel.Ship
     public class SeaHUD : MonoBehaviour
     {
         public SeaController sea;
+        [Tooltip("Papel, casa, porto, selvagem, acampamento, desconhecido, navio")]
+        public Sprite[] mapIcons;
+        MapPanel map;
+        RectTransform trade;
 
         Text goldText, titleText, statsText, hintText, helpText;
         RectTransform actionBar;
@@ -70,7 +74,12 @@ namespace Pixel.Ship
 
             // No estaleiro a barra só é refeita ao trocar de bloco (para não "engolir" cliques).
             sea.Changed += () => { if (sea.Mode != SeaMode.Editing) Refresh(); };
-            sea.Message += m => { message = m; messageTimer = 4f; };
+            sea.Message += m => { message = m; messageTimer = 4.5f; };
+            map = MapPanel.Create(root, sea, mapIcons);
+            sea.MapRequested += map.Show;
+            BuildTrade(root);
+            sea.TradeRequested += () => { trade.gameObject.SetActive(true); trade.SetAsLastSibling(); };
+            sea.Changed += () => { if (sea.Mode != SeaMode.Landed && trade != null) trade.gameObject.SetActive(false); };
             Refresh();
         }
 
@@ -95,7 +104,9 @@ namespace Pixel.Ship
             }
 
             messageTimer -= Time.unscaledDeltaTime;
-            string hint = messageTimer > 0 ? message : sea.Mode == SeaMode.Editing ? sea.editor.Hint : null;
+            string hint = messageTimer > 0 ? message
+                : sea.Mode == SeaMode.Editing ? sea.editor.Hint
+                : sea.NearbyInteractable != null ? sea.NearbyInteractable.prompt : null;
             hintText.transform.parent.gameObject.SetActive(!string.IsNullOrEmpty(hint));
             hintText.text = hint;
 
@@ -118,7 +129,9 @@ namespace Pixel.Ship
                 $"Tripulação máx.: {s.MaxCrew}\n" +
                 $"Canhões: {s.cannons}\n" +
                 $"Blocos: {s.blocks} · Valor: {s.value} ouro" +
-                (sea.Mode == SeaMode.Sailing ? $"\n\nDistância: {sea.DistanceMiles:0.0} milhas" : "");
+                (sea.Mode == SeaMode.Sailing && sea.Destination != null
+                    ? $"\n\nRumo: {sea.Destination.name}\nViagem: {sea.LegProgress * 100f:0}%" : "") +
+                (sea.Mode == SeaMode.Landed && sea.Location != null ? $"\n\nEm: {sea.Location.name}" : "");
         }
 
         static string Hp(int cur, int max)
@@ -142,10 +155,9 @@ namespace Pixel.Ship
                     helpText.text = "A/D ou setas: andar · Espaço: pular";
                     bool canEdit = sea.CanEdit(out string editWhy);
                     ActionButton(canEdit ? "Editar navio\n(Estaleiro)" : "Editar navio\n(precisa de Estaleiro)", sea.StartEditing, canEdit);
-                    bool canSail = sea.CanSail(out _);
                     if (sea.RepairCost > 0)
                         ActionButton($"Consertar casco\n({sea.RepairCost} ouro)", sea.Repair, sea.Gold >= sea.RepairCost);
-                    ActionButton("Zarpar!", sea.SetSail, canSail);
+                    ActionButton("Zarpar!\n(abrir mapa)", sea.OpenMap, true);
                     ActionButton("Voltar à vila", sea.GoHome, true);
                     break;
 
@@ -167,13 +179,39 @@ namespace Pixel.Ship
 
                 case SeaMode.Sailing:
                     bool fighting = builtEncounter != EncounterState.None;
-                    titleText.text = fighting ? "Combate!" : "Navegando";
+                    titleText.text = fighting ? "Combate!" : sea.Destination != null ? $"Rumo a {sea.Destination.name}" : "Navegando";
                     helpText.text = "A/D: andar · Espaço: pular\nF / J / clique: golpear com a espada";
                     if (director != null && director.CanBoard) ActionButton("Abordar!", director.Board, true);
                     if (director != null && director.CanFlee) ActionButton("Fugir", director.Flee, true);
-                    ActionButton("Voltar à Enseada", sea.GoHome, !fighting);
+                    if (!fighting) ActionButton("Ver mapa", map.Show, true);
+                    break;
+
+                case SeaMode.Landed:
+                    titleText.text = sea.Location != null ? sea.Location.name : "Em terra";
+                    helpText.text = "A/D: andar · Espaço: pular · F/J: golpear\nE: abrir baú / negociar";
+                    ActionButton("Zarpar\n(abrir mapa)", sea.OpenMap, true);
                     break;
             }
+        }
+
+        void BuildTrade(Transform root)
+        {
+            RectTransform win = null;
+            var (w, content) = UIKit.Window("Comerciante", root, "Comerciante do Porto", new Vector2(460, 300), () => win.gameObject.SetActive(false));
+            win = w;
+            trade = w;
+            UIKit.Vertical(content.gameObject, 4, 8);
+            var t = UIKit.Text(content, "Peixe para a viagem e bom preço no seu rum.\n(As compras vão direto pro estoque da vila.)", 15, TextAnchor.UpperLeft, UIKit.MutedText);
+            UIKit.Size(t, height: 44);
+            void Btn(string label, UnityEngine.Events.UnityAction a)
+            {
+                var (b, _, _) = UIKit.Button(content, label, a, 16);
+                UIKit.Size(b, height: 46);
+            }
+            Btn($"Comprar {SeaController.FishPackSize} peixes ({SeaController.FishPackPrice} ouro)", sea.BuyFish);
+            Btn($"Vender 1 rum ({SeaController.PortRumPrice} ouro)", () => sea.SellRum(false));
+            Btn($"Vender todo o rum ({SeaController.PortRumPrice} ouro cada)", () => sea.SellRum(true));
+            w.gameObject.SetActive(false);
         }
 
         void ActionButton(string label, UnityEngine.Events.UnityAction onClick, bool interactable)

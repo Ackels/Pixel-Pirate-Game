@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 namespace Pixel.Combat
 {
     /// <summary>Boneco em camadas (pele, roupa, cabelo, base) na visão lateral, com animação de andar.</summary>
-    public class LayeredFigure : MonoBehaviour
+    public class LayeredFigure : MonoBehaviour, IPose
     {
         CrewManager.LayerSprites sprites;
         SpriteRenderer skin, outfit, hair, baseLayer;

@@ -21,8 +21,8 @@ namespace Pixel.Combat
         public SeaCamera seaCamera;
 
         [Header("Ritmo")]
-        public float firstEncounterAfter = 12f;
-        public float encounterInterval = 35f;
+        [Tooltip("Chance base de encontro por trecho de viagem (+5% por nível de perigo).")]
+        public float encounterChance = 0.55f;
         public float holdGap = 7f;
 
         [Header("Visual")]
@@ -47,7 +47,8 @@ namespace Pixel.Combat
         readonly List<Combatant> enemyCrew = new List<Combatant>();
         readonly List<float> playerReload = new List<float>(), enemyReload = new List<float>();
         bool pirate;
-        float timer, stateTimer, enemySpeedKnots, holdX;
+        float timer = float.PositiveInfinity, stateTimer, enemySpeedKnots, holdX;
+        int legDanger;
         GameObject bridge;
         int encounters;
 
@@ -55,7 +56,15 @@ namespace Pixel.Combat
         {
             Instance = this;
             Fx.Puff = fxPuff; Fx.Boom = fxBoom; Fx.Splash = fxSplash; Fx.Slash = fxSlash; Fx.Cannonball = fxCannonball;
-            timer = firstEncounterAfter;
+        }
+
+        /// <summary>Sorteia se vai haver um encontro neste trecho e quando.</summary>
+        public void ScheduleLeg(float legSeconds, int danger)
+        {
+            legDanger = danger;
+            timer = Random.value < encounterChance + danger * 0.05f
+                ? Mathf.Max(3f, legSeconds * Random.Range(0.25f, 0.6f))
+                : float.PositiveInfinity;
         }
 
         void OnDestroy() { if (Instance == this) Instance = null; }
@@ -75,12 +84,20 @@ namespace Pixel.Combat
             switch (State)
             {
                 case EncounterState.None:
-                    if (sea.Mode == SeaMode.Sailing)
+                    // Só aparece navio com o mar livre (sem ilha chegando ou indo embora)
+                    if (sea.Mode == SeaMode.Sailing && (sea.islands == null || !sea.islands.Present))
                     {
                         timer -= Time.deltaTime;
                         if (timer <= 0f) SpawnEnemy();
                     }
-                    if (seaCamera) seaCamera.targetX = 0f;
+                    if (seaCamera)
+                    {
+                        // Em terra, a câmera acompanha o capitão pela ilha
+                        bool landed = sea.Mode == SeaMode.Landed && sea.islands != null && sea.islands.Root != null;
+                        seaCamera.targetX = landed && sea.captain != null
+                            ? Mathf.Clamp(sea.captain.transform.position.x - 4f, 0f, Mathf.Max(0f, sea.islands.RegionMax - 18f))
+                            : 0f;
+                    }
                     break;
 
                 case EncounterState.Approaching:
@@ -147,7 +164,7 @@ namespace Pixel.Combat
         void SpawnEnemy()
         {
             encounters++;
-            pirate = encounters > 1 && Random.value < Mathf.Clamp01(0.3f + sea.DistanceMiles * 0.08f);
+            pirate = encounters > 1 && Random.value < Mathf.Clamp01(0.15f + legDanger * 0.15f);
             EnemyName = pirate ? "Navio Pirata" : "Navio Mercante";
             enemySpeedKnots = pirate ? 7.5f : 5f;
 
@@ -298,6 +315,30 @@ namespace Pixel.Combat
             return c;
         }
 
+        /// <summary>Cria um bicho (ex.: caranguejo) que luta, com sprite simples.</summary>
+        public Combatant SpawnCreature(Vector2 pos, string name, Sprite[] frames)
+        {
+            var go = new GameObject(name);
+            go.transform.position = pos;
+            var body = go.AddComponent<Rigidbody2D>();
+            body.gravityScale = 3f;
+            body.freezeRotation = true;
+            var box = go.AddComponent<BoxCollider2D>();
+            box.size = new Vector2(0.7f, 0.5f);
+            box.offset = new Vector2(0, 0.25f);
+            var captainCol = sea.captain != null ? sea.captain.GetComponent<Collider2D>() : null;
+            if (captainCol != null) box.sharedMaterial = captainCol.sharedMaterial;
+            go.AddComponent<SimpleFigure>().Init(frames, 8);
+            var c = go.AddComponent<Combatant>();
+            c.team = Team.Enemy;
+            c.displayName = name;
+            var ai = go.AddComponent<CombatAI>();
+            ai.homeX = pos.x;
+            ai.moveSpeed = 2.6f;
+            ai.jumpSpeed = 8f;
+            return c;
+        }
+
         // ---------- Canhões ----------
         void FireCannons()
         {
@@ -345,22 +386,7 @@ namespace Pixel.Combat
 
         void StartBoarding()
         {
-            Vector2 a = sea.shipView.EdgeDeck(true);
-            Vector2 b = enemyShip.EdgeDeck(false);
-            bridge = new GameObject("PranchaDeAbordagem");
-            var edge = bridge.AddComponent<EdgeCollider2D>();
-            edge.points = new[] { a + Vector2.left * 0.4f, b + Vector2.right * 0.4f };
-            var sr = new GameObject("Tabuas").AddComponent<SpriteRenderer>();
-            sr.transform.SetParent(bridge.transform, false);
-            sr.sprite = plankSprite;
-            sr.drawMode = SpriteDrawMode.Tiled;
-            float len = Vector2.Distance(a, b) + 0.8f;
-            sr.size = new Vector2(len, 1f);
-            sr.sortingOrder = 2;
-            Vector2 mid = (a + b) / 2f;
-            float ang = Mathf.Atan2(b.y - a.y, b.x - a.x) * Mathf.Rad2Deg;
-            sr.transform.position = mid + Vector2.down * 0.45f;
-            sr.transform.rotation = Quaternion.Euler(0, 0, ang);
+            bridge = Gangplank.Create(sea.shipView.EdgeDeck(true), enemyShip.EdgeDeck(false), plankSprite, "PranchaDeAbordagem");
 
             foreach (var c in sea.CrewFighters) if (c != null) { var ai = c.GetComponent<CombatAI>(); if (ai) ai.charge = true; }
             if (pirate) foreach (var c in enemyCrew) if (c != null) { var ai = c.GetComponent<CombatAI>(); if (ai) ai.charge = true; }
@@ -417,7 +443,7 @@ namespace Pixel.Combat
             enemyShip = null;
             sea.ReviveCrew();
             foreach (var c in sea.CrewFighters) if (c != null) { var ai = c.GetComponent<CombatAI>(); if (ai) ai.charge = false; }
-            timer = encounterInterval * Random.Range(0.8f, 1.3f);
+            timer = float.PositiveInfinity;   // no máximo um encontro por trecho
             SetState(EncounterState.None);
         }
 

@@ -355,6 +355,19 @@ namespace Pixel.Village
             AssignAll();
         }
 
+        /// <summary>Náufrago resgatado no mar: entra no bando já embarcado.</summary>
+        public CrewMember CreateCastaway()
+        {
+            var m = Generate((Profession)Random.Range(0, 4), 1);
+            m.morale = 75;
+            AddToCrew(m, dockPoint + new Vector2(0, 3f));
+            m.atSea = true;
+            if (m.agent != null) m.agent.gameObject.SetActive(false);
+            Log($"{m.name} foi resgatado(a) de um naufrágio e entrou para o bando!", new Color(0.6f, 0.9f, 1f));
+            AssignAll();
+            return m;
+        }
+
         /// <summary>Escreve uma notícia no registro da vila.</summary>
         public void Report(string msg, Color color) => Log(msg, color);
 

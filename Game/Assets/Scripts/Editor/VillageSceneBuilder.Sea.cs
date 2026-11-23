@@ -196,7 +196,30 @@ namespace Pixel.EditorTools
                 down = CrewDir("down"), up = CrewDir("up"), left = CrewDir("left"), right = CrewDir("right"),
             };
 
+            var islandGo = new GameObject("Ilhas");
+            var islands = islandGo.AddComponent<IslandBuilder>();
+            islands.sea = sea;
+            islands.director = director;
+            islands.grassTop = LoadSprite("Island/land_grass_top");
+            islands.dirt = LoadSprite("Island/land_dirt");
+            islands.sandTop = LoadSprite("Island/land_sand_top");
+            islands.sand = LoadSprite("Island/land_sand");
+            islands.chestClosed = LoadSprite("Island/chest_closed");
+            islands.chestOpen = LoadSprite("Island/chest_open");
+            islands.tent = LoadSprite("Island/tent");
+            islands.campfire = LoadSprite("Island/campfire");
+            islands.palm = LoadSprite("obj_palm");
+            islands.market = LoadSprite("obj_market");
+            islands.plank = LoadSprite("Sea/sea_dock_plank");
+            islands.crabFrames = new[] { LoadSprite("Island/crab_0"), LoadSprite("Island/crab_1") };
+            sea.islands = islands;
+
             var hud = new GameObject("HUD do Mar").AddComponent<SeaHUD>();
+            hud.mapIcons = new[]
+            {
+                LoadSprite("Map/map_paper"), LoadSprite("Map/map_home"), LoadSprite("Map/map_port"), LoadSprite("Map/map_wild"),
+                LoadSprite("Map/map_camp"), LoadSprite("Map/map_unknown"), LoadSprite("Map/map_ship"),
+            };
             hud.sea = sea;
 
             EditorSceneManager.SaveScene(scene, SeaScenePath);

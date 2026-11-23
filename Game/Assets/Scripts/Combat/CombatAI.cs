@@ -17,10 +17,12 @@ namespace Pixel.Combat
         public bool charge;
         public ShipView homeShip;
         public float homeX;
+        [Tooltip("Sem navio (ilha): área que este lutador defende e linha d'água.")]
+        public float regionMin = -9999f, regionMax = 9999f, waterlineY = -9999f;
 
         Combatant me;
         Rigidbody2D body;
-        LayeredFigure figure;
+        IPose figure;
         Collider2D col;
         float moveX, stuck, think;
         Combatant target;
@@ -30,7 +32,7 @@ namespace Pixel.Combat
         {
             me = GetComponent<Combatant>();
             body = GetComponent<Rigidbody2D>();
-            figure = GetComponent<LayeredFigure>();
+            figure = GetComponent<IPose>();
             col = GetComponent<Collider2D>();
         }
 
@@ -61,7 +63,7 @@ namespace Pixel.Combat
                 if (Mathf.Abs(d.x) <= me.attackRange * 0.85f && Mathf.Abs(d.y) < 1.2f) me.TryAttack();
                 else moveX = Mathf.Sign(d.x);
             }
-            else if (homeShip != null && Mathf.Abs(transform.position.x - homeX) > 0.6f)
+            else if (Mathf.Abs(transform.position.x - homeX) > 0.6f)
             {
                 // Sem ninguém pra brigar: volta pro seu canto no próprio navio
                 moveX = Mathf.Sign(homeX - transform.position.x);
@@ -75,9 +77,10 @@ namespace Pixel.Combat
             if (figure != null) figure.Pose(moveX != 0f, grounded, me.FacingRight);
 
             // Caiu no mar
-            if (homeShip != null && transform.position.y < homeShip.WaterlineY - 1.5f)
+            float water = homeShip != null ? homeShip.WaterlineY : waterlineY;
+            if (transform.position.y < water - 1.5f)
             {
-                if (me.knockOutInsteadOfDeath)
+                if (me.knockOutInsteadOfDeath && homeShip != null)
                 {
                     var p = homeShip.SpawnPoint();
                     transform.position = p;
@@ -94,6 +97,8 @@ namespace Pixel.Combat
             body.linearVelocity = new Vector2(moveX * moveSpeed, body.linearVelocity.y);
         }
 
+        bool Defends(float x) => homeShip != null ? homeShip.ContainsX(x) : x >= regionMin && x <= regionMax;
+
         Combatant PickTarget()
         {
             Combatant best = null;
@@ -101,7 +106,7 @@ namespace Pixel.Combat
             foreach (var c in Combatant.All)
             {
                 if (c.team == me.team || c.IsDown) continue;
-                if (!charge && homeShip != null && !homeShip.ContainsX(c.transform.position.x)) continue;
+                if (!charge && !Defends(c.transform.position.x)) continue;
                 float dd = (c.transform.position - transform.position).sqrMagnitude;
                 if (dd < bestD) { bestD = dd; best = c; }
             }

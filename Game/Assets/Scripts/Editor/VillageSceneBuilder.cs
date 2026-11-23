@@ -79,6 +79,7 @@ namespace Pixel.EditorTools
                 string file = Path.GetFileName(path);
                 bool centered = file.StartsWith("tile_") || file.StartsWith("icon_") || file.StartsWith("ship_")
                              || file.StartsWith("fx_") || file.StartsWith("flag_")
+                             || file.StartsWith("land_") || file.StartsWith("map_")
                              || (file.StartsWith("sea_") && !file.StartsWith("sea_island"));
 
                 importer.textureType = TextureImporterType.Sprite;
