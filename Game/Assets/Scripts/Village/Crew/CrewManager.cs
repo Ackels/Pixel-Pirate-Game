@@ -39,6 +39,7 @@ namespace Pixel.Village
         public int Day { get; private set; } = 1;
         public float DayProgress => dayTimer / dayLength;
         public IReadOnlyList<CrewMember> Crew => crew;
+        public bool IsCrew(CrewMember m) => crew.Contains(m);
         public IReadOnlyList<CrewMember> Recruits => recruits;
         public event Action Changed;
         public event Action<string, Color> Logged;
@@ -226,7 +227,7 @@ namespace Pixel.Village
             // Trabalho: refaz a distribuição. Primeiro quem tem o ofício certo, depois o resto.
             foreach (var b in vm.Buildings) b.Workers.Clear();
             var free = new List<CrewMember>();
-            foreach (var c in crew) { c.workplace = null; if (!c.atSea) free.Add(c); }
+            foreach (var c in crew) { c.workplace = null; if (!c.atSea && !c.onExpedition) free.Add(c); }
             for (int pass = 0; pass < 2; pass++)
             {
                 foreach (var b in vm.Buildings)
@@ -247,6 +248,20 @@ namespace Pixel.Village
                         b.Workers.Add(pick);
                     }
                 }
+            }
+            Changed?.Invoke();
+        }
+
+        /// <summary>XP de qualquer fonte (ex.: expedições). Sobe de nível como no trabalho.</summary>
+        public void AddXp(CrewMember m, int amount)
+        {
+            if (amount <= 0 || m.level >= 5) return;
+            m.xp += m.Has(Trait.Talentoso) ? amount * 2 : amount;
+            while (m.level < 5 && m.xp >= m.XpToNextLevel)
+            {
+                m.xp -= m.XpToNextLevel;
+                m.level++;
+                Log($"{m.name} subiu para nível {m.level} (salário agora {m.Wage}).", new Color(0.6f, 0.9f, 1f));
             }
             Changed?.Invoke();
         }
@@ -330,7 +345,7 @@ namespace Pixel.Village
             foreach (var c in crew)
             {
                 if (list.Count >= max) break;
-                if (c.workplace != null || c.atSea) continue;
+                if (c.workplace != null || c.atSea || c.onExpedition) continue;
                 c.atSea = true;
                 c.injured = false;
                 if (c.agent != null) c.agent.gameObject.SetActive(false);

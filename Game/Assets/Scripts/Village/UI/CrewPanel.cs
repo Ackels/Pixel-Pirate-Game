@@ -76,7 +76,8 @@ namespace Pixel.Village
             {
                 var member = c;
                 wages += c.Wage;
-                string work = c.atSea ? UIKit.Colored("No mar", new Color(0.55f, 0.85f, 1f))
+                string work = c.onExpedition ? UIKit.Colored("Em expedição", new Color(0.75f, 0.65f, 1f))
+                    : c.atSea ? UIKit.Colored("No mar", new Color(0.55f, 0.85f, 1f))
                     : c.workplace != null ? c.workplace.def.displayName : UIKit.Colored("Sem trabalho (vai pro mar)", UIKit.MutedText);
                 string home = c.home != null ? "" : UIKit.Colored(" · sem casa!", new Color(1f, 0.5f, 0.45f));
                 string morale = UIKit.Colored($"{c.morale} {CrewText.MoraleLabel(c.morale)}", CrewText.MoraleColor(c.morale));

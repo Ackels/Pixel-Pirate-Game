@@ -29,6 +29,10 @@ namespace Pixel.Village
         public int shipDamage;
         public int worldSeed;
         public List<IslandSave> islands = new List<IslandSave>();
+
+        // Expedições (as que estavam em andamento não são salvas: o grupo volta pra casa)
+        public List<string> dungeonsCleared = new List<string>();
+        public List<ExpeditionManager.Preset> presets = new List<ExpeditionManager.Preset>();
     }
 
     [Serializable] public class ItemCount { public string item; public int count; }

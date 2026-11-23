@@ -9,10 +9,10 @@ namespace Pixel.Village
     {
         Building target;
         Text title, body;
-        Button tavernButton;
+        Button tavernButton, expeditionButton;
         float refreshTimer;
 
-        public static BuildingInfoPanel Create(Transform canvas, System.Action openTavern)
+        public static BuildingInfoPanel Create(Transform canvas, System.Action openTavern, System.Action openExpeditions)
         {
             var root = UIKit.Panel("PainelPredio", canvas, new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-12, 30), new Vector2(330, 300),
                 new Color(UIKit.PanelColor.r, UIKit.PanelColor.g, UIKit.PanelColor.b, 1f));
@@ -35,6 +35,9 @@ namespace Pixel.Village
             var (tb, _, _) = UIKit.Button(root, "Ver recrutas da Taverna", () => openTavern(), 16);
             UIKit.Size(tb, height: 34);
             panel.tavernButton = tb;
+            var (eb, _, _) = UIKit.Button(root, "Abrir expedições", () => openExpeditions(), 16);
+            UIKit.Size(eb, height: 34);
+            panel.expeditionButton = eb;
 
             root.gameObject.SetActive(false);
             return panel;
@@ -63,6 +66,7 @@ namespace Pixel.Village
             var cm = CrewManager.Instance;
             title.text = def.displayName;
             tavernButton.gameObject.SetActive(def.kind == BuildingKind.Tavern);
+            expeditionButton.gameObject.SetActive(def.kind == BuildingKind.Expedition);
 
             var sb = new StringBuilder();
             sb.AppendLine(UIKit.Colored(def.description, UIKit.MutedText));
@@ -95,6 +99,16 @@ namespace Pixel.Village
                 case BuildingKind.Market:
                     sb.AppendLine("Visitantes compram aqui o item mais caro do estoque.");
                     sb.AppendLine("Comida e rum da tripulação ficam guardados (não são vendidos).");
+                    break;
+
+                case BuildingKind.Expedition:
+                    var em = ExpeditionManager.Instance;
+                    if (em != null)
+                    {
+                        sb.AppendLine($"Expedições em andamento: {em.Active.Count}");
+                        foreach (var ex in em.Active) sb.AppendLine("• " + ex.StatusText);
+                    }
+                    sb.AppendLine("Tecla X também abre as expedições.");
                     break;
 
                 case BuildingKind.Shipyard:

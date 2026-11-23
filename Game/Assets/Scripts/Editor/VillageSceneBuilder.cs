@@ -139,7 +139,7 @@ namespace Pixel.EditorTools
         }
 
         // ---------- Dados do jogo ----------
-        struct GameData { public ItemDef[] items; public BuildingDef[] buildings; public ItemDef food, rum; public Pixel.Ship.ShipBlockDef[] shipBlocks; }
+        struct GameData { public ItemDef[] items; public BuildingDef[] buildings; public ItemDef food, rum; public Pixel.Ship.ShipBlockDef[] shipBlocks; public DungeonDef[] dungeons; }
 
         static GameData CreateData()
         {
@@ -201,6 +201,12 @@ namespace Pixel.EditorTools
                 b.footprint = new Vector2Int(3, 2); b.cost = 100;
                 b.description = "Libera a edição do navio nas docas.";
             });
+            var board = GetOrCreate<BuildingDef>("Construcoes/QuadroDeExpedicoes", b =>
+            {
+                b.displayName = "Quadro de Expedições"; b.kind = BuildingKind.Expedition; b.sprite = LoadSprite("obj_expedition_board");
+                b.footprint = new Vector2Int(2, 1); b.cost = 80;
+                b.description = "Mande grupos de até 4 tripulantes para masmorras. Combate automático!";
+            });
             var market = GetOrCreate<BuildingDef>("Construcoes/Mercado", b =>
             {
                 b.displayName = "Mercado"; b.kind = BuildingKind.Market; b.sprite = LoadSprite("obj_market");
@@ -211,11 +217,52 @@ namespace Pixel.EditorTools
             return new GameData
             {
                 items = new[] { rum, fish, cane },
-                buildings = new[] { house, tavern, farm, fishing, distillery, market, shipyard },
+                buildings = new[] { house, tavern, farm, fishing, distillery, market, shipyard, board },
+                dungeons = CreateDungeons(),
                 shipBlocks = CreateShipBlocks(),
                 food = fish,
                 rum = rum,
             };
+        }
+
+        static DungeonDef[] CreateDungeons()
+        {
+            DungeonStage St(params EnemyType[] e) => new DungeonStage { enemies = new List<EnemyType>(e) };
+            var C = EnemyType.Caranguejo; var P = EnemyType.Pirata; var E = EnemyType.Esqueleto; var S = EnemyType.Serpente; var B = EnemyType.CapitaoLendario;
+            var d1 = GetOrCreate<DungeonDef>("Masmorras/1_CavernaDosCaranguejos", d =>
+            {
+                d.displayName = "Caverna dos Caranguejos"; d.recommendedLevel = 1; d.enemyPower = 1f; d.travelSeconds = 10f;
+                d.description = "Uma gruta úmida cheia de caranguejos mal-humorados. Boa para começar.";
+                d.stages = new List<DungeonStage> { St(C, C, C), St(C, C, C, C), St(C, C, C, C, C) };
+                d.goldReward = new Vector2Int(60, 90); d.itemReward = "Peixe"; d.itemAmount = new Vector2Int(5, 10);
+                d.background = new Color(0.25f, 0.22f, 0.2f);
+            });
+            var d2 = GetOrCreate<DungeonDef>("Masmorras/2_NaufragioAssombrado", d =>
+            {
+                d.displayName = "Naufrágio Assombrado"; d.recommendedLevel = 2; d.enemyPower = 1.15f; d.travelSeconds = 14f;
+                d.description = "O casco de um galeão afundado, onde os mortos ainda guardam o rum.";
+                d.stages = new List<DungeonStage> { St(E, E), St(E, E, E), St(E, E, P, P) };
+                d.goldReward = new Vector2Int(120, 180); d.itemReward = "Rum"; d.itemAmount = new Vector2Int(3, 6);
+                d.background = new Color(0.12f, 0.2f, 0.32f);
+            });
+            var d3 = GetOrCreate<DungeonDef>("Masmorras/3_TemploDaSerpente", d =>
+            {
+                d.displayName = "Templo da Serpente"; d.recommendedLevel = 3; d.enemyPower = 1.1f; d.travelSeconds = 18f;
+                d.description = "Ruínas na selva tomadas por serpentes gigantes. Leve rum!";
+                d.stages = new List<DungeonStage> { St(S, S), St(E, E, E, S), St(S, S, S) };
+                d.goldReward = new Vector2Int(220, 320); d.itemReward = "Rum"; d.itemAmount = new Vector2Int(5, 9);
+                d.background = new Color(0.14f, 0.28f, 0.16f);
+            });
+            var d4 = GetOrCreate<DungeonDef>("Masmorras/4_CovilDoCapitaoLendario", d =>
+            {
+                d.displayName = "Covil do Capitão Lendário"; d.recommendedLevel = 4; d.enemyPower = 1.15f; d.travelSeconds = 22f;
+                d.description = "A fortaleza do pirata mais temido dos mares. Só os melhores voltam.";
+                d.stages = new List<DungeonStage> { St(P, P, P), St(P, P, P, P), St(B, P, P) };
+                d.goldReward = new Vector2Int(400, 600); d.itemReward = "Rum"; d.itemAmount = new Vector2Int(8, 14);
+                d.background = new Color(0.3f, 0.12f, 0.14f);
+            });
+            AssetDatabase.SaveAssets();
+            return new[] { d1, d2, d3, d4 };
         }
 
         static CrewManager.DirSprites CrewDir(string dir)
@@ -384,6 +431,12 @@ namespace Pixel.EditorTools
             {
                 down = CrewDir("down"), up = CrewDir("up"), left = CrewDir("left"), right = CrewDir("right"),
             };
+
+            var expeditions = village.AddComponent<ExpeditionManager>();
+            expeditions.dungeons = data.dungeons;
+            expeditions.crab = new[] { LoadSprite("Island/crab_0"), LoadSprite("Island/crab_1") };
+            expeditions.skeleton = new[] { LoadSprite("Dungeon/skeleton_0"), LoadSprite("Dungeon/skeleton_1") };
+            expeditions.serpent = new[] { LoadSprite("Dungeon/serpent_0"), LoadSprite("Dungeon/serpent_1") };
 
             var flowGo = new GameObject("Jogo");
             var flow = flowGo.AddComponent<GameFlow>();

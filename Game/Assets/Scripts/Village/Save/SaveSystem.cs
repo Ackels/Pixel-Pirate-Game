@@ -59,6 +59,12 @@ namespace Pixel.Village
             d.worldSeed = flow.WorldSeedUsed;
             foreach (var i in flow.World.Islands)
                 d.islands.Add(new IslandSave { id = i.id, revealed = i.revealed, visited = i.visited, looted = i.looted, cleared = i.cleared, treasure = i.hasTreasureHint });
+            var em = ExpeditionManager.Instance;
+            if (em != null)
+            {
+                d.dungeonsCleared.AddRange(em.ClearedNames);
+                d.presets.AddRange(em.presets);
+            }
             return d;
         }
 
@@ -114,6 +120,7 @@ namespace Pixel.Village
             var log = new List<(string, Color)>();
             foreach (var l in d.log) log.Add((l.msg, l.color));
             cm.RestoreFromSave(members, recruits, d.day, d.dayTimer, log);
+            ExpeditionManager.Instance?.RestoreFromSave(d.dungeonsCleared, d.presets?.ToArray());
 
             // Capitão
             if (flow.captain != null && (d.captainX != 0 || d.captainY != 0))

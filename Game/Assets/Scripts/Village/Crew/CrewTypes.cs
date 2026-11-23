@@ -76,6 +76,8 @@ namespace Pixel.Village
         public bool atSea;
         /// <summary>Foi nocauteado em combate nesta viagem (perde moral ao voltar).</summary>
         public bool injured;
+        /// <summary>Fora numa expedição (masmorra).</summary>
+        public bool onExpedition;
 
         public int CombatHp => 50 + level * 8;
         public Vector2Int CombatDamage => new Vector2Int(7 + level * 2, 10 + level * 2);

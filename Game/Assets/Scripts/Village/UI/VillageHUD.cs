@@ -38,6 +38,7 @@ namespace Pixel.Village
         TavernPanel tavernPanel;
         CrewPanel crewPanel;
         GameMenu menu;
+        ExpeditionPanel expeditionPanel;
         Camera cam;
 
         void Awake() => Instance = this;
@@ -88,7 +89,7 @@ namespace Pixel.Village
             // --- Topo direito: ajuda ---
             var help = UIKit.Panel("Ajuda", root, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-12, -12), new Vector2(340, 110));
             var helpText = UIKit.Text(help,
-                "WASD / setas: andar\nBarra de baixo: construir (Shift = vários)\nClique num prédio: ver detalhes\nC: tripulação · Esc: menu / cancelar", 15, TextAnchor.MiddleLeft);
+                "WASD / setas: andar\nBarra de baixo: construir (Shift = vários)\nClique num prédio: ver detalhes\nC: tripulação · X: expedições · Esc: menu", 15, TextAnchor.MiddleLeft);
             UIKit.Stretch(helpText.rectTransform, 10);
 
             // --- Baixo: barra de construção ---
@@ -125,7 +126,9 @@ namespace Pixel.Village
             EventLog.Create(root);
             tavernPanel = TavernPanel.Create(root);
             crewPanel = CrewPanel.Create(root);
-            infoPanel = BuildingInfoPanel.Create(root, () => { infoPanel.Hide(); tavernPanel.Show(); });
+            expeditionPanel = ExpeditionPanel.Create(root);
+            ExpeditionStrip.Create(root);
+            infoPanel = BuildingInfoPanel.Create(root, () => { infoPanel.Hide(); tavernPanel.Show(); }, () => { infoPanel.Hide(); expeditionPanel.Show(); });
             menu = GameMenu.Create(root);
             menu.OpenStart();
 
@@ -161,9 +164,10 @@ namespace Pixel.Village
             if (buildMode.Active || buildMode.LastActionFrame == Time.frameCount || GameMenu.IsOpen) return;
 
             if (kb != null && kb.cKey.wasPressedThisFrame) ToggleCrew();
+            if (kb != null && kb.xKey.wasPressedThisFrame) ToggleExpeditions();
             if (kb != null && kb.escapeKey.wasPressedThisFrame)
             {
-                bool anyOpen = tavernPanel.gameObject.activeSelf || crewPanel.gameObject.activeSelf || infoPanel.gameObject.activeSelf;
+                bool anyOpen = tavernPanel.gameObject.activeSelf || crewPanel.gameObject.activeSelf || infoPanel.gameObject.activeSelf || expeditionPanel.IsOpen;
                 if (anyOpen) CloseWindows();
                 else menu.OpenPause();
             }
@@ -186,8 +190,18 @@ namespace Pixel.Village
             if (!open) crewPanel.Show();
         }
 
+        void ToggleExpeditions()
+        {
+            bool open = expeditionPanel.IsOpen;
+            CloseWindows();
+            if (open) return;
+            if (ExpeditionManager.Instance == null || !ExpeditionManager.Instance.HasBoard) { Toast("Construa o Quadro de Expedições para mandar grupos às masmorras."); return; }
+            expeditionPanel.Show();
+        }
+
         void CloseWindows()
         {
+            expeditionPanel.Hide();
             tavernPanel.Hide();
             crewPanel.Hide();
             infoPanel.Hide();

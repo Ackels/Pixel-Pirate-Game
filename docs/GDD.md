@@ -236,7 +236,7 @@ Não dá para fazer tudo de uma vez. Ordem proposta:
 | **3. Navio** ✅ | Estaleiro em grade (lateral), blocos básicos, embarcar nas docas → corte para o mar lateral | Montar a jangada e sair |
 | **4. Combate** ✅ | Capitão luta, navio inimigo, canhões, abordagem, saque | Primeiro saque! |
 | **5. Mapa-múndi** ✅ | Ilhas (desembarque lateral), viagem com consumo, eventos | Exploração e invasão de ilhas |
-| **6. Expedições** | Presets de grupo, masmorra com combate automático | Loop completo |
+| **6. Expedições** ✅ | Presets de grupo, masmorra com combate automático | Loop completo |
 | **7. Crônicas + polimento** | Tutorial por missões, save/load, menu, sons | **Vertical slice** apresentável |
 
 Depois: mais construções, facções, ataques à vila, chefes, modo Lendário, Steam.

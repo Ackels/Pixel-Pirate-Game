@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4868a08461c3a2948a90e72554eae021, type: 3}
+  m_Name: 4_CovilDoCapitaoLendario
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.DungeonDef
+  displayName: "Covil do Capit\xE3o Lend\xE1rio"
+  description: "A fortaleza do pirata mais temido dos mares. S\xF3 os melhores voltam."
+  recommendedLevel: 4
+  travelSeconds: 22
+  enemyPower: 1.15
+  stages:
+  - enemies: 010000000100000001000000i
+  - enemies: 01000000010000000100000001000000i
+  - enemies: 040000000100000001000000i
+  goldReward: {x: 400, y: 600}
+  itemReward: Rum
+  itemAmount: {x: 8, y: 14}
+  background: {r: 0.3, g: 0.12, b: 0.14, a: 1}

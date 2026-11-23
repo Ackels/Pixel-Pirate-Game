@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4868a08461c3a2948a90e72554eae021, type: 3}
+  m_Name: 1_CavernaDosCaranguejos
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.DungeonDef
+  displayName: Caverna dos Caranguejos
+  description: "Uma gruta \xFAmida cheia de caranguejos mal-humorados. Boa para come\xE7ar."
+  recommendedLevel: 1
+  travelSeconds: 10
+  enemyPower: 1
+  stages:
+  - enemies: 000000000000000000000000i
+  - enemies: 00000000000000000000000000000000i
+  - enemies: 0000000000000000000000000000000000000000i
+  goldReward: {x: 60, y: 90}
+  itemReward: Peixe
+  itemAmount: {x: 5, y: 10}
+  background: {r: 0.25, g: 0.22, b: 0.2, a: 1}

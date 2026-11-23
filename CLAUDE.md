@@ -86,6 +86,24 @@
     - Na chegada, a tripulação recupera metade da vida que faltava.
     - A câmera acompanha o capitão.
   - `Ship/Interactable`: E para abrir baú ou negociar.
+- **Fase 6 (concluída em 23/11/2026): expedições, em `Village/Expedition/`**
+  - Prédio **Quadro de Expedições** (80 ouro, `BuildingKind.Expedition`). Ele libera a janela `UI/ExpeditionPanel`, que abre pelo prédio ou pela tecla X.
+  - `DungeonDef` (em `Assets/Data/Masmorras`): andares de inimigos, recompensa, tempo de viagem, `enemyPower` (multiplica vida e dano) e cor da faixa.
+    - Caverna dos Caranguejos (nv1, poder 1,0).
+    - Naufrágio Assombrado (nv2, 1,15).
+    - Templo da Serpente (nv3, 1,1).
+    - Covil do Capitão Lendário (nv4, 1,15).
+    - Uma masmorra libera a seguinte (`ExpeditionManager.IsUnlocked`).
+  - `Expedition` simula tudo sem física: ida → andares (cada um ataca um alvo aleatório no seu intervalo) → volta. O rum cura 25 de quem cai abaixo de 35% da vida. Inimigos ficam em `EnemyStats`.
+  - Equilíbrio medido com simulação de 200 rodadas e grupo de 4. No nível recomendado: sem rum, 40–65% de vitória (Caverna 100%); com 3 rum, 95–100%.
+  - `ExpeditionManager`: até 4 tripulantes, 1 peixe por pessoa e rum opcional (máx. 6).
+    - Quem vai fica com `onExpedition`: sai do posto de trabalho e não embarca no navio.
+    - Na volta: ouro e item na vitória (na derrota, 30% proporcional aos andares limpos); XP = andares × 3 (+5 na vitória); −15 de moral para quem caiu e +5 para quem ficou de pé na vitória; o rum que sobrou volta.
+    - Grupos salvos A, B e C (`presets`).
+    - Várias expedições podem rodar ao mesmo tempo, inclusive enquanto o capitão está no mar.
+  - `UI/ExpeditionStrip`: faixa no topo da vila com bonecos (camadas na UI), barras de vida, avanço no golpe, número de dano e registro. Clique para trocar de expedição.
+    - O script fica num "suporte" sempre ativo; desativar o próprio objeto pararia o Update.
+  - Save: guarda as masmorras concluídas e os grupos salvos. Expedições em andamento **não** são salvas: ao carregar, o grupo está em casa e o peixe e o rum gastos se perdem.
 - **Salvar e carregar (23/11/2026), em `Village/Save/`:**
   - `SaveSystem` grava JSON em `Application.persistentDataPath/save_1.json` (no Windows: `AppData/LocalLow/Pixel/Enseada dos Corsários`).
   - `SaveData` guarda:
