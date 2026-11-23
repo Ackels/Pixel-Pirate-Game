@@ -97,6 +97,12 @@ namespace Pixel.Village
                     sb.AppendLine("Comida e rum da tripulação ficam guardados (não são vendidos).");
                     break;
 
+                case BuildingKind.Shipyard:
+                    sb.AppendLine("Libera a edição do navio.");
+                    sb.AppendLine("Vá até o fim do píer e aperte E para embarcar;");
+                    sb.AppendLine("lá, clique em \"Editar navio\".");
+                    break;
+
                 case BuildingKind.Tavern:
                     if (cm != null)
                     {

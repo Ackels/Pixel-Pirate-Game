@@ -233,8 +233,8 @@ Não dá para fazer tudo de uma vez. Ordem proposta:
 | **0. Protótipo de base** ✅ | Projeto Unity, câmera pixel perfect, capitão andando em 4/8 direções (visão de cima), tilemap da enseada | Andar pela vila |
 | **1. Vila mínima** ✅ | Modo construção (casa, horta, destilaria, mercado), 1 recurso → 1 produto, visitantes compram | Construir e ganhar ouro |
 | **2. Tripulação** ✅ | Taverna, recrutas gerados, fome/moral/salário, ofícios com metas | Contratar e ver a vila trabalhar sozinha |
-| **3. Navio** | Estaleiro em grade (lateral), blocos básicos, embarcar nas docas → corte para o mar lateral | Montar a jangada e sair |
-| **4. Combate** | Capitão luta, navio inimigo, canhões, abordagem, saque | Primeiro saque! |
+| **3. Navio** ✅ | Estaleiro em grade (lateral), blocos básicos, embarcar nas docas → corte para o mar lateral | Montar a jangada e sair |
+| **4. Combate** ✅ | Capitão luta, navio inimigo, canhões, abordagem, saque | Primeiro saque! |
 | **5. Mapa-múndi** | Ilhas (desembarque lateral), viagem com consumo, eventos | Exploração e invasão de ilhas |
 | **6. Expedições** | Presets de grupo, masmorra com combate automático | Loop completo |
 | **7. Crônicas + polimento** | Tutorial por missões, save/load, menu, sons | **Vertical slice** apresentável |

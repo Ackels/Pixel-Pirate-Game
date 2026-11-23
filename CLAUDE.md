@@ -29,5 +29,34 @@
   - UI: `UIKit` (helpers), `TavernPanel`, `CrewPanel` (tecla C), `BuildingInfoPanel` (clique no prédio) e `EventLog`.
   - Começo do jogo: 200 de ouro, 2 marujos (Agricultor e Pescador) e 10 Peixes.
   - Prédios: Casa 40, Taverna 60, Horta 30, Cabana de Pesca 40 (precisa encostar na água), Destilaria 80, Mercado 50. Preços de venda: Cana 3, Peixe 4, Rum 15.
+- **Fase 3 (concluída em 23/11/2026): navio e mar**
+  - `Village/GameFlow` (no objeto "Jogo"): no fim do píer aparece "E: embarcar". A cena `Sea.unity` é carregada de forma **aditiva**: a vila continua carregada e produzindo, e só a câmera, o HUD, a luz e o capitão da vila são desligados.
+  - O mundo do mar fica em y≈1000, longe da vila, para as duas cenas não se misturarem.
+  - A luz da vila só religa depois que o Mar descarrega; duas Light2D globais juntas dão erro.
+  - O desenho do navio (`Ship/ShipLayout`, grade 26×14, linha d'água na linha 2) fica guardado no GameFlow entre as viagens.
+  - `Ship/`:
+    - `ShipBlockDef` (Casco, Convés, Mastro, Vela, Canhão, Cabine, em `Assets/Data/Navio`).
+    - `ShipView`: um sprite por bloco, e os blocos sólidos são fundidos num CompositeCollider2D.
+    - `ShipEditor`: estaleiro; clique coloca, botão direito remove e devolve metade.
+    - `SideCaptainController`: A/D e Espaço.
+    - `SeaScroller`: o navio fica parado e o cenário rola em parallax.
+    - `SeaController`: modos Atracado, Editando e Navegando.
+    - `SeaHUD`.
+  - Regras do navio: tudo conectado; o mastro precisa de apoio; a vela fica presa no mastro ou em outra vela; o canhão precisa de piso e não pode ficar embaixo d'água.
+  - Velocidade = 2 + velas×2 / (1 + blocos×0,04).
+  - Para editar o navio é preciso ter o prédio **Estaleiro** (100 ouro) na vila.
+  - O montador `VillageSceneBuilder` (agora `partial`, com a parte do mar em `VillageSceneBuilder.Sea.cs`) gera as duas cenas e as coloca no Build Settings.
+- **Fase 4 (concluída em 23/11/2026): combate, em `Assets/Scripts/Combat/`**
+  - `EncounterDirector` (no objeto "Mar") é uma máquina de estados: None → Approaching → Engaged → Closing → Boarding → Victory, Sinking, Fled ou Defeat.
+  - O 1º encontro acontece 12 s depois de zarpar e é sempre um mercante; depois os encontros vêm a cada ~35 s. A chance de pirata cresce com a distância.
+  - Vida dos inimigos: mercante = blocos × 0,45 (5 nós); pirata = blocos × 0,35 (7,5 nós). Pirata aborda sozinho quando o seu casco cai abaixo de 50% ou depois de 25 s.
+  - Canhões disparam sozinhos a cada ~3 s, com bala em arco (`Cannonball`). Acerto: jogador 70%, inimigo 60%.
+  - Abordagem: a prancha é um EdgeCollider2D ligando `ShipView.EdgeDeck`. A tripulação inimiga anda junto com o navio enquanto ele se move (senão cai no mar).
+  - `Combatant` (vida, golpe à frente, barra, nocaute) + `CombatAI` (defesa ou ataque, pula quando trava) + `LayeredFigure` (boneco em camadas na lateral). Lutadores ignoram colisão entre si.
+  - Capitão: 100 de vida, dano 16–24; ataca com F, J ou clique.
+  - Vitória por abordagem dá o saque cheio; afundar dá metade do ouro. Derrota (casco 0 ou capitão nocauteado): perde 25% do ouro e volta para a vila.
+  - Dano do casco persiste em `GameFlow.ShipDamage`. O conserto nas docas custa 1 ouro por ponto; não dá para zarpar com o casco em 0.
+  - Embarque: tripulantes **sem posto de trabalho** embarcam (`CrewManager.Embark`), até MaxCrew − 1 (o capitão ocupa uma vaga). Quem é nocauteado volta com −15 de moral.
+  - `SeaCamera` desliza para enquadrar os dois navios.
 - Repositório: https://github.com/Ackels/Pixel-Pirate-Game (privado, branch `main`). O `gh` CLI não está instalado; o push usa o gerenciador de credenciais do git.
 - Outro projeto do usuário, PirateRPG (`C:\Users\jhona\Projetos\PirateRPG`), é **separado**. Não misturar.

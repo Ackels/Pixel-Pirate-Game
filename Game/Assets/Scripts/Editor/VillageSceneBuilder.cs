@@ -16,7 +16,7 @@ namespace Pixel.EditorTools
     /// Menu: Pixel > Montar cena da Vila. ATENÇÃO: recria a cena (edições manuais nela se perdem),
     /// mas NÃO sobrescreve os dados em Assets/Data (pode ajustar preços e tempos à vontade).
     /// </summary>
-    public static class VillageSceneBuilder
+    public static partial class VillageSceneBuilder
     {
         const string ArtDir = "Assets/Art/Placeholder";
         const string TileDir = "Assets/Art/Tiles";
@@ -77,7 +77,9 @@ namespace Pixel.EditorTools
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 var importer = (TextureImporter)AssetImporter.GetAtPath(path);
                 string file = Path.GetFileName(path);
-                bool centered = file.StartsWith("tile_") || file.StartsWith("icon_");
+                bool centered = file.StartsWith("tile_") || file.StartsWith("icon_") || file.StartsWith("ship_")
+                             || file.StartsWith("fx_") || file.StartsWith("flag_")
+                             || (file.StartsWith("sea_") && !file.StartsWith("sea_island"));
 
                 importer.textureType = TextureImporterType.Sprite;
                 importer.spriteImportMode = SpriteImportMode.Single;
@@ -136,7 +138,7 @@ namespace Pixel.EditorTools
         }
 
         // ---------- Dados do jogo ----------
-        struct GameData { public ItemDef[] items; public BuildingDef[] buildings; public ItemDef food, rum; }
+        struct GameData { public ItemDef[] items; public BuildingDef[] buildings; public ItemDef food, rum; public Pixel.Ship.ShipBlockDef[] shipBlocks; }
 
         static GameData CreateData()
         {
@@ -192,6 +194,12 @@ namespace Pixel.EditorTools
                 b.inputItem = cane; b.inputAmount = 2; b.outputItem = rum; b.outputAmount = 1; b.cycleSeconds = 10f;
                 b.description = "Destilador transforma 2 Cana em 1 Rum a cada 10 s.";
             });
+            var shipyard = GetOrCreate<BuildingDef>("Construcoes/Estaleiro", b =>
+            {
+                b.displayName = "Estaleiro"; b.kind = BuildingKind.Shipyard; b.sprite = LoadSprite("obj_shipyard");
+                b.footprint = new Vector2Int(3, 2); b.cost = 100;
+                b.description = "Libera a edição do navio nas docas.";
+            });
             var market = GetOrCreate<BuildingDef>("Construcoes/Mercado", b =>
             {
                 b.displayName = "Mercado"; b.kind = BuildingKind.Market; b.sprite = LoadSprite("obj_market");
@@ -202,7 +210,8 @@ namespace Pixel.EditorTools
             return new GameData
             {
                 items = new[] { rum, fish, cane },
-                buildings = new[] { house, tavern, farm, fishing, distillery, market },
+                buildings = new[] { house, tavern, farm, fishing, distillery, market, shipyard },
+                shipBlocks = CreateShipBlocks(),
                 food = fish,
                 rum = rum,
             };
@@ -221,6 +230,7 @@ namespace Pixel.EditorTools
         static void BuildVillageScene()
         {
             var data = CreateData();
+            BuildSeaScene(data.shipBlocks);
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var rng = new System.Random(42);
 
@@ -374,17 +384,35 @@ namespace Pixel.EditorTools
                 down = CrewDir("down"), up = CrewDir("up"), left = CrewDir("left"), right = CrewDir("right"),
             };
 
+            var flowGo = new GameObject("Jogo");
+            var flow = flowGo.AddComponent<GameFlow>();
+            flow.shipBlocks = data.shipBlocks;
+            flow.raftHull = data.shipBlocks[0];
+            flow.raftMast = data.shipBlocks[2];
+            flow.raftSail = data.shipBlocks[3];
+            flow.villageCamera = camGo;
+            flow.villageLight = lightGo;
+            flow.captain = captain;
+            flow.buildMode = buildMode;
+            flow.boardingArea = new Rect(30f, 0f, 3f, 3.5f);
+            flow.returnPoint = new Vector2(31.5f, 4f);
+
             var hudGo = new GameObject("HUD");
             var hud = hudGo.AddComponent<VillageHUD>();
             hud.buildMode = buildMode;
             hud.goldIcon = LoadSprite("Icons/icon_gold");
             hud.crewIcon = LoadSprite("Icons/icon_crew");
+            flow.villageHUD = hudGo;
 
             EditorSceneManager.SaveScene(scene, ScenePath);
 
-            var list = new List<EditorBuildSettingsScene> { new EditorBuildSettingsScene(ScenePath, true) };
+            var list = new List<EditorBuildSettingsScene>
+            {
+                new EditorBuildSettingsScene(ScenePath, true),
+                new EditorBuildSettingsScene(SeaScenePath, true),
+            };
             foreach (var s in EditorBuildSettings.scenes)
-                if (s.path != ScenePath) list.Add(s);
+                if (s.path != ScenePath && s.path != SeaScenePath) list.Add(s);
             EditorBuildSettings.scenes = list.ToArray();
             AssetDatabase.SaveAssets();
         }

@@ -72,6 +72,14 @@ namespace Pixel.Village
         public Building workplace;
         public CrewAgent agent;
 
+        /// <summary>Embarcado no navio (não trabalha na vila enquanto isso).</summary>
+        public bool atSea;
+        /// <summary>Foi nocauteado em combate nesta viagem (perde moral ao voltar).</summary>
+        public bool injured;
+
+        public int CombatHp => 50 + level * 8;
+        public Vector2Int CombatDamage => new Vector2Int(7 + level * 2, 10 + level * 2);
+
         public bool Has(Trait t) => traits.Contains(t);
 
         public int Wage => Mathf.Max(1, 2 + level - (Has(Trait.Preguicoso) ? 1 : 0));

@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Pixel.Village
 {
-    public enum BuildingKind { House, Producer, Market, Tavern }
+    public enum BuildingKind { House, Producer, Market, Tavern, Shipyard }
 
     /// <summary>Um tipo de construção da vila. Edite custo, tamanho e produção no Inspector.</summary>
     [CreateAssetMenu(menuName = "Pixel/Construção", fileName = "Building")]

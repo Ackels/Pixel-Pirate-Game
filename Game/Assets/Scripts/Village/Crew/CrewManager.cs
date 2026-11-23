@@ -223,8 +223,8 @@ namespace Pixel.Village
 
             // Trabalho: refaz a distribuição. Primeiro quem tem o ofício certo, depois o resto.
             foreach (var b in vm.Buildings) b.Workers.Clear();
-            var free = new List<CrewMember>(crew);
-            foreach (var c in crew) c.workplace = null;
+            var free = new List<CrewMember>();
+            foreach (var c in crew) { c.workplace = null; if (!c.atSea) free.Add(c); }
             for (int pass = 0; pass < 2; pass++)
             {
                 foreach (var b in vm.Buildings)
@@ -315,6 +315,48 @@ namespace Pixel.Village
             RefreshRecruits();
             Changed?.Invoke();
         }
+
+        // ---------- Viagens ----------
+        /// <summary>
+        /// Embarca até "max" tripulantes SEM posto de trabalho (marujos ociosos).
+        /// Quem está trabalhando fica na vila, para a produção não parar.
+        /// </summary>
+        public List<CrewMember> Embark(int max)
+        {
+            var list = new List<CrewMember>();
+            foreach (var c in crew)
+            {
+                if (list.Count >= max) break;
+                if (c.workplace != null || c.atSea) continue;
+                c.atSea = true;
+                c.injured = false;
+                if (c.agent != null) c.agent.gameObject.SetActive(false);
+                list.Add(c);
+            }
+            if (list.Count > 0) AssignAll();
+            return list;
+        }
+
+        public void Disembark(List<CrewMember> list)
+        {
+            int hurt = 0;
+            foreach (var c in list)
+            {
+                if (!crew.Contains(c)) continue;
+                c.atSea = false;
+                if (c.injured) { c.morale = Mathf.Max(0, c.morale - 15); c.injured = false; hurt++; }
+                if (c.agent != null)
+                {
+                    c.agent.transform.position = dockPoint + new Vector2(0, 3f) + Random.insideUnitCircle;
+                    c.agent.gameObject.SetActive(true);
+                }
+            }
+            if (hurt > 0) Log($"{hurt} tripulante(s) voltaram feridos (-15 de moral).", new Color(1f, 0.65f, 0.4f));
+            AssignAll();
+        }
+
+        /// <summary>Escreve uma notícia no registro da vila.</summary>
+        public void Report(string msg, Color color) => Log(msg, color);
 
         /// <summary>Últimas mensagens (para o registro mostrar o que aconteceu antes de abrir).</summary>
         public readonly List<(string msg, Color color)> History = new List<(string, Color)>();

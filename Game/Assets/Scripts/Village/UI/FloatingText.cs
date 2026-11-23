@@ -19,7 +19,7 @@ namespace Pixel.Village
         public static void Spawn(Vector3 worldPos, string message, Color color)
         {
             var hud = VillageHUD.Instance;
-            if (hud == null || hud.FloatingRoot == null) return;
+            if (hud == null || hud.FloatingRoot == null || !hud.isActiveAndEnabled) return;
             var go = new GameObject("TextoFlutuante", typeof(RectTransform));
             go.transform.SetParent(hud.FloatingRoot, false);
             var t = go.AddComponent<Text>();

@@ -20,6 +20,8 @@ namespace Pixel.Village
         public Sprite crewIcon;
 
         public RectTransform FloatingRoot { get; private set; }
+        /// <summary>Aviso de interação (ex.: "Aperte E para embarcar"). Aparece quando não há dica de construção.</summary>
+        public string Prompt { get; set; }
         public Font UIFont => UIKit.Font;
 
         Text dayText, goldText, crewText, hintText;
@@ -128,7 +130,7 @@ namespace Pixel.Village
         void Update()
         {
             if (hintText == null) return;
-            string hint = buildMode.Hint;
+            string hint = string.IsNullOrEmpty(buildMode.Hint) ? Prompt : buildMode.Hint;
             hintText.transform.parent.gameObject.SetActive(!string.IsNullOrEmpty(hint));
             hintText.text = hint;
 
@@ -221,7 +223,7 @@ namespace Pixel.Village
             colors.disabledColor = new Color(0.5f, 0.5f, 0.5f, 0.8f);
             btn.colors = colors;
             btn.onClick.AddListener(onClick);
-            UIKit.Size(rt, icon != null ? 140 : 90, 68);
+            UIKit.Size(rt, icon != null ? 124 : 84, 68);
 
             var layout = UIKit.Horizontal(rt.gameObject, 5, 5);
             layout.childAlignment = TextAnchor.MiddleCenter;
@@ -232,7 +234,7 @@ namespace Pixel.Village
                 img.sprite = icon;
                 img.preserveAspect = true;
                 img.raycastTarget = false;
-                UIKit.Size(iconRt, 44, 44);
+                UIKit.Size(iconRt, 38, 38);
             }
             var t = UIKit.Text(rt, label, 15, TextAnchor.MiddleCenter);
             UIKit.Size(t, flexWidth: 1);
