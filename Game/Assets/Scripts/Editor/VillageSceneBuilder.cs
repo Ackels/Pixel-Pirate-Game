@@ -400,6 +400,7 @@ namespace Pixel.EditorTools
             light.lightType = Light2D.LightType.Global;
             light.intensity = 1f;
             light.color = new Color(1f, 0.97f, 0.9f);
+            lightGo.AddComponent<DayNightLight>();
 
             // Sistemas da vila (Fase 1)
             var village = new GameObject("Vila");
@@ -431,6 +432,22 @@ namespace Pixel.EditorTools
             {
                 down = CrewDir("down"), up = CrewDir("up"), left = CrewDir("left"), right = CrewDir("right"),
             };
+
+            village.AddComponent<ChronicleManager>();
+
+            var audioGo = new GameObject("Audio");
+            var audio = audioGo.AddComponent<AudioManager>();
+            AudioClip Clip(string n) => AssetDatabase.LoadAssetAtPath<AudioClip>($"Assets/Audio/{n}.wav");
+            AudioManager.SfxClip S(Sfx id, string file, float vol) => new AudioManager.SfxClip { id = id, clip = Clip("Sfx/" + file), volume = vol };
+            audio.effects = new[]
+            {
+                S(Sfx.Coin, "sfx_coin", 0.5f), S(Sfx.Build, "sfx_build", 0.7f), S(Sfx.Cannon, "sfx_cannon", 0.7f),
+                S(Sfx.Boom, "sfx_boom", 0.7f), S(Sfx.Splash, "sfx_splash", 0.5f), S(Sfx.Swing, "sfx_swing", 0.4f),
+                S(Sfx.Hit, "sfx_hit", 0.5f), S(Sfx.Chest, "sfx_chest", 0.7f), S(Sfx.Quest, "sfx_quest", 0.8f),
+                S(Sfx.Click, "sfx_click", 0.4f),
+            };
+            audio.villageMusic = Clip("Music/music_village");
+            audio.seaMusic = Clip("Music/music_sea");
 
             var expeditions = village.AddComponent<ExpeditionManager>();
             expeditions.dungeons = data.dungeons;

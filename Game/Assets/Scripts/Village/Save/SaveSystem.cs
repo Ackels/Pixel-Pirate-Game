@@ -65,6 +65,8 @@ namespace Pixel.Village
                 d.dungeonsCleared.AddRange(em.ClearedNames);
                 d.presets.AddRange(em.presets);
             }
+            if (ChronicleManager.Instance != null) d.chronicle = ChronicleManager.Instance.Current;
+            d.stats = GameStats.Export();
             return d;
         }
 
@@ -121,6 +123,8 @@ namespace Pixel.Village
             foreach (var l in d.log) log.Add((l.msg, l.color));
             cm.RestoreFromSave(members, recruits, d.day, d.dayTimer, log);
             ExpeditionManager.Instance?.RestoreFromSave(d.dungeonsCleared, d.presets?.ToArray());
+            GameStats.Import(d.stats);
+            ChronicleManager.Instance?.RestoreFromSave(d.chronicle);
 
             // Capitão
             if (flow.captain != null && (d.captainX != 0 || d.captainY != 0))

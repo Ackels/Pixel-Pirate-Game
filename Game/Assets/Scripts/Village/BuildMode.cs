@@ -125,6 +125,7 @@ namespace Pixel.Village
             {
                 LastActionFrame = Time.frameCount;
                 vm.Place(def, origin);
+                AudioManager.Play(Sfx.Build);
                 FloatingText.Spawn(ghost.transform.position + Vector3.up * def.footprint.y, $"-{def.cost} ouro", new Color(1f, 0.85f, 0.3f));
                 bool keep = kb != null && (kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed);
                 if (!keep) Cancel();

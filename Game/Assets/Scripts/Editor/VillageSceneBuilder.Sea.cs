@@ -62,6 +62,9 @@ namespace Pixel.EditorTools
             var light = new GameObject("Luz Global do Mar").AddComponent<Light2D>();
             light.lightType = Light2D.LightType.Global;
             light.intensity = 1f;
+            var dayNight = light.gameObject.AddComponent<Pixel.Village.DayNightLight>();
+            dayNight.tintCamera = cam;
+            dayNight.skyColor = cam.backgroundColor;
 
             // Cenário
             var scenery = new GameObject("Cenario").transform;

@@ -361,6 +361,7 @@ namespace Pixel.Ship
 
             Location = to;
             to.visited = true;
+            GameStats.Add(GameStats.IslandsVisited);
             World.RevealAround(to);
             Mode = SeaMode.Landed;
             islands.Build(to);
@@ -434,6 +435,7 @@ namespace Pixel.Ship
 
         public void BuyFish()
         {
+            AudioManager.Play(Sfx.Coin);
             if (FoodItem == null) return;
             if (!Spend(FishPackPrice)) { Say("Ouro insuficiente."); return; }
             VillageManager.Instance.AddStock(FoodItem, FishPackSize);

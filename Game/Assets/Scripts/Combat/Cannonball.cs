@@ -1,4 +1,5 @@
 using System;
+using Pixel.Village;
 using UnityEngine;
 
 namespace Pixel.Combat
@@ -27,6 +28,7 @@ namespace Pixel.Combat
             b.flight = 0.45f + dist / 16f;
             b.arc = 1.5f + dist * 0.12f;
             Fx.Spawn(Fx.Puff, from, 0.6f, 2f);
+            AudioManager.Play(Sfx.Cannon, 0.7f);
         }
 
         void Update()
@@ -40,10 +42,11 @@ namespace Pixel.Combat
             if (hit)
             {
                 Fx.Spawn(Fx.Boom, to, 0.35f, 1.8f);
+                AudioManager.Play(Sfx.Boom, 0.8f);
                 Fx.Spawn(Fx.Puff, to + Vector2.up * 0.3f, 0.8f, 2.2f);
                 onHit?.Invoke();
             }
-            else Fx.Spawn(Fx.Splash, to + Vector2.up * 0.4f, 0.6f, 1.3f);
+            else { Fx.Spawn(Fx.Splash, to + Vector2.up * 0.4f, 0.6f, 1.3f); AudioManager.Play(Sfx.Splash, 0.6f); }
             Destroy(gameObject);
         }
     }

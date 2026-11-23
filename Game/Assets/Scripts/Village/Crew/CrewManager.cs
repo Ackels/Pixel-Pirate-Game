@@ -133,6 +133,8 @@ namespace Pixel.Village
             if (!recruits.Contains(r) || !CanHire(r, out _)) return false;
             vm.TrySpendGold(r.HireCost);
             recruits.Remove(r);
+            GameStats.Add(GameStats.Hires);
+            AudioManager.Play(Sfx.Coin);
             var tavern = FindTavern();
             AddToCrew(r, tavern != null ? tavern.Door : idleArea);
             Log($"{r.name} entrou para o bando! ({CrewText.Name(r.profession)})", new Color(0.6f, 0.9f, 1f));

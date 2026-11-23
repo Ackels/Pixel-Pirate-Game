@@ -104,6 +104,17 @@
   - `UI/ExpeditionStrip`: faixa no topo da vila com bonecos (camadas na UI), barras de vida, avanço no golpe, número de dano e registro. Clique para trocar de expedição.
     - O script fica num "suporte" sempre ativo; desativar o próprio objeto pararia o Update.
   - Save: guarda as masmorras concluídas e os grupos salvos. Expedições em andamento **não** são salvas: ao carregar, o grupo está em casa e o peixe e o rum gastos se perdem.
+- **Fase 7 (concluída em 23/11/2026): Crônicas e polimento**
+  - `Village/Chronicles/ChronicleManager` (no objeto "Vila"): 15 missões em sequência, definidas em código (`Build()`), cada uma com condição (`Func<bool>`), progresso opcional e recompensa em ouro. São checadas a cada 0,5 s.
+  - `GameStats`: contadores de vendas, viagens, ilhas, vitórias no mar, baús e contratações. Zeram no início de cada cena e são salvos.
+  - `UI/ChronicleUI`: painel da missão atual à esquerda (clicável) e janela com todas (tecla J).
+  - Save: `chronicle` (índice) + `stats`.
+  - `Village/Audio/AudioManager` (objeto "Audio", na cena da vila): música da vila e do mar (troca em GoToSea/ReturnToVillage) e `AudioManager.Play(Sfx.X)`.
+    - Os sons são WAVs gerados por script (chiptune original) em `Assets/Audio`.
+    - Botão Som liga/desliga na pausa (PlayerPrefs `pixel_sound_on`).
+    - O AudioListener fica no objeto Audio.
+  - `Village/DayNightLight`: na luz global da vila e do mar. Muda cor e intensidade pelo `CrewManager.DayProgress`; no mar também tinge o céu (fundo da câmera).
+  - `SeaCamera.Shake`: a câmera treme quando o seu navio leva bala.
 - **Salvar e carregar (23/11/2026), em `Village/Save/`:**
   - `SaveSystem` grava JSON em `Application.persistentDataPath/save_1.json` (no Windows: `AppData/LocalLow/Pixel/Enseada dos Corsários`).
   - `SaveData` guarda:

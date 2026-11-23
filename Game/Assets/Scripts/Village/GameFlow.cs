@@ -103,6 +103,8 @@ namespace Pixel.Village
             AtSea = true;
             if (buildMode != null) buildMode.Cancel();
             SetVillageVisible(false);
+            GameStats.Add(GameStats.Voyages);
+            AudioManager.Instance?.PlayMusic(true);
             Embarked.Clear();
             VoyageGold = 0;
             var cm = CrewManager.Instance;
@@ -129,6 +131,7 @@ namespace Pixel.Village
                 if (body != null) body.position = returnPoint;
             }
             SetVillageVisible(true, includeLight: unload == null);
+            AudioManager.Instance?.PlayMusic(false);
 
             var cm = CrewManager.Instance;
             if (cm != null)

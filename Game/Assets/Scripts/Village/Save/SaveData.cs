@@ -33,6 +33,10 @@ namespace Pixel.Village
         // Expedições (as que estavam em andamento não são salvas: o grupo volta pra casa)
         public List<string> dungeonsCleared = new List<string>();
         public List<ExpeditionManager.Preset> presets = new List<ExpeditionManager.Preset>();
+
+        // Crônicas e contadores
+        public int chronicle;
+        public List<ItemCount> stats = new List<ItemCount>();
     }
 
     [Serializable] public class ItemCount { public string item; public int count; }

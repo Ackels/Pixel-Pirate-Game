@@ -1,7 +1,7 @@
 # GDD — Jogo Pirata Pixel (nome provisório: **Enseada dos Corsários**)
 
 > Documento de Design do Jogo (GDD). É o "mapa" do projeto: tudo que vamos construir sai daqui.
-> Versão 0.1 — 23/11/2026. Status: **rascunho para aprovação**.
+> Versão 0.2 — 23/11/2026. Status: **vertical slice jogável (Fases 0–7 concluídas)**.
 
 ---
 
@@ -237,7 +237,7 @@ Não dá para fazer tudo de uma vez. Ordem proposta:
 | **4. Combate** ✅ | Capitão luta, navio inimigo, canhões, abordagem, saque | Primeiro saque! |
 | **5. Mapa-múndi** ✅ | Ilhas (desembarque lateral), viagem com consumo, eventos | Exploração e invasão de ilhas |
 | **6. Expedições** ✅ | Presets de grupo, masmorra com combate automático | Loop completo |
-| **7. Crônicas + polimento** | Tutorial por missões, save/load, menu, sons | **Vertical slice** apresentável |
+| **7. Crônicas + polimento** ✅ | Tutorial por missões, save/load, menu, sons | **Vertical slice** apresentável |
 
 Depois: mais construções, facções, ataques à vila, chefes, modo Lendário, Steam.
 

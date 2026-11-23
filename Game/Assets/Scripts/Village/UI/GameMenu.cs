@@ -119,6 +119,7 @@ namespace Pixel.Village
                 Btn("Sair para o menu", BackToMenu);
                 Btn("Sair do jogo", Quit);
             }, SaveSystem.CanSaveNow);
+            Btn(AudioManager.SoundOn ? "Som: ligado" : "Som: desligado", () => { AudioManager.SoundOn = !AudioManager.SoundOn; OpenPause(); });
             Btn("Sair para o menu", BackToMenu);
             Btn("Sair do jogo", Quit);
         }

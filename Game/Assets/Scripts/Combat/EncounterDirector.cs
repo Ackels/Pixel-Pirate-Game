@@ -362,7 +362,7 @@ namespace Pixel.Combat
                 bool hit = Random.value < 0.6f;
                 Vector2 target = hit ? sea.shipView.RandomBlockPoint() : new Vector2(sea.shipView.CenterX + Random.Range(-6f, 6f), sea.shipView.WaterlineY - 0.2f);
                 int dmg = pirate ? Random.Range(9, 14) : Random.Range(6, 10);
-                Cannonball.Fire(em[i], target, hit, () => sea.DamageShip(dmg));
+                Cannonball.Fire(em[i], target, hit, () => { sea.DamageShip(dmg); if (seaCamera) seaCamera.Shake(0.35f); });
             }
         }
 
@@ -413,6 +413,8 @@ namespace Pixel.Combat
             var items = new Dictionary<string, int> { { "Rum", pirate ? Random.Range(4, 11) : Random.Range(2, 7) } };
             if (!pirate) { items["Peixe"] = Random.Range(4, 11); items["Cana"] = Random.Range(3, 9); }
             sea.AddLoot(gold, items);
+            GameStats.Add(GameStats.SeaVictories);
+            AudioManager.Play(Sfx.Chest);
             Say($"VITÓRIA! O {EnemyName.ToLower()} se rendeu. Saque: {gold} ouro{ItemsText(items)}.");
             RemoveBridge();
             sea.ReviveCrew();
@@ -423,6 +425,7 @@ namespace Pixel.Combat
         {
             int gold = (pirate ? Random.Range(80, 161) : Random.Range(35, 71)) / 2;
             sea.AddLoot(gold, new Dictionary<string, int>());
+            GameStats.Add(GameStats.SeaVictories);
             Say($"O {EnemyName.ToLower()} afundou! Você recolheu {gold} ouro dos destroços (abordando ganharia mais).");
             ClearEnemyCrew();
             SetState(EncounterState.Sinking);

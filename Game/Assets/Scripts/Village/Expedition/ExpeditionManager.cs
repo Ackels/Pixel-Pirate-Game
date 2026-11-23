@@ -149,6 +149,7 @@ namespace Pixel.Village
             else cm.Report($"Expedição em {d.displayName} fracassou no andar {e.stage + 1}. Trouxe {gold} ouro.", new Color(1f, 0.55f, 0.45f));
             if (hurt > 0) cm.Report($"{hurt} expedicionário(s) voltaram feridos (-15 de moral).", new Color(1f, 0.65f, 0.4f));
             VillageHUD.Instance?.Toast(e.victory ? $"Expedição vitoriosa! +{gold} ouro" : "A expedição voltou derrotada.");
+            AudioManager.Play(e.victory ? Sfx.Chest : Sfx.Hit);
             Changed?.Invoke();
         }
 

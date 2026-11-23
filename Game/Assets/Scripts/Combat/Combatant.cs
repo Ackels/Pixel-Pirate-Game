@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Pixel.Village;
 using UnityEngine;
 
 namespace Pixel.Combat
@@ -118,6 +119,7 @@ namespace Pixel.Combat
             float dir = FacingRight ? 1f : -1f;
             Vector2 pos = transform.position;
             Fx.Spawn(Fx.Slash, pos + new Vector2(dir * 0.7f, 0.8f), 0.18f, 1.1f, !FacingRight, 40);
+            AudioManager.Play(Sfx.Swing, 0.5f);
             foreach (var other in All.ToArray())
             {
                 if (other == this || other.team == team || other.IsDown) continue;
@@ -133,6 +135,7 @@ namespace Pixel.Combat
             if (IsDown) return;
             hp = Mathf.Max(0, hp - amount);
             flash = 0.12f;
+            AudioManager.Play(Sfx.Hit, 0.6f);
             SetTint(new Color(1f, 0.45f, 0.45f));
             if (body != null && from != null)
             {

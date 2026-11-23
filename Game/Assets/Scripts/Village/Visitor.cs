@@ -62,6 +62,8 @@ namespace Pixel.Village
             }
             vm.TryTakeStock(best, 1);
             vm.AddGold(best.sellPrice);
+            GameStats.Add(GameStats.Sales);
+            AudioManager.Play(Sfx.Coin, 0.6f);
             FloatingText.Spawn(head, $"+{best.sellPrice} ouro ({best.displayName})", new Color(1f, 0.85f, 0.3f));
         }
 

@@ -180,6 +180,8 @@ namespace Pixel.Ship
                 sea.Say((treasure ? "TESOURO! " : "Baú aberto: ") + txt);
                 Fx.Spawn(Fx.Puff, sr.transform.position + Vector3.up * 0.6f, 0.5f, 1.6f);
                 sr.sprite = chestOpen;
+                GameStats.Add(GameStats.Chests);
+                AudioManager.Play(Sfx.Chest);
                 Destroy(it);
                 if (++chestsOpened >= chestsTotal) Node.looted = true;
             };
