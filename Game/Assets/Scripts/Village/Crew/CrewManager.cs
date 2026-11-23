@@ -42,6 +42,8 @@ namespace Pixel.Village
         public IReadOnlyList<CrewMember> Recruits => recruits;
         public event Action Changed;
         public event Action<string, Color> Logged;
+        /// <summary>Disparado no fim de cada dia (o jogo salva automaticamente).</summary>
+        public event Action DayEnded;
 
         readonly List<CrewMember> crew = new List<CrewMember>();
         readonly List<CrewMember> recruits = new List<CrewMember>();
@@ -314,6 +316,7 @@ namespace Pixel.Village
 
             RefreshRecruits();
             Changed?.Invoke();
+            DayEnded?.Invoke();
         }
 
         // ---------- Viagens ----------
@@ -370,6 +373,26 @@ namespace Pixel.Village
 
         /// <summary>Escreve uma notícia no registro da vila.</summary>
         public void Report(string msg, Color color) => Log(msg, color);
+
+        // ---------- Salvar / carregar ----------
+        public float DayTimer => dayTimer;
+
+        /// <summary>Substitui toda a tripulação pelo que veio do save.</summary>
+        public void RestoreFromSave(List<CrewMember> members, List<CrewMember> savedRecruits, int day, float timer, List<(string, Color)> log)
+        {
+            foreach (var c in crew) if (c.agent != null) Destroy(c.agent.gameObject);
+            crew.Clear();
+            recruits.Clear();
+            Day = Mathf.Max(1, day);
+            dayTimer = Mathf.Clamp(timer, 0f, dayLength);
+            for (int i = 0; i < members.Count; i++)
+                AddToCrew(members[i], idleArea + new Vector2((i % 4) * 1.2f - 1.8f, -1f - i / 4));
+            recruits.AddRange(savedRecruits);
+            History.Clear();
+            History.AddRange(log);
+            AssignAll();
+            Changed?.Invoke();
+        }
 
         /// <summary>Últimas mensagens (para o registro mostrar o que aconteceu antes de abrir).</summary>
         public readonly List<(string msg, Color color)> History = new List<(string, Color)>();

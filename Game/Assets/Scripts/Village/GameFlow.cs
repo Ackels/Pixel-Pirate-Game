@@ -38,6 +38,8 @@ namespace Pixel.Village
         public WorldMap World { get; private set; }
         [Tooltip("Semente do mapa. 0 = aleatória a cada jogo.")]
         public int worldSeed;
+        /// <summary>Semente realmente usada (vai para o save).</summary>
+        public int WorldSeedUsed { get; private set; }
         public bool AtSea { get; private set; }
         /// <summary>Dano no casco que continua até ser consertado nas docas.</summary>
         public int ShipDamage { get; set; }
@@ -50,10 +52,28 @@ namespace Pixel.Village
         {
             Instance = this;
             Ship = ShipLayout.Raft(raftHull, raftMast, raftSail);
-            World = WorldMap.Generate(worldSeed != 0 ? worldSeed : System.Environment.TickCount);
+            WorldSeedUsed = worldSeed != 0 ? worldSeed : System.Environment.TickCount;
+            World = WorldMap.Generate(WorldSeedUsed);
         }
 
         void OnDestroy() { if (Instance == this) Instance = null; }
+
+        void Start()
+        {
+            // Salva sozinho no fim de cada dia (se o capitão estiver na vila)
+            if (CrewManager.Instance != null) CrewManager.Instance.DayEnded += () => AutoSave("Fim do dia: jogo salvo.");
+        }
+
+        void OnApplicationQuit() { if (SavingEnabled) SaveSystem.Save(); }
+
+        /// <summary>Salva só depois que o jogador escolheu Continuar/Novo jogo no menu inicial.</summary>
+        public bool SavingEnabled { get; set; }
+
+        public void AutoSave(string toast)
+        {
+            if (!SavingEnabled || !SaveSystem.Save()) return;
+            VillageHUD.Instance?.Toast(toast);
+        }
 
         void Update()
         {
@@ -63,6 +83,15 @@ namespace Pixel.Village
             bool onDock = boardingArea.Contains(p) && (buildMode == null || !buildMode.Active);
             if (hud != null) hud.Prompt = onDock ? "Aperte E para embarcar no navio" : null;
             if (onDock && Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame) GoToSea();
+        }
+
+        /// <summary>Recoloca navio e mapa vindos de um save.</summary>
+        public void RestoreFromSave(ShipLayout ship, int damage, int seed)
+        {
+            Ship = ship;
+            ShipDamage = damage;
+            WorldSeedUsed = seed;
+            World = WorldMap.Generate(seed);
         }
 
         public bool HasShipyard =>
@@ -109,6 +138,7 @@ namespace Pixel.Village
                 if (ShipDamage > 0) cm.Report($"O navio voltou avariado ({ShipDamage} de dano). Conserte nas docas.", new Color(1f, 0.65f, 0.4f));
             }
             Embarked.Clear();
+            AutoSave("De volta à Enseada: jogo salvo.");
         }
 
         void SetVillageVisible(bool visible, bool includeLight = true)

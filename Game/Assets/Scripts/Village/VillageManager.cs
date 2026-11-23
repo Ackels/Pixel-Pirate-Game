@@ -182,6 +182,28 @@ namespace Pixel.Village
             return b;
         }
 
+        // ---------- Salvar / carregar ----------
+        public IEnumerable<KeyValuePair<ItemDef, int>> Stock => stock;
+
+        /// <summary>Apaga tudo (prédios, estoque) para carregar um jogo salvo.</summary>
+        public void ClearForLoad(int gold)
+        {
+            foreach (var b in buildings) if (b != null) Destroy(b.gameObject);
+            buildings.Clear();
+            occupied.Clear();
+            stock.Clear();
+            Gold = gold;
+            Changed?.Invoke();
+            BuildingsChanged?.Invoke();
+        }
+
+        public void SetStock(ItemDef item, int count)
+        {
+            if (item == null) return;
+            stock[item] = count;
+            Changed?.Invoke();
+        }
+
         public Building BuildingAt(Vector2 world)
         {
             var cell = new Vector2Int(Mathf.FloorToInt(world.x), Mathf.FloorToInt(world.y));

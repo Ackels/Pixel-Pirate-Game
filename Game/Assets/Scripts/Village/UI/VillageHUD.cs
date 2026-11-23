@@ -22,6 +22,11 @@ namespace Pixel.Village
         public RectTransform FloatingRoot { get; private set; }
         /// <summary>Aviso de interação (ex.: "Aperte E para embarcar"). Aparece quando não há dica de construção.</summary>
         public string Prompt { get; set; }
+
+        string toast;
+        float toastTimer;
+        /// <summary>Aviso rápido no meio da tela (ex.: "Jogo salvo").</summary>
+        public void Toast(string msg) { toast = msg; toastTimer = 2.5f; }
         public Font UIFont => UIKit.Font;
 
         Text dayText, goldText, crewText, hintText;
@@ -32,6 +37,7 @@ namespace Pixel.Village
         BuildingInfoPanel infoPanel;
         TavernPanel tavernPanel;
         CrewPanel crewPanel;
+        GameMenu menu;
         Camera cam;
 
         void Awake() => Instance = this;
@@ -82,7 +88,7 @@ namespace Pixel.Village
             // --- Topo direito: ajuda ---
             var help = UIKit.Panel("Ajuda", root, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-12, -12), new Vector2(340, 110));
             var helpText = UIKit.Text(help,
-                "WASD / setas: andar\nBarra de baixo: construir (Shift = vários)\nClique num prédio: ver detalhes\nC: tripulação · Esc / botão direito: cancelar", 15, TextAnchor.MiddleLeft);
+                "WASD / setas: andar\nBarra de baixo: construir (Shift = vários)\nClique num prédio: ver detalhes\nC: tripulação · Esc: menu / cancelar", 15, TextAnchor.MiddleLeft);
             UIKit.Stretch(helpText.rectTransform, 10);
 
             // --- Baixo: barra de construção ---
@@ -120,6 +126,8 @@ namespace Pixel.Village
             tavernPanel = TavernPanel.Create(root);
             crewPanel = CrewPanel.Create(root);
             infoPanel = BuildingInfoPanel.Create(root, () => { infoPanel.Hide(); tavernPanel.Show(); });
+            menu = GameMenu.Create(root);
+            menu.OpenStart();
 
             vm.Changed += Refresh;
             buildMode.SelectionChanged += Refresh;
@@ -130,7 +138,9 @@ namespace Pixel.Village
         void Update()
         {
             if (hintText == null) return;
-            string hint = string.IsNullOrEmpty(buildMode.Hint) ? Prompt : buildMode.Hint;
+            toastTimer -= Time.unscaledDeltaTime;
+            string hint = !string.IsNullOrEmpty(buildMode.Hint) ? buildMode.Hint
+                : toastTimer > 0 ? toast : Prompt;
             hintText.transform.parent.gameObject.SetActive(!string.IsNullOrEmpty(hint));
             hintText.text = hint;
 
@@ -148,10 +158,15 @@ namespace Pixel.Village
         {
             var kb = Keyboard.current;
             var mouse = Mouse.current;
-            if (buildMode.Active || buildMode.LastActionFrame == Time.frameCount) return;
+            if (buildMode.Active || buildMode.LastActionFrame == Time.frameCount || GameMenu.IsOpen) return;
 
             if (kb != null && kb.cKey.wasPressedThisFrame) ToggleCrew();
-            if (kb != null && kb.escapeKey.wasPressedThisFrame) CloseWindows();
+            if (kb != null && kb.escapeKey.wasPressedThisFrame)
+            {
+                bool anyOpen = tavernPanel.gameObject.activeSelf || crewPanel.gameObject.activeSelf || infoPanel.gameObject.activeSelf;
+                if (anyOpen) CloseWindows();
+                else menu.OpenPause();
+            }
 
             if (mouse != null && mouse.leftButton.wasPressedThisFrame && cam != null)
             {

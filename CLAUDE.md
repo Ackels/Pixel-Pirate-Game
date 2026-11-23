@@ -86,5 +86,17 @@
     - Na chegada, a tripulação recupera metade da vida que faltava.
     - A câmera acompanha o capitão.
   - `Ship/Interactable`: E para abrir baú ou negociar.
+- **Salvar e carregar (23/11/2026), em `Village/Save/`:**
+  - `SaveSystem` grava JSON em `Application.persistentDataPath/save_1.json` (no Windows: `AppData/LocalLow/Pixel/Enseada dos Corsários`).
+  - `SaveData` guarda:
+    - vila: ouro, estoque, prédios (def + origem) e posição do capitão;
+    - tripulação e recrutas (`CrewSave`): ofício, nível, XP, moral, traços e cores;
+    - dia, timer do dia e o registro de eventos;
+    - navio (blocos), dano do casco, semente do mapa e, por ilha, os estados revelada, visitada, saqueada, limpa e tesouro.
+  - Referências a dados ficam pelo **nome do asset** (ItemDef, BuildingDef, ShipBlockDef). Renomear um asset quebra saves antigos.
+  - Carregar: `GameFlow.RestoreFromSave` → `VillageManager.ClearForLoad` + `Place` → `CrewManager.RestoreFromSave` (casas e postos são redistribuídos pelo `AssignAll`).
+  - Só salva com o capitão na vila (`CanSaveNow`); no mar não salva.
+  - Autosave (`GameFlow.AutoSave`): fim do dia (`CrewManager.DayEnded`), volta do mar e ao fechar o jogo. Só depois que o jogador escolhe Continuar ou Novo jogo (`SavingEnabled`), para não sobrescrever o save com um jogo vazio.
+  - `UI/GameMenu`: menu inicial (Continuar com resumo do save / Novo jogo com confirmação / Sair) e pausa no Esc (Continuar / Salvar agora / Sair para o menu, que salva e recarrega a cena). Usa `Time.timeScale = 0`; o HUD ignora a entrada enquanto `GameMenu.IsOpen`.
 - Repositório: https://github.com/Ackels/Pixel-Pirate-Game (privado, branch `main`). O `gh` CLI não está instalado; o push usa o gerenciador de credenciais do git.
 - Outro projeto do usuário, PirateRPG (`C:\Users\jhona\Projetos\PirateRPG`), é **separado**. Não misturar.
