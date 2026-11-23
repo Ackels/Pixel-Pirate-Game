@@ -12,4 +12,5 @@
   - Arte provisória em `Assets/Art/Placeholder`: sprites gerados por script, 16 PPU, filtro Point.
   - Capitão controlado por `CaptainController` (WASD, setas ou controle); câmera com `CameraFollow` + Pixel Perfect Camera em 640×360.
   - Ordenação top-down por eixo Y, configurada no Renderer2D.
+- Repositório: https://github.com/Ackels/Pixel-Pirate-Game (privado, branch `main`). O `gh` CLI não está instalado; o push usa o gerenciador de credenciais do git.
 - Outro projeto do usuário, PirateRPG (`C:\Users\jhona\Projetos\PirateRPG`), é **separado**. Não misturar.
