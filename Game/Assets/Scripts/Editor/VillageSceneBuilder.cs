@@ -11,24 +11,27 @@ using UnityEngine.Tilemaps;
 namespace Pixel.EditorTools
 {
     /// <summary>
-    /// Fase 0: configura a arte provisória (pixel perfect) e monta a cena da vila.
-    /// Menu: Pixel > Fase 0 > Montar cena da Vila. Pode ser rodado de novo sem problemas.
+    /// Monta a cena da vila do zero: configura a arte (pixel perfect), cria os dados
+    /// (itens e construções, só se ainda não existirem) e gera Village.unity.
+    /// Menu: Pixel > Montar cena da Vila. ATENÇÃO: recria a cena (edições manuais nela se perdem),
+    /// mas NÃO sobrescreve os dados em Assets/Data (pode ajustar preços e tempos à vontade).
     /// </summary>
-    public static class Phase0Builder
+    public static class VillageSceneBuilder
     {
         const string ArtDir = "Assets/Art/Placeholder";
         const string TileDir = "Assets/Art/Tiles";
+        const string DataDir = "Assets/Data";
         const string ScenePath = "Assets/Scenes/Village.unity";
         const int PPU = 16;
         const int MapW = 64, MapH = 40;
 
-        [MenuItem("Pixel/Fase 0/Montar cena da Vila")]
+        [MenuItem("Pixel/Montar cena da Vila")]
         public static void BuildAll()
         {
             ConfigureProjectForPixelArt();
             ImportSprites();
             BuildVillageScene();
-            Debug.Log("[Pixel] Fase 0 montada: " + ScenePath);
+            Debug.Log("[Pixel] Cena da vila montada: " + ScenePath);
         }
 
         // ---------- Configurações do projeto ----------
@@ -37,7 +40,6 @@ namespace Pixel.EditorTools
             PlayerSettings.productName = "Enseada dos Corsários";
             PlayerSettings.companyName = "Pixel";
 
-            // Sem anti-aliasing em nenhum nível de qualidade (borra o pixel).
             int current = QualitySettings.GetQualityLevel();
             for (int i = 0; i < QualitySettings.names.Length; i++)
             {
@@ -70,12 +72,12 @@ namespace Pixel.EditorTools
         // ---------- Importação dos sprites ----------
         static void ImportSprites()
         {
-            var guids = AssetDatabase.FindAssets("t:Texture2D", new[] { ArtDir });
-            foreach (var guid in guids)
+            foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { ArtDir }))
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 var importer = (TextureImporter)AssetImporter.GetAtPath(path);
-                bool isTile = Path.GetFileName(path).StartsWith("tile_");
+                string file = Path.GetFileName(path);
+                bool centered = file.StartsWith("tile_") || file.StartsWith("icon_");
 
                 importer.textureType = TextureImporterType.Sprite;
                 importer.spriteImportMode = SpriteImportMode.Single;
@@ -87,7 +89,7 @@ namespace Pixel.EditorTools
 
                 var settings = new TextureImporterSettings();
                 importer.ReadTextureSettings(settings);
-                settings.spriteAlignment = (int)(isTile ? SpriteAlignment.Center : SpriteAlignment.BottomCenter);
+                settings.spriteAlignment = (int)(centered ? SpriteAlignment.Center : SpriteAlignment.BottomCenter);
                 settings.spriteMeshType = SpriteMeshType.FullRect;
                 importer.SetTextureSettings(settings);
                 importer.SaveAndReimport();
@@ -96,6 +98,13 @@ namespace Pixel.EditorTools
 
         static Sprite LoadSprite(string relPath) =>
             AssetDatabase.LoadAssetAtPath<Sprite>($"{ArtDir}/{relPath}.png");
+
+        static Sprite[] Frames(string folder, string prefix, string dir) => new[]
+        {
+            LoadSprite($"{folder}/{prefix}_{dir}_0"),
+            LoadSprite($"{folder}/{prefix}_{dir}_1"),
+            LoadSprite($"{folder}/{prefix}_{dir}_2"),
+        };
 
         static Tile GetTile(string spriteName)
         {
@@ -113,16 +122,67 @@ namespace Pixel.EditorTools
             return tile;
         }
 
-        static Sprite[] Frames(string dir) => new[]
+        /// <summary>Carrega o asset de dados; se não existir, cria com os valores iniciais.</summary>
+        static T GetOrCreate<T>(string relPath, System.Action<T> init) where T : ScriptableObject
         {
-            LoadSprite($"Captain/captain_{dir}_0"),
-            LoadSprite($"Captain/captain_{dir}_1"),
-            LoadSprite($"Captain/captain_{dir}_2"),
-        };
+            string path = $"{DataDir}/{relPath}.asset";
+            var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+            if (asset != null) return asset;
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            asset = ScriptableObject.CreateInstance<T>();
+            init(asset);
+            AssetDatabase.CreateAsset(asset, path);
+            return asset;
+        }
+
+        // ---------- Dados do jogo (Fase 1) ----------
+        static (ItemDef[] items, BuildingDef[] buildings) CreateData()
+        {
+            var cane = GetOrCreate<ItemDef>("Itens/Cana", i =>
+            {
+                i.displayName = "Cana"; i.icon = LoadSprite("Icons/icon_cane"); i.sellPrice = 3;
+                i.textColor = new Color(0.6f, 0.95f, 0.45f);
+            });
+            var rum = GetOrCreate<ItemDef>("Itens/Rum", i =>
+            {
+                i.displayName = "Rum"; i.icon = LoadSprite("Icons/icon_rum"); i.sellPrice = 15;
+                i.textColor = new Color(1f, 0.7f, 0.4f);
+            });
+
+            var house = GetOrCreate<BuildingDef>("Construcoes/Casa", b =>
+            {
+                b.displayName = "Casa"; b.kind = BuildingKind.House; b.sprite = LoadSprite("obj_house");
+                b.footprint = new Vector2Int(3, 2); b.cost = 40; b.housing = 2;
+                b.description = "Moradia para 2 tripulantes (a tripulação chega na Fase 2).";
+            });
+            var farm = GetOrCreate<BuildingDef>("Construcoes/Horta", b =>
+            {
+                b.displayName = "Horta"; b.kind = BuildingKind.Producer; b.sprite = LoadSprite("obj_farm");
+                b.footprint = new Vector2Int(2, 2); b.cost = 30; b.blocksMovement = false;
+                b.outputItem = cane; b.outputAmount = 1; b.cycleSeconds = 6f;
+                b.description = "Planta cana-de-açúcar: +1 Cana a cada 6 s.";
+            });
+            var distillery = GetOrCreate<BuildingDef>("Construcoes/Destilaria", b =>
+            {
+                b.displayName = "Destilaria"; b.kind = BuildingKind.Producer; b.sprite = LoadSprite("obj_distillery");
+                b.footprint = new Vector2Int(3, 2); b.cost = 80;
+                b.inputItem = cane; b.inputAmount = 2; b.outputItem = rum; b.outputAmount = 1; b.cycleSeconds = 10f;
+                b.description = "Transforma 2 Cana em 1 Rum a cada 10 s.";
+            });
+            var market = GetOrCreate<BuildingDef>("Construcoes/Mercado", b =>
+            {
+                b.displayName = "Mercado"; b.kind = BuildingKind.Market; b.sprite = LoadSprite("obj_market");
+                b.footprint = new Vector2Int(3, 2); b.cost = 50;
+                b.description = "Visitantes desembarcam nas docas e compram seu estoque aqui.";
+            });
+            AssetDatabase.SaveAssets();
+            return (new[] { rum, cane }, new[] { house, farm, distillery, market });
+        }
 
         // ---------- Cena ----------
         static void BuildVillageScene()
         {
+            var (items, buildings) = CreateData();
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var rng = new System.Random(42);
 
@@ -133,29 +193,19 @@ namespace Pixel.EditorTools
             var dock = GetTile("tile_dock");
             AssetDatabase.SaveAssets();
 
-            // Grid + camadas de tilemap
             var grid = new GameObject("Grid", typeof(Grid));
             Tilemap groundMap = CreateTilemap(grid.transform, "Chao", -20);
             Tilemap waterMap = CreateTilemap(grid.transform, "Agua", -21);
             Tilemap detailMap = CreateTilemap(grid.transform, "Caminhos_Docas", -19);
 
-            // Colisão da água: o capitão não entra no mar.
             var waterCol = waterMap.gameObject.AddComponent<TilemapCollider2D>();
             var waterBody = waterMap.gameObject.AddComponent<Rigidbody2D>();
             waterBody.bodyType = RigidbodyType2D.Static;
             waterMap.gameObject.AddComponent<CompositeCollider2D>();
             waterCol.compositeOperation = Collider2D.CompositeOperation.Merge;
 
-            bool IsWater(int x, int y)
-            {
-                if (y < 6) return true;                       // mar ao sul
-                if (x < 5 && y < 26) return true;              // costa oeste
-                if (x < 9 && y < 10) return true;              // curva da enseada
-                return false;
-            }
+            bool IsWater(int x, int y) => y < 6 || (x < 5 && y < 26) || (x < 9 && y < 10);
             bool IsSand(int x, int y) => !IsWater(x, y) && (IsWater(x, y - 2) || IsWater(x - 2, y) || IsWater(x - 2, y - 2));
-
-            // Docas: píer que entra no mar (x 30..32, y 0..8)
             bool IsDock(int x, int y) => x >= 30 && x <= 32 && y >= 0 && y < 9;
 
             for (int x = 0; x < MapW; x++)
@@ -164,34 +214,27 @@ namespace Pixel.EditorTools
                 var cell = new Vector3Int(x, y, 0);
                 if (IsWater(x, y))
                 {
-                    if (IsDock(x, y)) detailMap.SetTile(cell, dock);
+                    if (IsDock(x, y)) { detailMap.SetTile(cell, dock); groundMap.SetTile(cell, water); }
                     else waterMap.SetTile(cell, water);
-                    if (IsDock(x, y)) groundMap.SetTile(cell, water); // água "decorativa" sem colisão sob o píer
                 }
                 else if (IsSand(x, y)) groundMap.SetTile(cell, sand);
                 else groundMap.SetTile(cell, grass[rng.Next(100) < 70 ? 0 : rng.Next(1, 3)]);
             }
 
-            // Caminhos de terra
             var pathCells = new HashSet<Vector2Int>();
             for (int y = 6; y < 32; y++) for (int x = 30; x <= 32; x++) pathCells.Add(new Vector2Int(x, y));
             for (int x = 10; x < 58; x++) for (int y = 19; y <= 20; y++) pathCells.Add(new Vector2Int(x, y));
             foreach (var c in pathCells) detailMap.SetTile((Vector3Int)c, path);
 
-            // Objetos
-            var objects = new GameObject("Objetos").transform;
-            var housesAt = new[] { new Vector2(23.5f, 22f), new Vector2(39.5f, 22f), new Vector2(23.5f, 13f), new Vector2(40.5f, 13f), new Vector2(50.5f, 22f) };
-            foreach (var p in housesAt)
-                CreateProp(objects, "Casa", LoadSprite("obj_house"), p, new Vector2(2.6f, 1.2f), new Vector2(0, 0.6f));
-
-            var barrels = new[] { new Vector2(28.5f, 9.2f), new Vector2(28.5f, 10.4f), new Vector2(34.5f, 9.4f) };
-            foreach (var p in barrels)
+            // Objetos do cenário
+            var objects = new GameObject("Cenario").transform;
+            foreach (var p in new[] { new Vector2(28.5f, 9.2f), new Vector2(28.5f, 10.4f), new Vector2(34.5f, 9.4f) })
                 CreateProp(objects, "Barril", LoadSprite("obj_barrel"), p, new Vector2(0.6f, 0.4f), new Vector2(0, 0.25f));
 
-            // Coqueiros espalhados, evitando caminhos, casas e água
+            // Coqueiros: mais nas bordas, uma clareira no meio para construir.
             var palm = LoadSprite("obj_palm");
             int placed = 0;
-            for (int tries = 0; tries < 2000 && placed < 55; tries++)
+            for (int tries = 0; tries < 3000 && placed < 50; tries++)
             {
                 int x = rng.Next(1, MapW - 1), y = rng.Next(1, MapH - 1);
                 if (IsWater(x, y) || IsDock(x, y)) continue;
@@ -200,16 +243,12 @@ namespace Pixel.EditorTools
                     for (int dy = -1; dy <= 3 && !nearPath; dy++)
                         if (pathCells.Contains(new Vector2Int(x + dx, y + dy))) nearPath = true;
                 if (nearPath) continue;
-                bool nearHouse = false;
-                foreach (var h in housesAt)
-                    if (Mathf.Abs(h.x - x) < 4f && y - h.y > -2f && y - h.y < 4f) nearHouse = true;
-                if (nearHouse) continue;
-                if (Mathf.Abs(x - 31) < 4 && Mathf.Abs(y - 12) < 4) continue; // área do spawn
+                bool clearing = x > 11 && x < 55 && y > 8 && y < 31;
+                if (clearing && rng.Next(100) < 85) continue;
                 CreateProp(objects, "Coqueiro", palm, new Vector2(x + 0.5f, y), new Vector2(0.4f, 0.3f), new Vector2(0, 0.15f));
                 placed++;
             }
 
-            // Bordas invisíveis do mapa
             var bounds = new GameObject("LimitesDoMapa").transform;
             AddWall(bounds, new Vector2(MapW / 2f, -0.5f), new Vector2(MapW, 1));
             AddWall(bounds, new Vector2(MapW / 2f, MapH + 0.5f), new Vector2(MapW, 1));
@@ -232,12 +271,12 @@ namespace Pixel.EditorTools
             sr.sprite = LoadSprite("Captain/captain_down_0");
             sr.spriteSortPoint = SpriteSortPoint.Pivot;
             var ctrl = captain.AddComponent<CaptainController>();
-            ctrl.down = Frames("down");
-            ctrl.up = Frames("up");
-            ctrl.left = Frames("left");
-            ctrl.right = Frames("right");
+            ctrl.down = Frames("Captain", "captain", "down");
+            ctrl.up = Frames("Captain", "captain", "up");
+            ctrl.left = Frames("Captain", "captain", "left");
+            ctrl.right = Frames("Captain", "captain", "right");
 
-            // Câmera pixel perfect (640x360, 16 px por unidade)
+            // Câmera pixel perfect
             var camGo = new GameObject("Main Camera");
             camGo.tag = "MainCamera";
             camGo.transform.position = new Vector3(31.5f, 12f, -10f);
@@ -260,16 +299,41 @@ namespace Pixel.EditorTools
             follow.target = captain.transform;
             follow.bounds = new Rect(0, 0, MapW, MapH);
 
-            // Luz global 2D (sem ela os sprites "Lit" ficam pretos)
             var lightGo = new GameObject("Luz Global");
             var light = lightGo.AddComponent<Light2D>();
             light.lightType = Light2D.LightType.Global;
             light.intensity = 1f;
             light.color = new Color(1f, 0.97f, 0.9f);
 
+            // Sistemas da vila (Fase 1)
+            var village = new GameObject("Vila");
+            var vm = village.AddComponent<VillageManager>();
+            vm.startingGold = 180;
+            vm.items = items;
+            vm.buildable = buildings;
+            vm.mapWidth = MapW;
+            vm.mapHeight = MapH;
+            vm.waterMap = waterMap;
+            vm.detailMap = detailMap;
+            var buildMode = village.AddComponent<BuildMode>();
+
+            var visitors = new GameObject("Visitantes");
+            visitors.transform.SetParent(village.transform, false);
+            var spawner = visitors.AddComponent<VisitorSpawner>();
+            spawner.spawnPoint = new Vector2(31.5f, 1f);
+            spawner.down = Frames("Visitor", "visitor", "down");
+            spawner.up = Frames("Visitor", "visitor", "up");
+            spawner.left = Frames("Visitor", "visitor", "left");
+            spawner.right = Frames("Visitor", "visitor", "right");
+
+            var hudGo = new GameObject("HUD");
+            var hud = hudGo.AddComponent<VillageHUD>();
+            hud.buildMode = buildMode;
+            hud.goldIcon = LoadSprite("Icons/icon_gold");
+            hud.houseIcon = LoadSprite("Icons/icon_house");
+
             EditorSceneManager.SaveScene(scene, ScenePath);
 
-            // Coloca a vila como primeira cena do build
             var list = new List<EditorBuildSettingsScene> { new EditorBuildSettingsScene(ScenePath, true) };
             foreach (var s in EditorBuildSettings.scenes)
                 if (s.path != ScenePath) list.Add(s);

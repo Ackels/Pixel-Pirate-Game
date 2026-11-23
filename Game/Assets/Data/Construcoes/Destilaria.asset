@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe22c2e2eabbbf6449a464d91e51af55, type: 3}
+  m_Name: Destilaria
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.BuildingDef
+  displayName: Destilaria
+  description: Transforma 2 Cana em 1 Rum a cada 10 s.
+  sprite: {fileID: 21300000, guid: 9f448f0f2d0ee0f4dbad853d6e4f23d6, type: 3}
+  icon: {fileID: 0}
+  kind: 1
+  footprint: {x: 3, y: 2}
+  cost: 80
+  blocksMovement: 1
+  inputItem: {fileID: 11400000, guid: 34dab293039c52a4c99bc41795ddc66f, type: 2}
+  inputAmount: 2
+  outputItem: {fileID: 11400000, guid: a8fd4b0d2bd29e241b91246ebc0033fd, type: 2}
+  outputAmount: 1
+  cycleSeconds: 10
+  housing: 2

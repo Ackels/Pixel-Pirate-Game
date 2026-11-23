@@ -7,10 +7,19 @@
 - Motor planejado: Unity 6 (6000.6.3f1), 2D URP, Pixel Perfect Camera, resolução de referência 640×360, tiles de 16 px, dados em ScriptableObjects.
 - **Projeto Unity:** fica em `Game/`. Usa Unity 6000.6.3f1 com o modelo Universal 2D. O pacote `com.unity.pipeline` está instalado, então o Editor pode ser controlado pelo `unity` CLI (`C:/Users/jhona/AppData/Local/Unity/bin/unity.exe`).
   - Passe **sempre** `--project-path C:/Users/jhona/Projetos/Pixel/Game`, porque o Editor do PirateRPG costuma estar aberto ao mesmo tempo.
+- **Cena da vila:** `Assets/Scenes/Village.unity`, gerada pelo menu **Pixel > Montar cena da Vila** (`Assets/Scripts/Editor/VillageSceneBuilder.cs`).
+  - Rodar o menu de novo recria a cena, então edições feitas à mão nela se perdem.
+  - Os dados em `Assets/Data` (itens e construções) só são criados se ainda não existirem, então ajustes de valores feitos neles são preservados. Para aplicar novos valores iniciais definidos no código, apague `Assets/Data` inteiro: apagar um item sozinho quebra as referências dos prédios.
 - **Fase 0 (concluída em 23/11/2026):**
-  - Cena `Assets/Scenes/Village.unity`, gerada pelo menu **Pixel > Fase 0 > Montar cena da Vila** (`Assets/Scripts/Editor/Phase0Builder.cs`). Rodar o menu de novo recria a cena, então edições feitas à mão nela se perdem.
   - Arte provisória em `Assets/Art/Placeholder`: sprites gerados por script, 16 PPU, filtro Point.
   - Capitão controlado por `CaptainController` (WASD, setas ou controle); câmera com `CameraFollow` + Pixel Perfect Camera em 640×360.
   - Ordenação top-down por eixo Y, configurada no Renderer2D.
+- **Fase 1 (concluída em 23/11/2026), em `Assets/Scripts/Village/`:**
+  - `VillageManager`: ouro, estoque, ocupação da grade e regras de onde se pode construir.
+  - `Building`: produção automática; na Fase 2 ela vai depender dos tripulantes.
+  - `BuildMode`: sombra verde ou vermelha; clique para construir, Shift para construir vários, botão direito ou Esc para cancelar; também faz a demolição.
+  - `VisitorSpawner` + `Visitor`: chegam pelas docas, andam em linha reta até o Mercado e compram o item mais caro do estoque.
+  - HUD: uGUI montado por código em `UI/VillageHUD.cs` (fonte LegacyRuntime), mais o `FloatingText`.
+  - Valores iniciais: 180 de ouro. Horta custa 30 e faz 1 Cana a cada 6 s. Destilaria custa 80 e transforma 2 Cana em 1 Rum a cada 10 s. Mercado custa 50; Casa custa 40 e dá 2 de moradia. Cana vende por 3 e Rum por 15.
 - Repositório: https://github.com/Ackels/Pixel-Pirate-Game (privado, branch `main`). O `gh` CLI não está instalado; o push usa o gerenciador de credenciais do git.
 - Outro projeto do usuário, PirateRPG (`C:\Users\jhona\Projetos\PirateRPG`), é **separado**. Não misturar.
