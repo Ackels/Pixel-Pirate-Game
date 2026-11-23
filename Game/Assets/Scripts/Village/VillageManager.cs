@@ -29,6 +29,15 @@ namespace Pixel.Village
         public int Gold { get; private set; }
         public IReadOnlyList<Building> Buildings => buildings;
         public event Action Changed;
+        /// <summary>Disparado quando uma construção é colocada ou demolida.</summary>
+        public event Action BuildingsChanged;
+
+        /// <summary>Quanto deste item o Mercado deve guardar para a tripulação.</summary>
+        public int Reserve(ItemDef item)
+        {
+            int crewCount = CrewManager.Instance != null ? CrewManager.Instance.Crew.Count : 0;
+            return item.reservePerCrew * crewCount;
+        }
 
         readonly Dictionary<ItemDef, int> stock = new Dictionary<ItemDef, int>();
         readonly Dictionary<Vector2Int, Building> occupied = new Dictionary<Vector2Int, Building>();
@@ -118,6 +127,18 @@ namespace Pixel.Village
                 if (occupied.ContainsKey(c)) { reason = "Já tem uma construção aqui."; return false; }
             }
 
+            if (def.requiresWater && waterMap != null)
+            {
+                bool touchesWater = false;
+                for (int x = -1; x <= def.footprint.x && !touchesWater; x++)
+                for (int y = -1; y <= def.footprint.y && !touchesWater; y++)
+                {
+                    bool inside = x >= 0 && y >= 0 && x < def.footprint.x && y < def.footprint.y;
+                    if (!inside && waterMap.HasTile(new Vector3Int(origin.x + x, origin.y + y, 0))) touchesWater = true;
+                }
+                if (!touchesWater) { reason = "Precisa ficar encostada na água."; return false; }
+            }
+
             // Objetos soltos no terreno (coqueiros, barris...). O capitão e visitantes não contam.
             var center = new Vector2(origin.x + def.footprint.x / 2f, origin.y + def.footprint.y / 2f);
             var filter = new ContactFilter2D { useTriggers = false };
@@ -157,6 +178,7 @@ namespace Pixel.Village
                     occupied[new Vector2Int(origin.x + x, origin.y + y)] = b;
             buildings.Add(b);
             Changed?.Invoke();
+            BuildingsChanged?.Invoke();
             return b;
         }
 
@@ -181,8 +203,11 @@ namespace Pixel.Village
             foreach (var k in keys) occupied.Remove(k);
             buildings.Remove(b);
             Gold += Mathf.RoundToInt(b.def.cost * demolishRefund);
+            foreach (var w in b.Workers) w.workplace = null;
+            b.Workers.Clear();
             Destroy(b.gameObject);
             Changed?.Invoke();
+            BuildingsChanged?.Invoke();
         }
     }
 }

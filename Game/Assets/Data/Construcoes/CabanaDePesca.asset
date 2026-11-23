@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe22c2e2eabbbf6449a464d91e51af55, type: 3}
+  m_Name: CabanaDePesca
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.BuildingDef
+  displayName: Cabana de Pesca
+  description: "Pescador traz +1 Peixe a cada 8 s. Precisa ficar na beira d'\xE1gua."
+  sprite: {fileID: 21300000, guid: f972a345776fe1e479b36c46a74daeeb, type: 3}
+  icon: {fileID: 0}
+  kind: 1
+  footprint: {x: 2, y: 2}
+  cost: 40
+  blocksMovement: 1
+  requiresWater: 1
+  profession: 2
+  workerSlots: 1
+  inputItem: {fileID: 0}
+  inputAmount: 0
+  outputItem: {fileID: 11400000, guid: d514877ecc4c96141bf4335239f82cc6, type: 2}
+  outputAmount: 1
+  cycleSeconds: 8
+  housing: 2

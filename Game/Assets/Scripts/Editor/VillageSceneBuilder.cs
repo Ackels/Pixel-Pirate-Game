@@ -135,8 +135,10 @@ namespace Pixel.EditorTools
             return asset;
         }
 
-        // ---------- Dados do jogo (Fase 1) ----------
-        static (ItemDef[] items, BuildingDef[] buildings) CreateData()
+        // ---------- Dados do jogo ----------
+        struct GameData { public ItemDef[] items; public BuildingDef[] buildings; public ItemDef food, rum; }
+
+        static GameData CreateData()
         {
             var cane = GetOrCreate<ItemDef>("Itens/Cana", i =>
             {
@@ -145,29 +147,50 @@ namespace Pixel.EditorTools
             });
             var rum = GetOrCreate<ItemDef>("Itens/Rum", i =>
             {
-                i.displayName = "Rum"; i.icon = LoadSprite("Icons/icon_rum"); i.sellPrice = 15;
+                i.displayName = "Rum"; i.icon = LoadSprite("Icons/icon_rum"); i.sellPrice = 15; i.reservePerCrew = 1;
                 i.textColor = new Color(1f, 0.7f, 0.4f);
+            });
+            var fish = GetOrCreate<ItemDef>("Itens/Peixe", i =>
+            {
+                i.displayName = "Peixe"; i.icon = LoadSprite("Icons/icon_fish"); i.sellPrice = 4; i.reservePerCrew = 2;
+                i.textColor = new Color(0.6f, 0.85f, 1f);
             });
 
             var house = GetOrCreate<BuildingDef>("Construcoes/Casa", b =>
             {
                 b.displayName = "Casa"; b.kind = BuildingKind.House; b.sprite = LoadSprite("obj_house");
                 b.footprint = new Vector2Int(3, 2); b.cost = 40; b.housing = 2;
-                b.description = "Moradia para 2 tripulantes (a tripulação chega na Fase 2).";
+                b.description = "Moradia para 2 tripulantes. Sem casa, a moral cai.";
+            });
+            var tavern = GetOrCreate<BuildingDef>("Construcoes/Taverna", b =>
+            {
+                b.displayName = "Taverna"; b.kind = BuildingKind.Tavern; b.sprite = LoadSprite("obj_tavern");
+                b.footprint = new Vector2Int(3, 2); b.cost = 60;
+                b.description = "Onde se contratam piratas. Novos recrutas a cada dia.";
             });
             var farm = GetOrCreate<BuildingDef>("Construcoes/Horta", b =>
             {
                 b.displayName = "Horta"; b.kind = BuildingKind.Producer; b.sprite = LoadSprite("obj_farm");
                 b.footprint = new Vector2Int(2, 2); b.cost = 30; b.blocksMovement = false;
+                b.profession = Profession.Agricultor; b.workerSlots = 1;
                 b.outputItem = cane; b.outputAmount = 1; b.cycleSeconds = 6f;
-                b.description = "Planta cana-de-açúcar: +1 Cana a cada 6 s.";
+                b.description = "Agricultor planta cana: +1 Cana a cada 6 s.";
+            });
+            var fishing = GetOrCreate<BuildingDef>("Construcoes/CabanaDePesca", b =>
+            {
+                b.displayName = "Cabana de Pesca"; b.kind = BuildingKind.Producer; b.sprite = LoadSprite("obj_fishing_hut");
+                b.footprint = new Vector2Int(2, 2); b.cost = 40; b.requiresWater = true;
+                b.profession = Profession.Pescador; b.workerSlots = 1;
+                b.outputItem = fish; b.outputAmount = 1; b.cycleSeconds = 8f;
+                b.description = "Pescador traz +1 Peixe a cada 8 s. Precisa ficar na beira d'água.";
             });
             var distillery = GetOrCreate<BuildingDef>("Construcoes/Destilaria", b =>
             {
                 b.displayName = "Destilaria"; b.kind = BuildingKind.Producer; b.sprite = LoadSprite("obj_distillery");
                 b.footprint = new Vector2Int(3, 2); b.cost = 80;
+                b.profession = Profession.Destilador; b.workerSlots = 1;
                 b.inputItem = cane; b.inputAmount = 2; b.outputItem = rum; b.outputAmount = 1; b.cycleSeconds = 10f;
-                b.description = "Transforma 2 Cana em 1 Rum a cada 10 s.";
+                b.description = "Destilador transforma 2 Cana em 1 Rum a cada 10 s.";
             });
             var market = GetOrCreate<BuildingDef>("Construcoes/Mercado", b =>
             {
@@ -176,13 +199,28 @@ namespace Pixel.EditorTools
                 b.description = "Visitantes desembarcam nas docas e compram seu estoque aqui.";
             });
             AssetDatabase.SaveAssets();
-            return (new[] { rum, cane }, new[] { house, farm, distillery, market });
+            return new GameData
+            {
+                items = new[] { rum, fish, cane },
+                buildings = new[] { house, tavern, farm, fishing, distillery, market },
+                food = fish,
+                rum = rum,
+            };
+        }
+
+        static CrewManager.DirSprites CrewDir(string dir)
+        {
+            Sprite[] L(string layer) => new[]
+            {
+                LoadSprite($"Crew/crew_{layer}_{dir}_0"), LoadSprite($"Crew/crew_{layer}_{dir}_1"), LoadSprite($"Crew/crew_{layer}_{dir}_2"),
+            };
+            return new CrewManager.DirSprites { skin = L("skin"), outfit = L("outfit"), hair = L("hair"), baseLayer = L("base") };
         }
 
         // ---------- Cena ----------
         static void BuildVillageScene()
         {
-            var (items, buildings) = CreateData();
+            var data = CreateData();
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var rng = new System.Random(42);
 
@@ -308,9 +346,9 @@ namespace Pixel.EditorTools
             // Sistemas da vila (Fase 1)
             var village = new GameObject("Vila");
             var vm = village.AddComponent<VillageManager>();
-            vm.startingGold = 180;
-            vm.items = items;
-            vm.buildable = buildings;
+            vm.startingGold = 200;
+            vm.items = data.items;
+            vm.buildable = data.buildings;
             vm.mapWidth = MapW;
             vm.mapHeight = MapH;
             vm.waterMap = waterMap;
@@ -326,11 +364,21 @@ namespace Pixel.EditorTools
             spawner.left = Frames("Visitor", "visitor", "left");
             spawner.right = Frames("Visitor", "visitor", "right");
 
+            var crewManager = village.AddComponent<CrewManager>();
+            crewManager.food = data.food;
+            crewManager.rum = data.rum;
+            crewManager.dockPoint = new Vector2(31.5f, 1f);
+            crewManager.idleArea = new Vector2(31.5f, 14f);
+            crewManager.sprites = new CrewManager.LayerSprites
+            {
+                down = CrewDir("down"), up = CrewDir("up"), left = CrewDir("left"), right = CrewDir("right"),
+            };
+
             var hudGo = new GameObject("HUD");
             var hud = hudGo.AddComponent<VillageHUD>();
             hud.buildMode = buildMode;
             hud.goldIcon = LoadSprite("Icons/icon_gold");
-            hud.houseIcon = LoadSprite("Icons/icon_house");
+            hud.crewIcon = LoadSprite("Icons/icon_crew");
 
             EditorSceneManager.SaveScene(scene, ScenePath);
 

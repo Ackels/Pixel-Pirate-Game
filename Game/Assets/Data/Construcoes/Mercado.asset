@@ -20,6 +20,9 @@ MonoBehaviour:
   footprint: {x: 3, y: 2}
   cost: 50
   blocksMovement: 1
+  requiresWater: 0
+  profession: 0
+  workerSlots: 1
   inputItem: {fileID: 0}
   inputAmount: 0
   outputItem: {fileID: 0}

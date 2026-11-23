@@ -13,13 +13,16 @@ MonoBehaviour:
   m_Name: Destilaria
   m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.BuildingDef
   displayName: Destilaria
-  description: Transforma 2 Cana em 1 Rum a cada 10 s.
+  description: Destilador transforma 2 Cana em 1 Rum a cada 10 s.
   sprite: {fileID: 21300000, guid: 9f448f0f2d0ee0f4dbad853d6e4f23d6, type: 3}
   icon: {fileID: 0}
   kind: 1
   footprint: {x: 3, y: 2}
   cost: 80
   blocksMovement: 1
+  requiresWater: 0
+  profession: 3
+  workerSlots: 1
   inputItem: {fileID: 11400000, guid: 34dab293039c52a4c99bc41795ddc66f, type: 2}
   inputAmount: 2
   outputItem: {fileID: 11400000, guid: a8fd4b0d2bd29e241b91246ebc0033fd, type: 2}

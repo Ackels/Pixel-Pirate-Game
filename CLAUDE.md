@@ -20,6 +20,14 @@
   - `BuildMode`: sombra verde ou vermelha; clique para construir, Shift para construir vários, botão direito ou Esc para cancelar; também faz a demolição.
   - `VisitorSpawner` + `Visitor`: chegam pelas docas, andam em linha reta até o Mercado e compram o item mais caro do estoque.
   - HUD: uGUI montado por código em `UI/VillageHUD.cs` (fonte LegacyRuntime), mais o `FloatingText`.
-  - Valores iniciais: 180 de ouro. Horta custa 30 e faz 1 Cana a cada 6 s. Destilaria custa 80 e transforma 2 Cana em 1 Rum a cada 10 s. Mercado custa 50; Casa custa 40 e dá 2 de moradia. Cana vende por 3 e Rum por 15.
+- **Fase 2 (concluída em 23/11/2026), em `Assets/Scripts/Village/Crew/`:**
+  - `CrewTypes`: ofícios (Marujo, Agricultor, Pescador, Destilador), 8 traços e `CrewMember`. O salário é calculado pelo nível; o XP para subir é nível × 20 ciclos.
+  - `CrewManager`: ciclo de dias (90 s), Taverna com 3 recrutas por dia, distribuição automática de casas e postos (quem tem o ofício certo tem prioridade) e o fechamento do dia (salário, 1 peixe, 1 rum, moral e deserção abaixo de 15, exceto quem é Leal).
+  - `CrewAgent`: boneco em 4 camadas (pele, roupa e cabelo tingidos) dentro de um SortingGroup.
+  - Prédios de produção só produzem com trabalhador no posto. A velocidade depende do ofício (fora do ofício rende 50%), do nível, dos traços e da moral.
+  - O Mercado não vende abaixo da reserva da tripulação (`ItemDef.reservePerCrew`).
+  - UI: `UIKit` (helpers), `TavernPanel`, `CrewPanel` (tecla C), `BuildingInfoPanel` (clique no prédio) e `EventLog`.
+  - Começo do jogo: 200 de ouro, 2 marujos (Agricultor e Pescador) e 10 Peixes.
+  - Prédios: Casa 40, Taverna 60, Horta 30, Cabana de Pesca 40 (precisa encostar na água), Destilaria 80, Mercado 50. Preços de venda: Cana 3, Peixe 4, Rum 15.
 - Repositório: https://github.com/Ackels/Pixel-Pirate-Game (privado, branch `main`). O `gh` CLI não está instalado; o push usa o gerenciador de credenciais do git.
 - Outro projeto do usuário, PirateRPG (`C:\Users\jhona\Projetos\PirateRPG`), é **separado**. Não misturar.

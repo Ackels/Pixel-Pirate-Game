@@ -51,7 +51,7 @@ namespace Pixel.Village
             var vm = VillageManager.Instance;
             ItemDef best = null;
             foreach (var item in vm.items)
-                if (item != null && item.sellPrice > 0 && vm.GetStock(item) > 0 && (best == null || item.sellPrice > best.sellPrice))
+                if (item != null && item.sellPrice > 0 && vm.GetStock(item) > vm.Reserve(item) && (best == null || item.sellPrice > best.sellPrice))
                     best = item;
 
             Vector3 head = transform.position + Vector3.up * 1.8f;

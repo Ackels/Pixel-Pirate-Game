@@ -17,6 +17,9 @@ namespace Pixel.Village
         /// <summary>Mensagem de ajuda/erro para o HUD mostrar.</summary>
         public string Hint { get; private set; }
         public event Action SelectionChanged;
+        /// <summary>Último frame em que o modo construção usou um clique/tecla (para o HUD não reagir ao mesmo clique).</summary>
+        public int LastActionFrame { get; private set; } = -1;
+        public bool Active => Selected != null || Demolishing;
 
         static readonly Color ValidColor = new Color(0.4f, 1f, 0.4f, 0.35f);
         static readonly Color InvalidColor = new Color(1f, 0.3f, 0.3f, 0.35f);
@@ -81,6 +84,7 @@ namespace Pixel.Village
 
             if ((kb != null && kb.escapeKey.wasPressedThisFrame) || (mouse != null && mouse.rightButton.wasPressedThisFrame))
             {
+                LastActionFrame = Time.frameCount;
                 Cancel();
                 return;
             }
@@ -99,6 +103,7 @@ namespace Pixel.Village
                     int refund = Mathf.RoundToInt(b.def.cost * vm.demolishRefund);
                     FloatingText.Spawn(b.transform.position + Vector3.up, $"+{refund} ouro", new Color(1f, 0.85f, 0.3f));
                     hovered = null;
+                    LastActionFrame = Time.frameCount;
                     vm.Demolish(b);
                 }
                 return;
@@ -118,6 +123,7 @@ namespace Pixel.Village
 
             if (!overUI && valid && mouse.leftButton.wasPressedThisFrame && vm.TrySpendGold(def.cost))
             {
+                LastActionFrame = Time.frameCount;
                 vm.Place(def, origin);
                 FloatingText.Spawn(ghost.transform.position + Vector3.up * def.footprint.y, $"-{def.cost} ouro", new Color(1f, 0.85f, 0.3f));
                 bool keep = kb != null && (kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed);

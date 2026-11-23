@@ -1,14 +1,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace Pixel.Village
 {
     /// <summary>
-    /// Interface da vila, montada por código: ouro e estoque (topo), barra de construção (baixo),
-    /// dica/erro do modo construção e textos flutuantes ("+15 ouro").
+    /// Interface da vila, montada por código: dia, ouro e estoque (topo), barra de construção (baixo),
+    /// registro de eventos, janelas (Taverna, Tripulação, info do prédio) e textos flutuantes.
     /// </summary>
     public class VillageHUD : MonoBehaviour
     {
@@ -16,37 +17,31 @@ namespace Pixel.Village
 
         public BuildMode buildMode;
         public Sprite goldIcon;
-        public Sprite houseIcon;
-
-        static readonly Color PanelColor = new Color(0.22f, 0.14f, 0.09f, 0.92f);
-        static readonly Color ButtonColor = new Color(0.45f, 0.30f, 0.18f, 1f);
-        static readonly Color ButtonSelected = new Color(0.85f, 0.62f, 0.25f, 1f);
-        static readonly Color TextColor = new Color(0.98f, 0.93f, 0.82f);
-        static readonly Color GoldColor = new Color(1f, 0.85f, 0.3f);
+        public Sprite crewIcon;
 
         public RectTransform FloatingRoot { get; private set; }
-        public Font UIFont { get; private set; }
+        public Font UIFont => UIKit.Font;
 
-        Text goldText, housingText, hintText;
+        Text dayText, goldText, crewText, hintText;
+        Image dayBar;
         readonly List<(ItemDef item, Text text)> itemTexts = new List<(ItemDef, Text)>();
         readonly List<(BuildingDef def, Button button, Image bg)> buildButtons = new List<(BuildingDef, Button, Image)>();
         Image demolishBg;
+        BuildingInfoPanel infoPanel;
+        TavernPanel tavernPanel;
+        CrewPanel crewPanel;
+        Camera cam;
 
-        void Awake()
-        {
-            Instance = this;
-            UIFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        }
-
-        void OnDestroy()
-        {
-            if (Instance == this) Instance = null;
-        }
+        void Awake() => Instance = this;
+        void OnDestroy() { if (Instance == this) Instance = null; }
 
         void Start()
         {
-            EnsureEventSystem();
+            cam = Camera.main;
+            if (EventSystem.current == null)
+                new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
             var vm = VillageManager.Instance;
+            var cm = CrewManager.Instance;
 
             var canvasGo = new GameObject("Canvas_HUD", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             canvasGo.transform.SetParent(transform, false);
@@ -59,60 +54,74 @@ namespace Pixel.Village
             scaler.matchWidthOrHeight = 0.5f;
             var root = (RectTransform)canvasGo.transform;
 
-            FloatingRoot = NewRect("TextosFlutuantes", root);
-            Stretch(FloatingRoot);
+            FloatingRoot = UIKit.Rect("TextosFlutuantes", root);
+            UIKit.Stretch(FloatingRoot);
 
-            // --- Topo esquerdo: recursos ---
-            var top = NewPanel("Recursos", root, new Vector2(0, 1), new Vector2(0, 1), new Vector2(12, -12), new Vector2(230, 0));
-            var topLayout = top.gameObject.AddComponent<VerticalLayoutGroup>();
-            topLayout.padding = new RectOffset(10, 10, 8, 8);
-            topLayout.spacing = 4;
-            topLayout.childControlHeight = topLayout.childControlWidth = true;
-            topLayout.childForceExpandHeight = false;
+            // --- Topo esquerdo: dia + recursos ---
+            var top = UIKit.Panel("Recursos", root, new Vector2(0, 1), new Vector2(0, 1), new Vector2(12, -12), new Vector2(280, 0));
+            UIKit.Vertical(top.gameObject, 10, 4);
             top.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            goldText = ResourceRow(top, goldIcon, GoldColor);
+            dayText = UIKit.Text(top, "", 19, TextAnchor.MiddleLeft, UIKit.GoldColor);
+            UIKit.Size(dayText, height: 24);
+            var barBg = UIKit.Rect("BarraDoDia", top);
+            barBg.gameObject.AddComponent<Image>().color = new Color(0, 0, 0, 0.5f);
+            UIKit.Size(barBg, height: 6);
+            var bar = UIKit.Rect("Preenchimento", barBg);
+            UIKit.Stretch(bar);
+            dayBar = bar.gameObject.AddComponent<Image>();
+            dayBar.color = UIKit.GoldColor;
+
+            goldText = ResourceRow(top, goldIcon, UIKit.GoldColor);
             foreach (var item in vm.items)
                 if (item != null) itemTexts.Add((item, ResourceRow(top, item.icon, item.textColor)));
-            housingText = ResourceRow(top, houseIcon, TextColor);
+            crewText = ResourceRow(top, crewIcon, UIKit.TextColor);
 
             // --- Topo direito: ajuda ---
-            var help = NewPanel("Ajuda", root, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-12, -12), new Vector2(330, 92));
-            var helpText = NewText(help, "WASD / setas: andar\nClique num prédio lá embaixo para construir\nShift: construir vários seguidos\nBotão direito ou Esc: cancelar", 15, TextAnchor.MiddleLeft);
-            Stretch(helpText.rectTransform, 10);
+            var help = UIKit.Panel("Ajuda", root, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-12, -12), new Vector2(340, 110));
+            var helpText = UIKit.Text(help,
+                "WASD / setas: andar\nBarra de baixo: construir (Shift = vários)\nClique num prédio: ver detalhes\nC: tripulação · Esc / botão direito: cancelar", 15, TextAnchor.MiddleLeft);
+            UIKit.Stretch(helpText.rectTransform, 10);
 
             // --- Baixo: barra de construção ---
-            var bar = NewPanel("BarraDeConstrucao", root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 12), new Vector2(0, 84));
-            var barLayout = bar.gameObject.AddComponent<HorizontalLayoutGroup>();
-            barLayout.padding = new RectOffset(8, 8, 8, 8);
-            barLayout.spacing = 8;
-            barLayout.childControlWidth = barLayout.childControlHeight = true;
-            barLayout.childForceExpandWidth = barLayout.childForceExpandHeight = false;
-            bar.gameObject.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            var barPanel = UIKit.Panel("BarraDeConstrucao", root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 12), new Vector2(0, 84));
+            var barLayout = UIKit.Horizontal(barPanel.gameObject, 8, 8);
+            barLayout.childAlignment = TextAnchor.MiddleCenter;
+            barPanel.gameObject.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             foreach (var def in vm.buildable)
             {
                 if (def == null) continue;
                 var d = def;
-                var (btn, bg) = BuildButton(bar, def.icon != null ? def.icon : def.sprite, $"{def.displayName}\n{def.cost} ouro", () =>
+                var (btn, bg) = IconButton(barPanel, def.icon != null ? def.icon : def.sprite, $"{def.displayName}\n{def.cost} ouro", () =>
                 {
+                    CloseWindows();
                     if (buildMode.Selected == d) buildMode.Cancel(); else buildMode.Select(d);
                 });
                 buildButtons.Add((def, btn, bg));
             }
-            var (_, dbg) = BuildButton(bar, null, "Demolir", () =>
+            var (_, dbg) = IconButton(barPanel, null, "Demolir", () =>
             {
+                CloseWindows();
                 if (buildMode.Demolishing) buildMode.Cancel(); else buildMode.StartDemolish();
             });
             demolishBg = dbg;
+            IconButton(barPanel, crewIcon, "Tripulação\n[C]", ToggleCrew);
 
             // --- Dica do modo construção ---
-            var hintPanel = NewPanel("Dica", root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 104), new Vector2(760, 34));
-            hintText = NewText(hintPanel, "", 16, TextAnchor.MiddleCenter);
-            Stretch(hintText.rectTransform, 6);
+            var hintPanel = UIKit.Panel("Dica", root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 104), new Vector2(760, 34));
+            hintText = UIKit.Text(hintPanel, "", 16, TextAnchor.MiddleCenter);
+            UIKit.Stretch(hintText.rectTransform, 6);
+
+            // --- Registro e janelas ---
+            EventLog.Create(root);
+            tavernPanel = TavernPanel.Create(root);
+            crewPanel = CrewPanel.Create(root);
+            infoPanel = BuildingInfoPanel.Create(root, () => { infoPanel.Hide(); tavernPanel.Show(); });
 
             vm.Changed += Refresh;
             buildMode.SelectionChanged += Refresh;
+            if (cm != null) cm.Changed += Refresh;
             Refresh();
         }
 
@@ -122,101 +131,88 @@ namespace Pixel.Village
             string hint = buildMode.Hint;
             hintText.transform.parent.gameObject.SetActive(!string.IsNullOrEmpty(hint));
             hintText.text = hint;
+
+            var cm = CrewManager.Instance;
+            if (cm != null)
+            {
+                dayText.text = $"Dia {cm.Day}";
+                ((RectTransform)dayBar.transform).anchorMax = new Vector2(cm.DayProgress, 1);
+            }
+
+            HandleInput();
+        }
+
+        void HandleInput()
+        {
+            var kb = Keyboard.current;
+            var mouse = Mouse.current;
+            if (buildMode.Active || buildMode.LastActionFrame == Time.frameCount) return;
+
+            if (kb != null && kb.cKey.wasPressedThisFrame) ToggleCrew();
+            if (kb != null && kb.escapeKey.wasPressedThisFrame) CloseWindows();
+
+            if (mouse != null && mouse.leftButton.wasPressedThisFrame && cam != null)
+            {
+                bool overUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+                if (overUI) return;
+                Vector2 world = cam.ScreenToWorldPoint(mouse.position.ReadValue());
+                var b = VillageManager.Instance.BuildingAt(world);
+                if (b != null) { CloseWindows(); infoPanel.Show(b); }
+                else infoPanel.Hide();
+            }
+        }
+
+        void ToggleCrew()
+        {
+            bool open = crewPanel.gameObject.activeSelf;
+            CloseWindows();
+            if (!open) crewPanel.Show();
+        }
+
+        void CloseWindows()
+        {
+            tavernPanel.Hide();
+            crewPanel.Hide();
+            infoPanel.Hide();
         }
 
         void Refresh()
         {
             var vm = VillageManager.Instance;
             if (vm == null || goldText == null) return;
+            var cm = CrewManager.Instance;
             goldText.text = $"Ouro: {vm.Gold}";
             foreach (var (item, text) in itemTexts) text.text = $"{item.displayName}: {vm.GetStock(item)}";
-            housingText.text = $"Moradia: {vm.HousingCapacity} vagas";
+            if (cm != null) crewText.text = $"Tripulação: {cm.Crew.Count} · camas: {vm.HousingCapacity}";
             foreach (var (def, btn, bg) in buildButtons)
             {
-                bool affordable = vm.Gold >= def.cost;
-                bg.color = buildMode.Selected == def ? ButtonSelected : ButtonColor;
-                btn.interactable = affordable || buildMode.Selected == def;
+                bg.color = buildMode.Selected == def ? UIKit.ButtonSelected : UIKit.ButtonColor;
+                btn.interactable = vm.Gold >= def.cost || buildMode.Selected == def;
             }
-            demolishBg.color = buildMode.Demolishing ? ButtonSelected : ButtonColor;
-        }
-
-        // ---------- Peças de interface ----------
-        static void EnsureEventSystem()
-        {
-            if (EventSystem.current != null) return;
-            new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
-        }
-
-        static RectTransform NewRect(string name, Transform parent)
-        {
-            var go = new GameObject(name, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            return (RectTransform)go.transform;
-        }
-
-        static void Stretch(RectTransform rt, float inset = 0)
-        {
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = new Vector2(inset, inset);
-            rt.offsetMax = new Vector2(-inset, -inset);
-        }
-
-        RectTransform NewPanel(string name, Transform parent, Vector2 anchor, Vector2 pivot, Vector2 pos, Vector2 size)
-        {
-            var rt = NewRect(name, parent);
-            rt.anchorMin = rt.anchorMax = anchor;
-            rt.pivot = pivot;
-            rt.anchoredPosition = pos;
-            rt.sizeDelta = size;
-            var img = rt.gameObject.AddComponent<Image>();
-            img.color = PanelColor;
-            return rt;
-        }
-
-        Text NewText(Transform parent, string content, int size, TextAnchor align)
-        {
-            var rt = NewRect("Texto", parent);
-            var t = rt.gameObject.AddComponent<Text>();
-            t.font = UIFont;
-            t.fontSize = size;
-            t.color = TextColor;
-            t.alignment = align;
-            t.text = content;
-            t.raycastTarget = false;
-            return t;
+            demolishBg.color = buildMode.Demolishing ? UIKit.ButtonSelected : UIKit.ButtonColor;
         }
 
         Text ResourceRow(Transform parent, Sprite icon, Color color)
         {
-            var row = NewRect("Linha", parent);
-            var layout = row.gameObject.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 6;
-            layout.childControlWidth = layout.childControlHeight = true;
-            layout.childForceExpandWidth = false;
-            layout.childAlignment = TextAnchor.MiddleLeft;
-            var le = row.gameObject.AddComponent<LayoutElement>();
-            le.preferredHeight = 26;
-
-            var iconRt = NewRect("Icone", row);
+            var row = UIKit.Rect("Linha", parent);
+            UIKit.Horizontal(row.gameObject, 0, 6);
+            UIKit.Size(row, height: 26);
+            var iconRt = UIKit.Rect("Icone", row);
             var img = iconRt.gameObject.AddComponent<Image>();
             img.sprite = icon;
             img.enabled = icon != null;
             img.preserveAspect = true;
-            var ile = iconRt.gameObject.AddComponent<LayoutElement>();
-            ile.preferredWidth = ile.preferredHeight = 24;
-
-            var t = NewText(row, "", 18, TextAnchor.MiddleLeft);
-            t.color = color;
-            t.gameObject.AddComponent<LayoutElement>().preferredWidth = 170;
+            UIKit.Size(iconRt, 24, 24);
+            var t = UIKit.Text(row, "", 18, TextAnchor.MiddleLeft, color);
+            UIKit.Size(t, 230, 26);
             return t;
         }
 
-        (Button, Image) BuildButton(Transform parent, Sprite icon, string label, UnityEngine.Events.UnityAction onClick)
+        (Button, Image) IconButton(Transform parent, Sprite icon, string label, UnityEngine.Events.UnityAction onClick)
         {
-            var rt = NewRect("Botao", parent);
+            var rt = UIKit.Rect("Botao", parent);
             var bg = rt.gameObject.AddComponent<Image>();
-            bg.color = ButtonColor;
+            bg.color = UIKit.ButtonColor;
             var btn = rt.gameObject.AddComponent<Button>();
             btn.targetGraphic = bg;
             var colors = btn.colors;
@@ -225,29 +221,21 @@ namespace Pixel.Village
             colors.disabledColor = new Color(0.5f, 0.5f, 0.5f, 0.8f);
             btn.colors = colors;
             btn.onClick.AddListener(onClick);
-            var le = rt.gameObject.AddComponent<LayoutElement>();
-            le.preferredWidth = icon != null ? 150 : 96;
-            le.preferredHeight = 68;
+            UIKit.Size(rt, icon != null ? 140 : 90, 68);
 
-            var layout = rt.gameObject.AddComponent<HorizontalLayoutGroup>();
-            layout.padding = new RectOffset(6, 6, 4, 4);
-            layout.spacing = 6;
-            layout.childControlWidth = layout.childControlHeight = true;
-            layout.childForceExpandWidth = false;
+            var layout = UIKit.Horizontal(rt.gameObject, 5, 5);
             layout.childAlignment = TextAnchor.MiddleCenter;
-
             if (icon != null)
             {
-                var iconRt = NewRect("Icone", rt);
+                var iconRt = UIKit.Rect("Icone", rt);
                 var img = iconRt.gameObject.AddComponent<Image>();
                 img.sprite = icon;
                 img.preserveAspect = true;
                 img.raycastTarget = false;
-                var ile = iconRt.gameObject.AddComponent<LayoutElement>();
-                ile.preferredWidth = ile.preferredHeight = 48;
+                UIKit.Size(iconRt, 44, 44);
             }
-            var t = NewText(rt, label, 15, TextAnchor.MiddleCenter);
-            t.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+            var t = UIKit.Text(rt, label, 15, TextAnchor.MiddleCenter);
+            UIKit.Size(t, flexWidth: 1);
             return (btn, bg);
         }
     }
