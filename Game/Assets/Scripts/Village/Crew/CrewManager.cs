@@ -43,7 +43,7 @@ namespace Pixel.Village
         public CharacterLook LookOf(CrewMember m)
         {
             if (looks == null || m == null) return null;
-            var l = looks.Find(m.look);
+            var l = looks.FindCrew(m.look);   // visual antigo (de antes dos piratas) não vale: ganha um novo
             if (l == null) { l = looks.ForName(m.name); if (l != null) m.look = l.name; }
             return l;
         }

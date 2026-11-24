@@ -134,6 +134,7 @@ namespace Pixel.EditorTools
             if (asset != null) return asset;
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             asset = ScriptableObject.CreateInstance<T>();
+            asset.name = Path.GetFileNameWithoutExtension(path);   // o nome já vale nesta montagem (saves e buscas usam o nome)
             init(asset);
             AssetDatabase.CreateAsset(asset, path);
             return asset;
@@ -500,6 +501,8 @@ namespace Pixel.EditorTools
             flow.raftHull = data.shipBlocks[0];
             flow.raftMast = data.shipBlocks[2];
             flow.raftSail = data.shipBlocks[3];
+            // Pelo arquivo: ao montar a cena do Mar o Unity descarrega os blocos da memória (a busca por nome falharia)
+            flow.raftSlope = AssetDatabase.LoadAssetAtPath<Pixel.Ship.ShipBlockDef>($"{DataDir}/Navio/CascoRampa.asset");
             flow.villageCamera = camGo;
             flow.villageLight = lightGo;
             flow.captain = captain;

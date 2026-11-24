@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5001311aa27ffe40b6eabfa5825eeac, type: 3}
+  m_Name: PirataCaveman2
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.CharacterLook
+  down:
+  - {fileID: 1599152895, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  - {fileID: -1228413195, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  - {fileID: -468949441, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  - {fileID: -1410784890, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  up:
+  - {fileID: -1679721008, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  - {fileID: -1505199713, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  - {fileID: -506710485, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  - {fileID: 1357218303, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  left:
+  - {fileID: -1535809907, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  - {fileID: 1224707012, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  - {fileID: -1871902690, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  - {fileID: -1071355277, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  right:
+  - {fileID: 1190701249, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  - {fileID: 567197886, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  - {fileID: -1811673339, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  - {fileID: -476672746, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  attack:
+  - {fileID: -2101731275, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  - {fileID: 1184453864, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  - {fileID: 1823057691, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  - {fileID: 1725529557, guid: 37fd51a32e60eba4ea62133faf7e2943, type: 3}
+  portrait: {fileID: 21300000, guid: 15b86a04267b4bc4e9fa689530c1aec8, type: 3}

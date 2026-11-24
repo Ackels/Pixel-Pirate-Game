@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23256d35b8548c347ba084f9718bcef5, type: 3}
+  m_Name: Piso
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Ship.ShipBlockDef
+  displayName: Piso vazado
+  description: "Ch\xE3o de um andar: d\xE1 pra pular de baixo e descer com S."
+  sprite: {fileID: 21300000, guid: 0b95cb54e39bb7847bd9cf5ea9ed16d3, type: 3}
+  spriteTop: {fileID: 0}
+  spriteBottom: {fileID: 0}
+  spriteSingle: {fileID: 0}
+  connectSprites: []
+  tabSprites: []
+  connect: 0
+  role: 6
+  shape: 0
+  category: 1
+  family: piso
+  swatch: {r: 1, g: 1, b: 1, a: 1}
+  cost: 6
+  solid: 0
+  sortingOrder: 1
+  hp: 2
+  sailPower: 0
+  bunks: 0
+  cannons: 0

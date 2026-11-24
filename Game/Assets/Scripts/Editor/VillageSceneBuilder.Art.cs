@@ -135,17 +135,18 @@ namespace Pixel.EditorTools
                 lib = ScriptableObject.CreateInstance<CharacterLibrary>();
                 AssetDatabase.CreateAsset(lib, path);
             }
-            lib.captain = Look("Noble");
+            lib.captain = Look("CapitaoPirata");   // Villager + tricórnio, barba e casaco (tools/arte/pirata_export.py)
             lib.crew = new[]
             {
-                "Boy", "Hunter", "Child", "OldMan", "OldMan2", "OldMan3", "Shaman", "Cavegirl", "Caveman",
-                "Monk", "Eskimo", "Villager4", "Woman", "Villager6",
+                // Bonecos do Ninja Adventure "piratizados" (bandana, tapa-olho, listras): tools/arte/pirata_export.py
+                "PirataBoy", "PirataOldMan", "PirataOldMan2", "PirataCavegirl", "PirataCaveman", "PirataCaveman2", "PirataVillager2",
+                "PirataVillager3", "PirataVillager4", "PirataVillager5", "PirataWoman", "PirataHunter", "PirataPrincess", "PirataOldWoman",
             }.Select(Look).ToArray();
             lib.visitors = new[] { "Villager", "Villager2", "Villager3", "Villager5", "OldWoman", "Inspector", "Princess" }
                 .Select(Look).ToArray();
             lib.skeleton = Look("Skeleton");
-            lib.enemyPirate = Look("FighterRed");
-            lib.legendCaptain = Look("Sultan");
+            lib.enemyPirate = Look("PirataInimigo");
+            lib.legendCaptain = Look("CapitaoLendario");
             EditorUtility.SetDirty(lib);
             AssetDatabase.SaveAssets();
             return lib;
@@ -260,7 +261,7 @@ namespace Pixel.EditorTools
                 string file = Path.GetFileNameWithoutExtension(path);
                 // Objetos que ficam "em pé" no chão têm o pivô embaixo; peças de bloco, céu e efeitos, no centro.
                 bool bottom = path.Contains("/Bichos/") || file.StartsWith("coqueiro") || file.StartsWith("bau_")
-                              || file == "grama" || file.StartsWith("bandeira");
+                              || file == "grama" || file.StartsWith("bandeira_");
                 var imp = (TextureImporter)AssetImporter.GetAtPath(path);
                 imp.textureType = TextureImporterType.Sprite;
                 imp.spriteImportMode = SpriteImportMode.Single;
@@ -273,6 +274,11 @@ namespace Pixel.EditorTools
                 var s = new TextureImporterSettings();
                 imp.ReadTextureSettings(s);
                 s.spriteAlignment = (int)(bottom ? SpriteAlignment.BottomCenter : SpriteAlignment.Center);
+                if (file == "bandeira")   // bloco do estaleiro: 48 px de largura, o mastro (colunas 12-19) fica no centro da célula
+                {
+                    s.spriteAlignment = (int)SpriteAlignment.Custom;
+                    s.spritePivot = new Vector2(16f / 48f, 0.5f);
+                }
                 s.spriteMeshType = SpriteMeshType.FullRect;
                 imp.SetTextureSettings(s);
                 imp.SaveAndReimport();
@@ -311,28 +317,7 @@ namespace Pixel.EditorTools
             return new Pixel.Ship.IslandBuilder.TerrainSet { masks = masks.ToArray(), sprites = sprites.ToArray() };
         }
 
-        static void ApplyShipArt(Pixel.Ship.ShipBlockDef[] blocks)
-        {
-            var map = new Dictionary<Pixel.Ship.BlockRole, string>
-            {
-                { Pixel.Ship.BlockRole.Hull, "casco" }, { Pixel.Ship.BlockRole.Deck, "conves" }, { Pixel.Ship.BlockRole.Mast, "mastro" },
-                { Pixel.Ship.BlockRole.Sail, "vela" }, { Pixel.Ship.BlockRole.Cannon, "canhao" }, { Pixel.Ship.BlockRole.Cabin, "cabine" },
-            };
-            foreach (var b in blocks)
-            {
-                if (b == null || !map.TryGetValue(b.role, out var file)) continue;
-                var s = Mar("Navio/" + file);
-                if (s == null) continue;
-                b.sprite = s;
-                if (b.role == Pixel.Ship.BlockRole.Sail)
-                {
-                    b.spriteTop = Mar("Navio/vela_topo");
-                    b.spriteBottom = Mar("Navio/vela_base");
-                    b.spriteSingle = Mar("Navio/vela_unica");
-                }
-                EditorUtility.SetDirty(b);
-            }
-            AssetDatabase.SaveAssets();
-        }
+        /// <summary>Desenho das peças do navio: tudo fica em ConfigureShipBlocks (VillageSceneBuilder.Sea.cs).</summary>
+        static void ApplyShipArt(Pixel.Ship.ShipBlockDef[] blocks) => ConfigureShipBlocks(blocks);
     }
 }

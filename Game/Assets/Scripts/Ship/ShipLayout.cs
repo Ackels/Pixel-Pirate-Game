@@ -17,12 +17,16 @@ namespace Pixel.Ship
     /// </summary>
     public class ShipLayout
     {
-        public const int Width = 26;
+        public const int Width = 30;
         public const int Height = 14;
-        /// <summary>Linhas abaixo desta ficam submersas (o casco pode ir pra baixo d'água).</summary>
-        public const int WaterRow = 2;
+        /// <summary>A linha d'água passa no meio desta linha: ela e as de baixo ficam submersas.
+        /// (Era 2 até 24/11/2026; saves antigos ganham uma quilha, veja MigrateLegacy.)</summary>
+        public const int WaterRow = 1;
 
         readonly Dictionary<Vector2Int, ShipBlockDef> blocks = new Dictionary<Vector2Int, ShipBlockDef>();
+        readonly Dictionary<Vector2Int, int> rots = new Dictionary<Vector2Int, int>();
+        /// <summary>Orientação da peça (rampa, curvo, meio bloco). Veja ShipShapes.</summary>
+        public int Rot(Vector2Int c) => rots.TryGetValue(c, out var r) ? r : 0;
         public IReadOnlyDictionary<Vector2Int, ShipBlockDef> Blocks => blocks;
         public event System.Action Changed;
 
@@ -31,6 +35,8 @@ namespace Pixel.Ship
         public ShipBlockDef Get(Vector2Int c) => blocks.TryGetValue(c, out var d) ? d : null;
         bool Is(Vector2Int c, BlockRole role) => blocks.TryGetValue(c, out var d) && d.role == role;
         bool IsSolid(Vector2Int c) => blocks.TryGetValue(c, out var d) && d.solid;
+        /// <summary>Dá pra apoiar algo em cima (casco, convés ou piso).</summary>
+        bool IsFloor(Vector2Int c) => blocks.TryGetValue(c, out var d) && d.Standable;
 
         public static bool InBounds(Vector2Int c) => c.x >= 0 && c.y >= 0 && c.x < Width && c.y < Height;
 
@@ -56,8 +62,14 @@ namespace Pixel.Ship
             switch (def.role)
             {
                 case BlockRole.Mast:
-                    if (!(IsSolid(c + Vector2Int.down) || Is(c + Vector2Int.down, BlockRole.Mast)))
-                    { reason = "O mastro precisa de casco ou mastro embaixo."; return false; }
+                    if (!(IsFloor(c + Vector2Int.down) || Is(c + Vector2Int.down, BlockRole.Mast)))
+                    { reason = "O mastro precisa de casco, piso ou mastro embaixo."; return false; }
+                    break;
+                case BlockRole.Flag:
+                    if (!Is(c + Vector2Int.down, BlockRole.Mast)) { reason = "A bandeira vai no topo de um mastro."; return false; }
+                    break;
+                case BlockRole.Decor:
+                    if (!IsFloor(c + Vector2Int.down)) { reason = "Enfeites precisam de chão embaixo (casco ou piso)."; return false; }
                     break;
                 case BlockRole.Sail:
                     if (c.y <= WaterRow) { reason = "Vela embaixo d'água não serve!"; return false; }
@@ -67,7 +79,7 @@ namespace Pixel.Ship
                     break;
                 case BlockRole.Cannon:
                     if (c.y <= WaterRow) { reason = "Canhão embaixo d'água não atira!"; return false; }
-                    if (!IsSolid(c + Vector2Int.down)) { reason = "O canhão precisa de casco ou convés embaixo."; return false; }
+                    if (!IsFloor(c + Vector2Int.down)) { reason = "O canhão precisa de chão embaixo (casco ou piso)."; return false; }
                     break;
             }
             return true;
@@ -110,9 +122,13 @@ namespace Pixel.Ship
         }
 
         // ---------- Alterações ----------
-        public void Set(Vector2Int c, ShipBlockDef def, bool notify = true)
+        public void Set(Vector2Int c, ShipBlockDef def, bool notify = true) => Set(c, def, 0, notify);
+
+        public void Set(Vector2Int c, ShipBlockDef def, int rot, bool notify = true)
         {
             blocks[c] = def;
+            int n = def != null ? ShipShapes.Orientations(def.shape) : 1;
+            if (n > 1 && rot % n != 0) rots[c] = rot % n; else rots.Remove(c);
             if (notify) Changed?.Invoke();
         }
 
@@ -120,6 +136,7 @@ namespace Pixel.Ship
         {
             if (!blocks.TryGetValue(c, out var def)) return null;
             blocks.Remove(c);
+            rots.Remove(c);
             Changed?.Invoke();
             return def;
         }
@@ -140,17 +157,43 @@ namespace Pixel.Ship
             return s;
         }
 
-        /// <summary>A jangada inicial: 6 cascos, um mastro de 3 e 4 velas.</summary>
-        public static ShipLayout Raft(ShipBlockDef hull, ShipBlockDef mast, ShipBlockDef sail)
+        /// <summary>
+        /// O barquinho inicial: quilha submersa com as pontas em rampa, convés de 8 cascos acima d'água,
+        /// um mastro de 3 e 4 velas.
+        /// </summary>
+        public static ShipLayout Raft(ShipBlockDef hull, ShipBlockDef mast, ShipBlockDef sail, ShipBlockDef slope = null)
         {
             var l = new ShipLayout();
-            for (int x = 10; x <= 15; x++) l.Set(new Vector2Int(x, WaterRow), hull, false);
-            for (int y = 3; y <= 5; y++) l.Set(new Vector2Int(12, y), mast, false);
-            l.Set(new Vector2Int(11, 4), sail, false);
-            l.Set(new Vector2Int(11, 5), sail, false);
-            l.Set(new Vector2Int(13, 4), sail, false);
-            l.Set(new Vector2Int(13, 5), sail, false);
+            int deck = WaterRow + 1;
+            for (int x = 11; x <= 18; x++) l.Set(new Vector2Int(x, deck), hull, false);
+            for (int x = 13; x <= 16; x++) l.Set(new Vector2Int(x, WaterRow), hull, false);
+            l.Set(new Vector2Int(12, WaterRow), slope != null ? slope : hull, 3, false);   // ◥
+            l.Set(new Vector2Int(17, WaterRow), slope != null ? slope : hull, 2, false);   // ◤
+            for (int y = deck + 1; y <= deck + 3; y++) l.Set(new Vector2Int(15, y), mast, false);
+            for (int y = deck + 2; y <= deck + 3; y++)
+            {
+                l.Set(new Vector2Int(14, y), sail, false);
+                l.Set(new Vector2Int(16, y), sail, false);
+            }
             return l;
         }
+
+        /// <summary>
+        /// Saves de antes de 24/11/2026: a água ficava uma linha mais alta (WaterRow 2). Para o navio
+        /// "subir um bloco", cada casco que estava na linha d'água antiga ganha um casco igual embaixo (quilha).
+        /// </summary>
+        public bool MigrateLegacy()
+        {
+            foreach (var c in blocks.Keys) if (c.y <= WaterRow) return false;   // já tem algo submerso
+            var add = new List<(Vector2Int, ShipBlockDef)>();
+            foreach (var kv in blocks)
+                if (kv.Key.y == WaterRow + 1 && kv.Value.solid && !blocks.ContainsKey(kv.Key + Vector2Int.down))
+                    add.Add((kv.Key + Vector2Int.down, kv.Value));
+            foreach (var (c, d) in add) blocks[c] = d;
+            return add.Count > 0;
+        }
+
+        /// <summary>Espelho de uma célula em volta de um eixo vertical (x do eixo em "meias células": 2*x).</summary>
+        public static Vector2Int MirrorCell(Vector2Int c, int axis2) => new Vector2Int(axis2 - 1 - c.x, c.y);
     }
 }

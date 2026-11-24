@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5001311aa27ffe40b6eabfa5825eeac, type: 3}
+  m_Name: PirataPrincess
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.CharacterLook
+  down:
+  - {fileID: 1759672064, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  - {fileID: 1088423142, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  - {fileID: 1647872569, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  - {fileID: -217510737, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  up:
+  - {fileID: -2035716020, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  - {fileID: 1576719977, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  - {fileID: -139729514, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  - {fileID: -1320758150, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  left:
+  - {fileID: 270814254, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  - {fileID: -1938888554, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  - {fileID: -969732431, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  - {fileID: -1895005142, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  right:
+  - {fileID: 318117752, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  - {fileID: -1488646629, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  - {fileID: 145713844, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  - {fileID: -735112536, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  attack:
+  - {fileID: -1947273941, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  - {fileID: -538738776, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  - {fileID: -2018066642, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  - {fileID: 1289112723, guid: 2bf04cb0ccf0afb43a9028ac806787f8, type: 3}
+  portrait: {fileID: 21300000, guid: ac60c012f2ccc7747b2dfd46b59ee23e, type: 3}

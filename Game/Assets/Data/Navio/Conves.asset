@@ -18,7 +18,14 @@ MonoBehaviour:
   spriteTop: {fileID: 0}
   spriteBottom: {fileID: 0}
   spriteSingle: {fileID: 0}
+  connectSprites: []
+  tabSprites: []
+  connect: 0
   role: 1
+  shape: 0
+  category: 0
+  family: conves
+  swatch: {r: 1, g: 1, b: 1, a: 1}
   cost: 10
   solid: 1
   sortingOrder: 0

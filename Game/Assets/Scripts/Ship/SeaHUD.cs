@@ -21,7 +21,9 @@ namespace Pixel.Ship
         Image dayBar, legBar, hullBar, captainBar;
         Text hullText, captainText;
         GameObject captainRow, legRow;
-        RectTransform actionBar, helpPanel;
+        RectTransform actionBar, helpPanel, hintRect, shipyard;
+        BlockCategory shipCategory = BlockCategory.Casco;
+        readonly System.Collections.Generic.Dictionary<string, ShipBlockDef> familyChoice = new System.Collections.Generic.Dictionary<string, ShipBlockDef>();
         SeaMode builtFor = (SeaMode)(-1);
         EncounterState builtEncounter = (EncounterState)(-1);
         Text enemyText;
@@ -113,7 +115,18 @@ namespace Pixel.Ship
             layout.childAlignment = TextAnchor.MiddleCenter;
             actionBar.gameObject.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
 
+            shipyard = UIKit.Panel("Estaleiro", root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 12), new Vector2(0, 0));
+            var sv2 = UIKit.Vertical(shipyard.gameObject, 12, 8);
+            sv2.childForceExpandWidth = false;
+            sv2.childAlignment = TextAnchor.UpperCenter;
+            var sfit = shipyard.gameObject.AddComponent<ContentSizeFitter>();
+            sfit.horizontalFit = sfit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            shipyard.gameObject.SetActive(false);
+            sea.editor.StateChanged += () => { if (sea.Mode == SeaMode.Editing) BuildShipyard(); };
+
             var hintPanel = UIKit.Panel("Dica", root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 110), new Vector2(760, 36));
+            hintRect = hintPanel;
+            foreach (var g in hintPanel.GetComponentsInChildren<Graphic>(true)) g.raycastTarget = false;
             hintText = UIKit.Text(hintPanel, "", 16, TextAnchor.MiddleCenter);
             UIKit.Stretch(hintText.rectTransform, 8);
             UIKit.Fit(hintText, 11);
@@ -146,7 +159,7 @@ namespace Pixel.Ship
             var kb = Keyboard.current;
             if (sea.Mode == SeaMode.Editing && kb != null && kb.escapeKey.wasPressedThisFrame)
             {
-                if (sea.editor.Selected != null) { sea.editor.Selected = null; Refresh(); }
+                if (sea.editor.Selected != null) { sea.editor.Selected = null; BuildShipyard(); }
                 else sea.StopEditing();
             }
             else if (kb != null && kb.escapeKey.wasPressedThisFrame && helpPanel.gameObject.activeSelf) helpPanel.gameObject.SetActive(false);
@@ -157,6 +170,10 @@ namespace Pixel.Ship
                 : sea.NearbyInteractable != null ? sea.NearbyInteractable.prompt : null;
             hintText.transform.parent.gameObject.SetActive(!string.IsNullOrEmpty(hint));
             hintText.text = hint;
+            // No estaleiro a dica vai para o topo (embaixo fica a barra de peças)
+            bool top = sea.Mode == SeaMode.Editing;
+            hintRect.anchorMin = hintRect.anchorMax = hintRect.pivot = new Vector2(0.5f, top ? 1 : 0);
+            hintRect.anchoredPosition = new Vector2(0, top ? -64 : 110);
 
             // Recursos e dia
             var cm = CrewManager.Instance;
@@ -265,6 +282,7 @@ namespace Pixel.Ship
             var director = EncounterDirector.Instance;
             builtEncounter = director != null ? director.State : EncounterState.None;
             UIKit.Clear(actionBar);
+            BuildShipyard();
 
             switch (sea.Mode)
             {
@@ -281,18 +299,8 @@ namespace Pixel.Ship
 
                 case SeaMode.Editing:
                     titleText.text = "Estaleiro — editando o navio";
-                    helpText.text = "Clique: colocar · Botão direito: remover\nEsc: soltar bloco / sair";
-                    foreach (var def in sea.Palette)
-                    {
-                        var d = def;
-                        bool selected = sea.editor.Selected == d;
-                        PaletteButton(d, selected, () =>
-                        {
-                            sea.editor.Selected = sea.editor.Selected == d ? null : d;
-                            Refresh();
-                        });
-                    }
-                    ActionButton("Concluir", sea.StopEditing, true);
+                    helpText.text = "Clique ou arraste: colocar\nBotão direito (ou arrastar): remover\nR ou rodinha do mouse: girar a peça\nM: espelho (constrói dos dois lados)\nEsc: soltar a peça / sair";
+
                     break;
 
                 case SeaMode.Sailing:
@@ -331,30 +339,131 @@ namespace Pixel.Ship
             w.gameObject.SetActive(false);
         }
 
+        // ---------- Estaleiro: abas, peças, cores, girar e espelho ----------
+        static readonly (BlockCategory cat, string name)[] ShipTabs =
+        {
+            (BlockCategory.Casco, "Casco"), (BlockCategory.Estrutura, "Estrutura"), (BlockCategory.Velas, "Velas"),
+            (BlockCategory.Armas, "Armas"), (BlockCategory.Enfeites, "Enfeites"),
+        };
+
+        void BuildShipyard()
+        {
+            bool editing = sea.Mode == SeaMode.Editing;
+            shipyard.gameObject.SetActive(editing);
+            actionBar.gameObject.SetActive(!editing);
+            if (!editing) return;
+            UIKit.Clear(shipyard);
+            var ed = sea.editor;
+
+            // Abas + girar + espelho
+            var tabs = UIKit.Rect("Abas", shipyard);
+            UIKit.Horizontal(tabs.gameObject, 0, 6);
+            foreach (var (cat, name) in ShipTabs)
+            {
+                var c = cat;
+                var (tb, _, tbg) = UIKit.Button(tabs, name, () => { shipCategory = c; BuildShipyard(); }, 15);
+                UIKit.SetSelected(tbg, c == shipCategory);
+                UIKit.Size(tb, 104, 34);
+            }
+            var gap = UIKit.Rect("Espaco", tabs);
+            UIKit.Size(gap, 16, 10);
+            var (rb, rl, rbg) = UIKit.Button(tabs, "Girar (R)", () => ed.Rotate(), 14);
+            UIKit.Size(rb, 96, 34);
+            rb.interactable = ed.Selected != null && ShipShapes.Orientations(ed.Selected.shape) > 1;
+            UIKit.Tip(rb, "Gira a peça (rampa, curvo, meio bloco). A rodinha do mouse também gira.");
+            var (mb, _, mbg) = UIKit.Button(tabs, "Espelho (M)", ed.ToggleMirror, 14);
+            UIKit.SetSelected(mbg, ed.Mirror);
+            UIKit.Size(mb, 110, 34);
+            UIKit.Tip(mb, "Espelho: tudo o que você coloca ou tira aparece também do outro lado do eixo azul (o meio do navio).");
+            var gap2 = UIKit.Rect("Espaco", tabs);
+            UIKit.Size(gap2, 16, 10);
+            var (done, _, doneBg) = UIKit.Button(tabs, "Concluir", sea.StopEditing, 15);
+            UIKit.SetSelected(doneBg, true);
+            UIKit.Size(done, 110, 34);
+            UIKit.Tip(done, "Sair do estaleiro (Esc).");
+
+            // Peças da aba (uma por família; a cor escolhida fica lembrada)
+            var row = UIKit.Rect("Pecas", shipyard);
+            UIKit.Horizontal(row.gameObject, 0, 6).childAlignment = TextAnchor.MiddleLeft;
+            var families = new System.Collections.Generic.List<string>();
+            var members = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<ShipBlockDef>>();
+            foreach (var d in sea.Palette)
+            {
+                if (d == null || d.category != shipCategory) continue;
+                if (!members.TryGetValue(d.Family, out var l)) { l = new System.Collections.Generic.List<ShipBlockDef>(); members[d.Family] = l; families.Add(d.Family); }
+                l.Add(d);
+            }
+            System.Collections.Generic.List<ShipBlockDef> selectedFamily = null;
+            foreach (var fam in families)
+            {
+                var l = members[fam];
+                if (!familyChoice.TryGetValue(fam, out var def) || !l.Contains(def)) def = l[0];
+                if (ed.Selected != null && l.Contains(ed.Selected)) { def = ed.Selected; selectedFamily = l; }
+                PieceButton(row, def, ed.Selected == def);
+            }
+
+            // Cores da peça escolhida
+            if (selectedFamily != null && selectedFamily.Count > 1)
+            {
+                var sep = UIKit.Rect("Espaco", row);
+                UIKit.Size(sep, 12, 10);
+                foreach (var d in selectedFamily) Swatch(row, d, ed.Selected == d);
+            }
+        }
+
+        void PieceButton(Transform parent, ShipBlockDef def, bool selected)
+        {
+            var ed = sea.editor;
+            var rt = UIKit.Rect("Peca", parent);
+            var (btn, bg) = UIKit.ButtonBase(rt);
+            UIKit.SetSelected(bg, selected);
+            btn.onClick.AddListener(() =>
+            {
+                ed.Selected = ed.Selected == def ? null : def;
+                familyChoice[def.Family] = def;
+                BuildShipyard();
+            });
+            UIKit.Size(rt, 64, 70);
+            var iconRt = UIKit.Rect("Icone", rt);
+            iconRt.anchorMin = iconRt.anchorMax = new Vector2(0.5f, 1f);
+            iconRt.pivot = new Vector2(0.5f, 1f);
+            iconRt.anchoredPosition = new Vector2(0, -6);
+            iconRt.sizeDelta = new Vector2(40, 40);
+            var img = iconRt.gameObject.AddComponent<Image>();
+            img.sprite = def.Preview;
+            img.preserveAspect = true;
+            img.raycastTarget = false;
+            var cost = UIKit.Text(rt, def.cost.ToString(), 12, TextAnchor.LowerCenter, UIKit.ButtonText);
+            UIKit.Stretch(cost.rectTransform);
+            cost.rectTransform.offsetMin = new Vector2(0, 8);
+            string stats = (def.hp > 0 && def.solid ? $"\nVida do casco: +{def.hp}" : "") + (def.sailPower > 0 ? $"\nVelocidade: +{def.sailPower} vela" : "")
+                         + (def.bunks > 0 ? $"\n+{def.bunks} vaga de tripulante" : "") + (def.cannons > 0 ? $"\n+{def.cannons} canhão" : "");
+            UIKit.Tip(rt, $"{def.displayName} · {def.cost} ouro\n{def.description}{stats}");
+        }
+
+        void Swatch(Transform parent, ShipBlockDef def, bool selected)
+        {
+            var ed = sea.editor;
+            var rt = UIKit.Rect("Cor", parent);
+            var frame = rt.gameObject.AddComponent<Image>();
+            frame.color = selected ? new Color(0.45f, 0.9f, 0.45f) : new Color(0.08f, 0.06f, 0.06f);
+            var btn = rt.gameObject.AddComponent<Button>();
+            btn.targetGraphic = frame;
+            btn.onClick.AddListener(() => { ed.Selected = def; familyChoice[def.Family] = def; BuildShipyard(); });
+            UIKit.Size(rt, 34, 34);
+            var inner = UIKit.Rect("Amostra", rt);
+            UIKit.Stretch(inner, 4);
+            var img = inner.gameObject.AddComponent<Image>();
+            img.color = def.swatch;
+            img.raycastTarget = false;
+            UIKit.Tip(rt, def.displayName);
+        }
+
         void ActionButton(string label, UnityEngine.Events.UnityAction onClick, bool interactable)
         {
             var (btn, _, _) = UIKit.Button(actionBar, label, onClick, 16);
             btn.interactable = interactable;
             UIKit.Size(btn, 170, 64);
-        }
-
-        void PaletteButton(ShipBlockDef def, bool selected, UnityEngine.Events.UnityAction onClick)
-        {
-            var rt = UIKit.Rect("Bloco", actionBar);
-            var (btn, bg) = UIKit.ButtonBase(rt);
-            UIKit.SetSelected(bg, selected);
-            btn.onClick.AddListener(onClick);
-            UIKit.Size(rt, 118, 64);
-            var l = UIKit.Horizontal(rt.gameObject, 5, 4);
-            l.childAlignment = TextAnchor.MiddleCenter;
-            var iconRt = UIKit.Rect("Icone", rt);
-            var img = iconRt.gameObject.AddComponent<Image>();
-            img.sprite = def.sprite;
-            img.preserveAspect = true;
-            img.raycastTarget = false;
-            UIKit.Size(iconRt, 36, 36);
-            var t = UIKit.Text(rt, $"{def.displayName}\n{def.cost} ouro", 14, TextAnchor.MiddleCenter, UIKit.ButtonText);
-            UIKit.Size(t, flexWidth: 1);
         }
     }
 }

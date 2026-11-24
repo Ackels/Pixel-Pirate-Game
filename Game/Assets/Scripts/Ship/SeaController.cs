@@ -275,10 +275,34 @@ namespace Pixel.Ship
         {
             if (!CanEdit(out string why)) { Say(why); return; }
             Mode = SeaMode.Editing;
+            EditingCamera(true);
             captain.gameObject.SetActive(false);
             foreach (var c in CrewFighters) if (c != null) c.gameObject.SetActive(false);
             editor.enabled = true;
             Changed?.Invoke();
+        }
+
+        float cameraY = float.NaN;
+        /// <summary>
+        /// No estaleiro a câmera afasta (mostra 22 blocos de altura) e desce um bloco: a grade inteira cabe entre a
+        /// dica de cima e a barra de peças. O "pixel perfeito" fica desligado só enquanto edita
+        /// (em janelas pequenas ele não deixa afastar).
+        /// </summary>
+        void EditingCamera(bool on)
+        {
+            var cam = Camera.main;
+            if (cam == null) return;
+            var ppc = cam.GetComponent<UnityEngine.Rendering.Universal.PixelPerfectCamera>();
+            if (ppc != null) ppc.enabled = !on;
+            var p = cam.transform.position;
+            if (on)
+            {
+                if (float.IsNaN(cameraY)) cameraY = p.y;
+                p.y = cameraY - 1f;
+                cam.orthographicSize = 11f;
+            }
+            else if (!float.IsNaN(cameraY)) { p.y = cameraY; cameraY = float.NaN; }
+            cam.transform.position = p;
         }
 
         public void StopEditing()
@@ -286,6 +310,7 @@ namespace Pixel.Ship
             if (Mode != SeaMode.Editing) return;
             editor.enabled = false;
             editor.Selected = null;
+            EditingCamera(false);
             Mode = SeaMode.Docked;
             captain.gameObject.SetActive(true);
             captain.Teleport(shipView.SpawnPoint());

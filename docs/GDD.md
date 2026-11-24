@@ -158,6 +158,13 @@ O que é **nosso**: tema pirata em tudo, a vila é um **porto pirata** (não uma
 - Editor em **grade, visão lateral**, bloco a bloco (como o Pixel Piracy): casco, convés, mastros, velas, cabines, porão, beliches, cozinha de bordo, **canhões** (posições), decoração, **bandeira personalizável**.
 - Atributos que saem do design: vida do casco, velocidade, capacidade de carga, beliches (= tamanho máximo da tripulação), poder de fogo.
 - Começa como **jangada** e cresce até galeão. Blocos são comprados com ouro + materiais da Carpintaria.
+- **Foco do jogo (decisão de 24/11/2026): customização do navio.** O jogador deve poder dar forma ao navio com criatividade:
+  - **Formas**: bloco cheio, **rampa** (triângulo), **curvo** (quarto de círculo) e **meio bloco**, todos giráveis; casco em várias cores.
+  - **Andares**: piso vazado (dá para pular de baixo e descer), **escadas**, paredes de fundo (com janela, com rede/beliche) para porões e cabines.
+  - **Velas** que se emendam em qualquer tamanho e com estilos (branca, listrada, preta); bandeira no topo do mastro.
+  - **Enfeites**: amurada, lanterna, barril, caixote, âncora, timão (e mais no futuro).
+  - Ferramentas do estaleiro: abas por categoria, girar (R), **espelho** (constrói os dois lados), arrastar para pintar/apagar.
+  - Próximos passos possíveis: mais formas e cores, enfeites com função (lanterna à noite, timão), bandeira personalizável, salvar/copiar projetos de navio.
 
 ### 6.6 Mar e mapa-múndi
 - Mapa com ilhas geradas (semente), névoa de guerra, rotas; a vila é a "base".

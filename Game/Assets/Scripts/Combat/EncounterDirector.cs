@@ -179,7 +179,7 @@ namespace Pixel.Combat
             var view = go.AddComponent<ShipView>();
             view.movable = true;
             view.facingLeft = true;
-            view.sailTint = pirate ? new Color(0.35f, 0.32f, 0.32f) : new Color(0.85f, 0.92f, 1f);
+            view.sailTint = pirate ? Color.white : new Color(0.85f, 0.92f, 1f);   // pirata já usa a vela preta
             go.SetActive(true);
             view.Bind(layout);
 
@@ -220,26 +220,46 @@ namespace Pixel.Combat
             return sea.Palette[0];
         }
 
+        /// <summary>Peça pelo nome do asset (cai para a do papel indicado se não existir).</summary>
+        ShipBlockDef Named(string assetName, BlockRole fallback)
+        {
+            foreach (var d in sea.Palette) if (d != null && d.name == assetName) return d;
+            return Def(fallback);
+        }
+
+        /// <summary>Linha de casco com as pontas em rampa (◥ à esquerda, ◤ à direita), para o navio afinar embaixo.</summary>
+        void HullRow(ShipLayout l, int y, int x0, int x1, ShipBlockDef hull, ShipBlockDef slope, bool taper)
+        {
+            for (int x = x0; x <= x1; x++) l.Set(new Vector2Int(x, y), hull, false);
+            if (!taper || slope == null) return;
+            l.Set(new Vector2Int(x0, y), slope, 3, false);
+            l.Set(new Vector2Int(x1, y), slope, 2, false);
+        }
+
         ShipLayout MerchantLayout()
         {
             var l = new ShipLayout();
             var hull = Def(BlockRole.Hull); var mast = Def(BlockRole.Mast); var sail = Def(BlockRole.Sail);
-            for (int x = 8; x <= 14; x++) l.Set(new Vector2Int(x, 1), hull, false);
-            for (int x = 7; x <= 15; x++) l.Set(new Vector2Int(x, 2), hull, false);
+            var slope = Named("CascoRampa", BlockRole.Hull);
+            HullRow(l, 1, 8, 14, hull, slope, true);
+            HullRow(l, 2, 7, 15, hull, slope, false);
             for (int y = 3; y <= 6; y++) l.Set(new Vector2Int(11, y), mast, false);
             for (int y = 4; y <= 6; y++) { l.Set(new Vector2Int(10, y), sail, false); l.Set(new Vector2Int(12, y), sail, false); }
             l.Set(new Vector2Int(8, 3), Def(BlockRole.Cannon), false);
-            l.Set(new Vector2Int(14, 3), Def(BlockRole.Cabin), false);
+            l.Set(new Vector2Int(14, 3), Named("Caixote", BlockRole.Cabin), false);
+            l.Set(new Vector2Int(13, 3), Named("Barril", BlockRole.Cabin), false);
             return l;
         }
 
         ShipLayout PirateLayout()
         {
             var l = new ShipLayout();
-            var hull = Def(BlockRole.Hull); var mast = Def(BlockRole.Mast); var sail = Def(BlockRole.Sail);
-            for (int x = 8; x <= 15; x++) l.Set(new Vector2Int(x, 0), hull, false);
-            for (int x = 6; x <= 17; x++) l.Set(new Vector2Int(x, 1), hull, false);
-            for (int x = 5; x <= 18; x++) l.Set(new Vector2Int(x, 2), hull, false);
+            var hull = Named("CascoEscuro", BlockRole.Hull); var mast = Def(BlockRole.Mast);
+            var sail = Named("VelaPreta", BlockRole.Sail);
+            var slope = Named("CascoEscuroRampa", BlockRole.Hull);
+            HullRow(l, 0, 8, 15, hull, slope, true);
+            HullRow(l, 1, 6, 17, hull, slope, true);
+            HullRow(l, 2, 5, 18, hull, slope, false);
             foreach (int mx in new[] { 9, 14 })
             {
                 for (int y = 3; y <= 7; y++) l.Set(new Vector2Int(mx, y), mast, false);
@@ -247,8 +267,8 @@ namespace Pixel.Combat
             }
             l.Set(new Vector2Int(6, 3), Def(BlockRole.Cannon), false);
             l.Set(new Vector2Int(7, 3), Def(BlockRole.Cannon), false);
-            l.Set(new Vector2Int(16, 3), Def(BlockRole.Cabin), false);
-            l.Set(new Vector2Int(17, 3), Def(BlockRole.Cabin), false);
+            l.Set(new Vector2Int(16, 3), Named("Barril", BlockRole.Cabin), false);
+            l.Set(new Vector2Int(17, 3), Named("Lanterna", BlockRole.Cabin), false);
             return l;
         }
 

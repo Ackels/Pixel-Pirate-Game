@@ -26,6 +26,14 @@ namespace Pixel.Village
             return null;
         }
 
+        /// <summary>Só entre os visuais de tripulante (um nome que não está mais na lista volta null).</summary>
+        public CharacterLook FindCrew(string id)
+        {
+            if (string.IsNullOrEmpty(id) || crew == null) return null;
+            foreach (var l in crew) if (l != null && l.name == id) return l;
+            return null;
+        }
+
         /// <summary>Visual de tripulante para um nome qualquer (saves antigos sem visual escolhido).</summary>
         public CharacterLook ForName(string seed)
         {

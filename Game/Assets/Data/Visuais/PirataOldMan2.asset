@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5001311aa27ffe40b6eabfa5825eeac, type: 3}
+  m_Name: PirataOldMan2
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.CharacterLook
+  down:
+  - {fileID: 1657568062, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  - {fileID: -119734887, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  - {fileID: 712124837, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  - {fileID: -1292945737, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  up:
+  - {fileID: 1229422752, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  - {fileID: 459912344, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  - {fileID: 1369829101, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  - {fileID: -358239989, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  left:
+  - {fileID: -926285567, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  - {fileID: -1550642678, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  - {fileID: -348932824, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  - {fileID: -1214769098, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  right:
+  - {fileID: 1329853639, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  - {fileID: -1153494643, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  - {fileID: 1150030424, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  - {fileID: -318273333, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  attack:
+  - {fileID: 1702343762, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  - {fileID: -444619527, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  - {fileID: -1622096533, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  - {fileID: -996349389, guid: ac65e1107513ed749ae7e20f6f5d3321, type: 3}
+  portrait: {fileID: 21300000, guid: d45651684537f124d9490ef0475e9544, type: 3}

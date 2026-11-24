@@ -13,26 +13,149 @@ namespace Pixel.EditorTools
         const string SeaScenePath = "Assets/Scenes/Sea.unity";
         static readonly Vector2 SeaCenter = new Vector2(0f, 1000f);   // o mar fica longe da vila no mundo
 
+        /// <summary>
+        /// Peças do estaleiro. Custo e atributos só são definidos quando o asset é criado (ajustes no Inspector
+        /// ficam); forma, aba, família, desenho e ordem de desenho são aplicados a cada montagem (ConfigureShipBlocks).
+        /// Os 6 primeiros mantêm os nomes antigos (saves guardam o nome do asset).
+        /// </summary>
         static ShipBlockDef[] CreateShipBlocks()
         {
-            ShipBlockDef Block(string file, string name, BlockRole role, int cost, bool solid, int order, int hp,
-                int sail, int bunks, int cannons, string desc, string sprite) =>
-                GetOrCreate<ShipBlockDef>($"Navio/{file}", b =>
-                {
-                    b.displayName = name; b.role = role; b.cost = cost; b.solid = solid; b.sortingOrder = order;
-                    b.hp = hp; b.sailPower = sail; b.bunks = bunks; b.cannons = cannons; b.description = desc;
-                    b.sprite = LoadSprite($"Ship/{sprite}");
-                });
-
-            return new[]
+            var list = new System.Collections.Generic.List<ShipBlockDef>();
+            ShipBlockDef Block(string file, string name, BlockRole role, int cost, bool solid, int hp,
+                int sail, int bunks, int cannons, string desc)
             {
-                Block("Casco", "Casco", BlockRole.Hull, 15, true, 0, 10, 0, 0, 0, "Estrutura do navio: +10 de vida. Pode ir abaixo d'água.", "ship_hull"),
-                Block("Conves", "Convés", BlockRole.Deck, 10, true, 0, 6, 0, 0, 0, "Piso mais leve e barato: +6 de vida.", "ship_deck"),
-                Block("Mastro", "Mastro", BlockRole.Mast, 20, false, -11, 2, 0, 0, 0, "Segura as velas. Precisa de apoio embaixo.", "ship_mast"),
-                Block("Vela", "Vela", BlockRole.Sail, 25, false, -10, 1, 1, 0, 0, "Mais velas = mais velocidade (o peso do navio atrapalha).", "ship_sail"),
-                Block("Canhao", "Canhão", BlockRole.Cannon, 60, false, 5, 2, 0, 0, 1, "Poder de fogo para a Fase 4. Precisa de piso embaixo.", "ship_cannon"),
-                Block("Cabine", "Cabine", BlockRole.Cabin, 30, false, -12, 2, 0, 1, 0, "Alojamento: +1 tripulante no navio.", "ship_cabin"),
+                var b = GetOrCreate<ShipBlockDef>($"Navio/{file}", x =>
+                {
+                    x.displayName = name; x.role = role; x.cost = cost; x.solid = solid;
+                    x.hp = hp; x.sailPower = sail; x.bunks = bunks; x.cannons = cannons; x.description = desc;
+                });
+                list.Add(b);
+                return b;
+            }
+
+            // Os 6 originais (a ordem importa: GameFlow usa [0] casco, [2] mastro, [3] vela)
+            Block("Casco", "Casco", BlockRole.Hull, 15, true, 10, 0, 0, 0, "Estrutura do navio: +10 de vida. Pode ir abaixo d'água.");
+            Block("Conves", "Convés", BlockRole.Deck, 10, true, 6, 0, 0, 0, "Piso mais leve e barato: +6 de vida.");
+            Block("Mastro", "Mastro", BlockRole.Mast, 20, false, 2, 0, 0, 0, "Segura as velas e a bandeira. Precisa de apoio embaixo.");
+            Block("Vela", "Vela branca", BlockRole.Sail, 25, false, 1, 1, 0, 0, "Mais velas = mais velocidade (o peso do navio atrapalha). Velas vizinhas se emendam.");
+            Block("Canhao", "Canhão", BlockRole.Cannon, 60, false, 2, 0, 0, 1, "Atira sozinho no combate. Precisa de chão embaixo.");
+            Block("Cabine", "Rede (beliche)", BlockRole.Cabin, 30, false, 2, 0, 1, 0, "Parede com rede de dormir: +1 tripulante no navio.");
+
+            // Casco em 4 formas e 3 cores
+            Block("CascoRampa", "Casco em rampa", BlockRole.Hull, 12, true, 6, 0, 0, 0, "Ponta inclinada (proa, popa). R gira.");
+            Block("CascoCurvo", "Casco curvo", BlockRole.Hull, 12, true, 6, 0, 0, 0, "Canto arredondado. R gira.");
+            Block("CascoMeio", "Meio casco", BlockRole.Hull, 8, true, 5, 0, 0, 0, "Meio bloco (degrau, beirada). R vira para cima.");
+            foreach (var cor in new[] { "Escuro", "Vermelho" })
+            {
+                Block($"Casco{cor}", $"Casco {cor.ToLower()}", BlockRole.Hull, 15, true, 10, 0, 0, 0, "Estrutura do navio: +10 de vida.");
+                Block($"Casco{cor}Rampa", $"Rampa {cor.ToLower()}", BlockRole.Hull, 12, true, 6, 0, 0, 0, "Ponta inclinada. R gira.");
+                Block($"Casco{cor}Curvo", $"Curvo {cor.ToLower()}", BlockRole.Hull, 12, true, 6, 0, 0, 0, "Canto arredondado. R gira.");
+                Block($"Casco{cor}Meio", $"Meio {cor.ToLower()}", BlockRole.Hull, 8, true, 5, 0, 0, 0, "Meio bloco. R vira para cima.");
+            }
+
+            // Estrutura (andares)
+            Block("Piso", "Piso vazado", BlockRole.Platform, 6, false, 2, 0, 0, 0, "Chão de um andar: dá pra pular de baixo e descer com S.");
+            Block("Escada", "Escada", BlockRole.Ladder, 8, false, 1, 0, 0, 0, "Sobe e desce entre os andares (W/S).");
+            Block("Parede", "Parede", BlockRole.Wall, 5, false, 1, 0, 0, 0, "Parede de fundo para cabines e porões.");
+            Block("ParedeJanela", "Parede com janela", BlockRole.Wall, 8, false, 1, 0, 0, 0, "Parede de fundo com escotilha redonda.");
+
+            // Velas
+            Block("VelaListrada", "Vela listrada", BlockRole.Sail, 30, false, 1, 1, 0, 0, "Vela vermelha e branca. Velas vizinhas se emendam.");
+            Block("VelaPreta", "Vela preta", BlockRole.Sail, 30, false, 1, 1, 0, 0, "Vela de pirata de respeito. Velas vizinhas se emendam.");
+            Block("Bandeira", "Bandeira pirata", BlockRole.Flag, 15, false, 1, 0, 0, 0, "Vai no topo de um mastro.");
+
+            // Enfeites
+            Block("Amurada", "Amurada", BlockRole.Decor, 6, false, 1, 0, 0, 0, "Corrimão na beira do convés.");
+            Block("Lanterna", "Lanterna", BlockRole.Decor, 10, false, 1, 0, 0, 0, "Vela acesa num pires.");
+            Block("Barril", "Barril", BlockRole.Decor, 8, false, 1, 0, 0, 0, "Barril de rum (vazio, infelizmente).");
+            Block("Caixote", "Caixote", BlockRole.Decor, 8, false, 1, 0, 0, 0, "Carga do navio.");
+            Block("Ancora", "Âncora", BlockRole.Decor, 12, false, 1, 0, 0, 0, "Toda embarcação que se preza tem uma.");
+            Block("Timao", "Timão", BlockRole.Decor, 20, false, 1, 0, 0, 0, "O leme do capitão.");
+
+            var all = list.ToArray();
+            ConfigureShipBlocks(all);
+            return all;
+        }
+
+        /// <summary>Forma, aba, família, cor da amostra, emendas, desenho e ordem de desenho (aplicado a cada montagem).</summary>
+        static void ConfigureShipBlocks(ShipBlockDef[] blocks)
+        {
+            ImportMarArt();
+            var hullColors = new System.Collections.Generic.Dictionary<string, (string art, Color swatch)>
+            {
+                { "", ("natural", new Color32(0xbc, 0x99, 0x7f, 255)) },
+                { "Escuro", ("escuro", new Color32(0x76, 0x58, 0x4c, 255)) },
+                { "Vermelho", ("vermelho", new Color32(0xb4, 0x4c, 0x42, 255)) },
             };
+            foreach (var b in blocks)
+            {
+                if (b == null) continue;
+                b.connect = ConnectMode.None;
+                b.spriteTop = b.spriteBottom = b.spriteSingle = null;
+                b.connectSprites = null;
+                b.tabSprites = null;
+                b.shape = BlockShape.Full;
+                string n = b.name;
+
+                if (n.StartsWith("Casco"))
+                {
+                    string rest = n.Substring(5);
+                    string cor = rest.StartsWith("Escuro") ? "Escuro" : rest.StartsWith("Vermelho") ? "Vermelho" : "";
+                    string forma = rest.Substring(cor.Length);
+                    var (art, sw) = hullColors[cor];
+                    b.category = BlockCategory.Casco; b.swatch = sw; b.sortingOrder = 0; b.solid = true; b.role = BlockRole.Hull;
+                    b.shape = forma == "Rampa" ? BlockShape.Slope : forma == "Curvo" ? BlockShape.Round : forma == "Meio" ? BlockShape.Half : BlockShape.Full;
+                    string f = forma == "Rampa" ? "rampa" : forma == "Curvo" ? "curvo" : forma == "Meio" ? "meio" : "cheio";
+                    b.family = "casco_" + f;
+                    b.sprite = Mar($"Navio/casco_{art}_{f}");
+                    if (f == "cheio") { b.spriteTop = Mar($"Navio/casco_{art}_cheio_topo"); b.connect = ConnectMode.ExposedTop; }
+                }
+                else switch (n)
+                {
+                    case "Conves":
+                        b.category = BlockCategory.Casco; b.family = "conves"; b.sortingOrder = 0; b.sprite = Mar("Navio/conves"); break;
+                    case "Mastro":
+                        b.category = BlockCategory.Velas; b.family = "mastro"; b.sortingOrder = -11; b.sprite = Mar("Navio/mastro"); break;
+                    case "Vela": case "VelaListrada": case "VelaPreta":
+                    {
+                        string estilo = n == "Vela" ? "branca" : n == "VelaListrada" ? "listrada" : "preta";
+                        b.category = BlockCategory.Velas; b.family = "vela"; b.sortingOrder = -10; b.connect = ConnectMode.Sail16;
+                        b.connectSprites = new Sprite[16];
+                        for (int m = 0; m < 16; m++) b.connectSprites[m] = Mar($"Navio/vela_{estilo}_{m}");
+                        b.tabSprites = new Sprite[4];
+                        for (int m = 0; m < 4; m++) b.tabSprites[m] = Mar($"Navio/vela_{estilo}_aba_{m}");
+                        b.sprite = b.connectSprites[15];
+                        b.swatch = estilo == "branca" ? new Color32(0xf0, 0xe8, 0xd6, 255) : estilo == "listrada" ? new Color32(0xc8, 0x46, 0x3e, 255) : new Color32(0x4a, 0x44, 0x52, 255);
+                        break;
+                    }
+                    case "Bandeira":
+                        b.category = BlockCategory.Velas; b.family = "bandeira"; b.sortingOrder = -9; b.sprite = Mar("Navio/bandeira"); break;
+                    case "Canhao":
+                        b.category = BlockCategory.Armas; b.family = "canhao"; b.sortingOrder = 5; b.sprite = Mar("Navio/canhao"); break;
+                    case "Cabine":
+                        b.category = BlockCategory.Estrutura; b.family = "rede"; b.sortingOrder = -14; b.sprite = Mar("Navio/parede_rede"); break;
+                    case "Piso":
+                        b.category = BlockCategory.Estrutura; b.family = "piso"; b.sortingOrder = 1; b.sprite = Mar("Navio/piso"); break;
+                    case "Escada":
+                        b.category = BlockCategory.Estrutura; b.family = "escada"; b.sortingOrder = -6; b.sprite = Mar("Navio/escada"); break;
+                    case "Parede":
+                        b.category = BlockCategory.Estrutura; b.family = "parede"; b.sortingOrder = -14; b.sprite = Mar("Navio/parede"); break;
+                    case "ParedeJanela":
+                        b.category = BlockCategory.Estrutura; b.family = "janela"; b.sortingOrder = -14; b.sprite = Mar("Navio/parede_janela"); break;
+                    case "Amurada":
+                        b.category = BlockCategory.Enfeites; b.family = "amurada"; b.sortingOrder = 12; b.sprite = Mar("Navio/amurada"); break;
+                    default:
+                    {
+                        string art = n == "Lanterna" ? "lanterna" : n == "Barril" ? "barril" : n == "Caixote" ? "caixote"
+                                   : n == "Ancora" ? "ancora" : n == "Timao" ? "timao" : null;
+                        if (art == null) break;
+                        b.category = BlockCategory.Enfeites; b.family = art; b.sortingOrder = 3; b.sprite = Mar($"Navio/{art}");
+                        break;
+                    }
+                }
+                EditorUtility.SetDirty(b);
+            }
+            AssetDatabase.SaveAssets();
         }
 
         static void BuildSeaScene(ShipBlockDef[] blocks)

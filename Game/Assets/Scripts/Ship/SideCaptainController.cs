@@ -7,7 +7,8 @@ namespace Pixel.Ship
 {
     /// <summary>
     /// Capitão na visão lateral (no convés): A/D ou setas para andar, Espaço/W para pular,
-    /// F/J ou clique para golpear com a espada.
+    /// F/J ou clique para golpear com a espada. Na escada, W/S sobem e descem; em cima de um piso vazado,
+    /// S desce para o andar de baixo.
     /// Usa os mesmos desenhos de perfil do capitão da vila.
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D))]
@@ -23,9 +24,10 @@ namespace Pixel.Ship
         Collider2D col;
         InputAction move, jump, attack;
         Combatant combatant;
-        float inputX, anim, attackShow;
-        bool facingRight = true;
-        readonly Collider2D[] hits = new Collider2D[4];
+        float inputX, inputY, anim, attackShow, gravity;
+        bool facingRight = true, climbing;
+        readonly Collider2D[] hits = new Collider2D[8];
+        readonly System.Collections.Generic.List<(Collider2D col, float until)> ignored = new System.Collections.Generic.List<(Collider2D, float)>();
 
         /// <summary>Disparado quando o capitão cai no mar (o HUD mostra um aviso).</summary>
         public event System.Action FellOverboard;
@@ -50,6 +52,7 @@ namespace Pixel.Ship
             attack.AddBinding("<Mouse>/leftButton");
             attack.AddBinding("<Gamepad>/buttonWest");
             combatant = GetComponent<Combatant>();
+            gravity = body.gravityScale;
         }
 
         void OnEnable() { move.Enable(); jump.Enable(); attack.Enable(); }
@@ -75,7 +78,25 @@ namespace Pixel.Ship
         void Update()
         {
             inputX = Mathf.Clamp(move.ReadValue<float>(), -1f, 1f);
-            if (jump.WasPressedThisFrame() && Grounded())
+            var kb = Keyboard.current;
+            bool upKey = kb != null && (kb.wKey.isPressed || kb.upArrowKey.isPressed);
+            bool downKey = kb != null && (kb.sKey.isPressed || kb.downArrowKey.isPressed);
+            inputY = upKey ? 1f : downKey ? -1f : 0f;
+            bool onLadder = Overlapping<ShipLadder>((Vector2)transform.position + Vector2.up * 0.45f, new Vector2(0.3f, 0.8f));
+
+            // Escada: W/S agarram; Espaço solta pulando
+            if (!climbing && onLadder && (upKey || (downKey && !OnPlatformOnly()))) climbing = true;
+            if (climbing && (!onLadder || (kb != null && kb.spaceKey.wasPressedThisFrame))) climbing = false;
+            body.gravityScale = climbing ? 0f : gravity;
+            if (climbing && downKey) DropThroughPlatforms();
+
+            // Piso vazado: S desce para o andar de baixo
+            if (!climbing && downKey && kb != null && (kb.sKey.wasPressedThisFrame || kb.downArrowKey.wasPressedThisFrame)) DropThroughPlatforms();
+            for (int i = ignored.Count - 1; i >= 0; i--)
+                if (Time.time > ignored[i].until) { if (ignored[i].col != null) Physics2D.IgnoreCollision(col, ignored[i].col, false); ignored.RemoveAt(i); }
+
+            bool jumpPressed = kb != null && kb.spaceKey.wasPressedThisFrame || (!onLadder && jump.WasPressedThisFrame());
+            if (!climbing && jumpPressed && Grounded())
                 body.linearVelocity = new Vector2(body.linearVelocity.x, jumpSpeed);
 
             if (Mathf.Abs(inputX) > 0.01f) facingRight = inputX > 0;
@@ -107,7 +128,47 @@ namespace Pixel.Ship
 
         void FixedUpdate()
         {
-            body.linearVelocity = new Vector2(inputX * moveSpeed, body.linearVelocity.y);
+            if (climbing) body.linearVelocity = new Vector2(inputX * moveSpeed * 0.5f, inputY * 4f);
+            else body.linearVelocity = new Vector2(inputX * moveSpeed, body.linearVelocity.y);
+        }
+
+        bool Overlapping<T>(Vector2 center, Vector2 size) where T : Component
+        {
+            var filter = new ContactFilter2D { useTriggers = true };
+            filter = ContactFilter2D.noFilter;
+            int n = Physics2D.OverlapBox(center, size, 0f, filter, hits);
+            for (int i = 0; i < n; i++) if (hits[i] != null && hits[i].GetComponent<T>() != null) return true;
+            return false;
+        }
+
+        /// <summary>Em pé só em piso vazado (sem casco embaixo): aí S desce em vez de agarrar a escada.</summary>
+        bool OnPlatformOnly()
+        {
+            var filter = new ContactFilter2D();
+            filter = ContactFilter2D.noFilter;
+            int n = Physics2D.OverlapBox((Vector2)transform.position + Vector2.down * 0.05f, new Vector2(0.45f, 0.1f), 0f, filter, hits);
+            bool platform = false;
+            for (int i = 0; i < n; i++)
+            {
+                if (hits[i] == col || hits[i].isTrigger) continue;
+                if (hits[i].GetComponent<ShipPlatform>() != null) platform = true; else return false;
+            }
+            return platform;
+        }
+
+        /// <summary>Atravessa os pisos vazados logo abaixo dos pés por um instante.</summary>
+        void DropThroughPlatforms()
+        {
+            var filter = new ContactFilter2D();
+            filter = ContactFilter2D.noFilter;
+            int n = Physics2D.OverlapBox((Vector2)transform.position + Vector2.down * 0.1f, new Vector2(0.6f, 0.3f), 0f, filter, hits);
+            for (int i = 0; i < n; i++)
+            {
+                var h = hits[i];
+                if (h == null || h.GetComponent<ShipPlatform>() == null) continue;
+                Physics2D.IgnoreCollision(col, h, true);
+                ignored.Add((h, Time.time + 0.45f));
+            }
         }
     }
 }

@@ -31,7 +31,7 @@ namespace Pixel.Village
 
         [Header("Navio")]
         public ShipBlockDef[] shipBlocks;
-        public ShipBlockDef raftHull, raftMast, raftSail;
+        public ShipBlockDef raftHull, raftMast, raftSail, raftSlope;
 
         public ShipLayout Ship { get; private set; }
         /// <summary>Mapa-múndi (gerado uma vez por jogo).</summary>
@@ -51,7 +51,7 @@ namespace Pixel.Village
         void Awake()
         {
             Instance = this;
-            Ship = ShipLayout.Raft(raftHull, raftMast, raftSail);
+            Ship = ShipLayout.Raft(raftHull, raftMast, raftSail, raftSlope);
             WorldSeedUsed = worldSeed != 0 ? worldSeed : System.Environment.TickCount;
             World = WorldMap.Generate(WorldSeedUsed);
         }

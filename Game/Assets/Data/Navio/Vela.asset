@@ -14,11 +14,38 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Pixel.Ship.ShipBlockDef
   displayName: Vela
   description: Mais velas = mais velocidade (o peso do navio atrapalha).
-  sprite: {fileID: 21300000, guid: 6ff69359aa95f4f4bba9a21e739df4e2, type: 3}
-  spriteTop: {fileID: 21300000, guid: c184b0444c253014683a5f09aa903772, type: 3}
-  spriteBottom: {fileID: 21300000, guid: 8c99967c4c72b2d43ac491bb7cd87dec, type: 3}
-  spriteSingle: {fileID: 21300000, guid: ec512abbbc43b1840acc158a60b2cf9b, type: 3}
+  sprite: {fileID: 21300000, guid: 10511a1deb310f147936f7d91b63b6a8, type: 3}
+  spriteTop: {fileID: 0}
+  spriteBottom: {fileID: 0}
+  spriteSingle: {fileID: 0}
+  connectSprites:
+  - {fileID: 21300000, guid: 493e3cbb59fcd164481078f3f4659669, type: 3}
+  - {fileID: 21300000, guid: 23d8f78306d8fc343b0b56d735b3933a, type: 3}
+  - {fileID: 21300000, guid: 12c93f9d4b2296041bd172e3c633df88, type: 3}
+  - {fileID: 21300000, guid: 5d7ac128e25f33c49944d70bd9f90acf, type: 3}
+  - {fileID: 21300000, guid: ff5be209c296af648a66968f6e296ba7, type: 3}
+  - {fileID: 21300000, guid: e7b80e10116ec14469e9a1d111b558e0, type: 3}
+  - {fileID: 21300000, guid: ac409a2bb16c36b4681028b6fcab687a, type: 3}
+  - {fileID: 21300000, guid: 5feddb2149e4f2f458c33c2b32e56513, type: 3}
+  - {fileID: 21300000, guid: dd3c801085d17c5429c51b5da8673a42, type: 3}
+  - {fileID: 21300000, guid: eafb4d3eb1d9906488debd6e43989ef2, type: 3}
+  - {fileID: 21300000, guid: 12ff018180345f749b99e0b2ac972d6e, type: 3}
+  - {fileID: 21300000, guid: 7067b66fd0623f44f810325469d87026, type: 3}
+  - {fileID: 21300000, guid: 122db83fca4f1464ba54b46bae7ffe20, type: 3}
+  - {fileID: 21300000, guid: ec61eb62f9a09694190e1242d7fa3ec0, type: 3}
+  - {fileID: 21300000, guid: e54178e2b238b9a4b81dddb6a23f094f, type: 3}
+  - {fileID: 21300000, guid: 10511a1deb310f147936f7d91b63b6a8, type: 3}
+  tabSprites:
+  - {fileID: 21300000, guid: 3024163b703483944876d02752b8f10b, type: 3}
+  - {fileID: 21300000, guid: 2f619b29267f6964a943971cb50fed9a, type: 3}
+  - {fileID: 21300000, guid: a35403773245f9f4184ddf721cbe0fbe, type: 3}
+  - {fileID: 21300000, guid: ab5b83bf5dc92f741bcdc35a6cd4d244, type: 3}
+  connect: 2
   role: 3
+  shape: 0
+  category: 2
+  family: vela
+  swatch: {r: 0.9411765, g: 0.9098039, b: 0.8392157, a: 1}
   cost: 25
   solid: 0
   sortingOrder: -10

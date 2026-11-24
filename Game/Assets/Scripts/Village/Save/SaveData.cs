@@ -26,6 +26,8 @@ namespace Pixel.Village
 
         // Navio e mapa
         public List<BlockSave> ship = new List<BlockSave>();
+        /// <summary>2 = linha d'água nova (navio um bloco mais alto). Saves sem isto ganham a quilha ao carregar.</summary>
+        public int shipVersion;
         public int shipDamage;
         public int worldSeed;
         public List<IslandSave> islands = new List<IslandSave>();
@@ -42,7 +44,7 @@ namespace Pixel.Village
 
     [Serializable] public class ItemCount { public string item; public int count; }
     [Serializable] public class BuildingSave { public string def; public int x, y; }
-    [Serializable] public class BlockSave { public string def; public int x, y; }
+    [Serializable] public class BlockSave { public string def; public int x, y, r; }
     [Serializable] public class LogLine { public string msg; public Color color; }
 
     [Serializable]

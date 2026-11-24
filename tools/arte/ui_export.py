@@ -78,3 +78,31 @@ for y0_ in (0, 5, 10):
         menu[y0_][x] = OUTL; menu[y0_ + 2][x] = OUTL
         menu[y0_ + 1][x] = OUTL if x in (0, 13) else (HI if x < 4 else TAN)
 save('icone_menu', menu)
+
+# Âncora (ícone do ofício Marujo): forma em metal com contorno escuro automático
+ANCHOR = [
+    '....###....',
+    '....#.#....',
+    '....###....',
+    '..#######..',
+    '.....#.....',
+    '.....#.....',
+    '.....#.....',
+    '.....#.....',
+    '##...#...##',
+    '.#...#...#.',
+    '.##..#..##.',
+    '..##.#.##..',
+    '...#####...',
+]
+METAL, METAL_HI = (150, 162, 178, 255), (205, 214, 226, 255)
+h_, w_ = len(ANCHOR) + 2, len(ANCHOR[0]) + 2
+anchor = canvas(w_, h_)
+shape = {(x + 1, y + 1) for y, row in enumerate(ANCHOR) for x, ch in enumerate(row) if ch == '#'}
+for (x, y) in shape:
+    anchor[y][x] = METAL_HI if (x - 1, y) not in shape and (x, y - 1) not in shape else METAL
+for y in range(h_):
+    for x in range(w_):
+        if (x, y) in shape: continue
+        if any((x + dx, y + dy) in shape for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))): anchor[y][x] = OUTL
+save('icone_ancora', anchor)

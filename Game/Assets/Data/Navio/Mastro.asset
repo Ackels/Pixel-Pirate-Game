@@ -18,7 +18,14 @@ MonoBehaviour:
   spriteTop: {fileID: 0}
   spriteBottom: {fileID: 0}
   spriteSingle: {fileID: 0}
+  connectSprites: []
+  tabSprites: []
+  connect: 0
   role: 2
+  shape: 0
+  category: 2
+  family: mastro
+  swatch: {r: 1, g: 1, b: 1, a: 1}
   cost: 20
   solid: 0
   sortingOrder: -11

@@ -14,11 +14,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Pixel.Ship.ShipBlockDef
   displayName: Casco
   description: "Estrutura do navio: +10 de vida. Pode ir abaixo d'\xE1gua."
-  sprite: {fileID: 21300000, guid: dbfcbd89824ae6849a9633b18accdae6, type: 3}
-  spriteTop: {fileID: 0}
+  sprite: {fileID: 21300000, guid: f8787d5abde92384286e3b655077f1ef, type: 3}
+  spriteTop: {fileID: 21300000, guid: 886b0885ea72ebb4687145ded98ae912, type: 3}
   spriteBottom: {fileID: 0}
   spriteSingle: {fileID: 0}
+  connectSprites: []
+  tabSprites: []
+  connect: 3
   role: 0
+  shape: 0
+  category: 0
+  family: casco_cheio
+  swatch: {r: 0.7372549, g: 0.6, b: 0.49803922, a: 1}
   cost: 15
   solid: 1
   sortingOrder: 0

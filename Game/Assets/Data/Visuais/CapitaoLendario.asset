@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5001311aa27ffe40b6eabfa5825eeac, type: 3}
+  m_Name: CapitaoLendario
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.CharacterLook
+  down:
+  - {fileID: -1911201875, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  - {fileID: -1730753655, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  - {fileID: -4470156, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  - {fileID: -249587579, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  up:
+  - {fileID: 407804112, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  - {fileID: 696291541, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  - {fileID: -1559881725, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  - {fileID: -903993104, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  left:
+  - {fileID: 2005426924, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  - {fileID: -1751841289, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  - {fileID: -622032407, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  - {fileID: 256077131, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  right:
+  - {fileID: 90489141, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  - {fileID: -912521966, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  - {fileID: 1165052743, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  - {fileID: -201613893, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  attack:
+  - {fileID: -556523715, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  - {fileID: -1084132351, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  - {fileID: 1214010619, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  - {fileID: -1059629549, guid: 01bf27825277c384c86594df645a7e4f, type: 3}
+  portrait: {fileID: 21300000, guid: 9ceb437d0d8261a4d93b17c6e23bcaf4, type: 3}

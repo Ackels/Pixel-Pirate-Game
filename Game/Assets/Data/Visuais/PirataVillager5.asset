@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5001311aa27ffe40b6eabfa5825eeac, type: 3}
+  m_Name: PirataVillager5
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.CharacterLook
+  down:
+  - {fileID: 1269280758, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  - {fileID: -142584511, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  - {fileID: -1339657683, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  - {fileID: 1337276078, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  up:
+  - {fileID: 1581786467, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  - {fileID: -188187436, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  - {fileID: 1705237193, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  - {fileID: 2138690243, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  left:
+  - {fileID: 2063751533, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  - {fileID: -1085756498, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  - {fileID: -1676003545, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  - {fileID: -1218197845, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  right:
+  - {fileID: -1832967957, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  - {fileID: -1938694878, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  - {fileID: -1077748476, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  - {fileID: 1462064662, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  attack:
+  - {fileID: 1747384482, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  - {fileID: -2038610541, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  - {fileID: 776377353, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  - {fileID: -1808085380, guid: 2588fb33eb7ff0f4881b1f2bee8f2b94, type: 3}
+  portrait: {fileID: 21300000, guid: 05a0e798992896a4ea02b650051201c7, type: 3}

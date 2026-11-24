@@ -54,7 +54,8 @@ namespace Pixel.Village
             foreach (var r in cm.Recruits) d.recruits.Add(CrewSave.From(r));
             foreach (var (msg, color) in cm.History) d.log.Add(new LogLine { msg = msg, color = color });
 
-            foreach (var kv in flow.Ship.Blocks) d.ship.Add(new BlockSave { def = kv.Value.name, x = kv.Key.x, y = kv.Key.y });
+            foreach (var kv in flow.Ship.Blocks) d.ship.Add(new BlockSave { def = kv.Value.name, x = kv.Key.x, y = kv.Key.y, r = flow.Ship.Rot(kv.Key) });
+            d.shipVersion = 2;
             d.shipDamage = flow.ShipDamage;
             d.worldSeed = flow.WorldSeedUsed;
             foreach (var i in flow.World.Islands)
@@ -91,9 +92,10 @@ namespace Pixel.Village
             foreach (var b in d.ship)
             {
                 var def = Array.Find(flow.shipBlocks, x => x != null && x.name == b.def);
-                if (def != null) ship.Set(new Vector2Int(b.x, b.y), def, false);
+                if (def != null) ship.Set(new Vector2Int(b.x, b.y), def, b.r, false);
             }
-            if (ship.Blocks.Count == 0) ship = ShipLayout.Raft(flow.raftHull, flow.raftMast, flow.raftSail);
+            if (d.shipVersion < 2) ship.MigrateLegacy();
+            if (ship.Blocks.Count == 0) ship = ShipLayout.Raft(flow.raftHull, flow.raftMast, flow.raftSail, flow.raftSlope);
             flow.RestoreFromSave(ship, d.shipDamage, d.worldSeed);
             foreach (var s in d.islands)
             {
