@@ -42,6 +42,8 @@ namespace Pixel.EditorTools
                 s.spriteAlignment = (int)(centered ? SpriteAlignment.Center : SpriteAlignment.BottomCenter);
                 s.spriteMeshType = SpriteMeshType.FullRect;
                 imp.SetTextureSettings(s);
+                // Pergaminho do mapa: cantos de 32 px fixos, bordas e meio repetidos
+                imp.spriteBorder = file == "mapa_papel.png" ? new Vector4(32, 32, 32, 32) : Vector4.zero;
                 imp.SaveAndReimport();
                 if (sheet) SliceGrid(imp, 16, Path.GetFileName(Path.GetDirectoryName(path)));
             }

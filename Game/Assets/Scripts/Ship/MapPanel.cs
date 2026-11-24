@@ -35,7 +35,15 @@ namespace Pixel.Ship
             panel.mapArea.sizeDelta = new Vector2(AreaW, AreaH);
             panel.mapArea.anchoredPosition = Vector2.zero;
             var bg = panel.mapArea.gameObject.AddComponent<Image>();
-            bg.color = new Color(0.47f, 0.70f, 0.80f);
+            if (panel.paper != null && panel.paper.border != Vector4.zero)
+            {
+                // Pergaminho de mapa do tesouro (cantos fixos, bordas e meio esticados, pixel em dobro)
+                bg.sprite = panel.paper;
+                bg.type = Image.Type.Sliced;
+                bg.pixelsPerUnitMultiplier = 0.5f * 100f / panel.paper.pixelsPerUnit;   // 1 pixel do papel = 2 pontos da tela (o Canvas usa 100 pontos por unidade)
+                bg.color = Color.white;
+            }
+            else bg.color = new Color(0.47f, 0.70f, 0.80f);
 
             var bottom = UIKit.Rect("Rodape", content);
             bottom.anchorMin = new Vector2(0, 0);
@@ -71,8 +79,12 @@ namespace Pixel.Ship
 
         public void Hide() => gameObject.SetActive(false);
 
-        Vector2 ToUI(Vector2 miles) =>
-            new Vector2(miles.x / WorldMap.Width * AreaW - AreaW / 2f, miles.y / WorldMap.Height * AreaH - AreaH);
+        // Margens para as ilhas (e os nomes embaixo delas) ficarem dentro do pergaminho
+        const float MarginX = 44f, MarginTop = 34f, MarginBottom = 46f;
+
+        Vector2 ToUI(Vector2 miles) => new Vector2(
+            MarginX + miles.x / WorldMap.Width * (AreaW - 2f * MarginX) - AreaW / 2f,
+            -AreaH + MarginBottom + miles.y / WorldMap.Height * (AreaH - MarginTop - MarginBottom));
 
         Sprite IconFor(IslandNode n) => n.type switch
         {
@@ -123,7 +135,7 @@ namespace Pixel.Ship
             }
 
             var hint = UIKit.Text(mapArea, "Ilhas mais longe ficam escondidas: explore para revelar.", 13, TextAnchor.LowerRight, new Color(0.15f, 0.1f, 0.05f));
-            UIKit.Stretch(hint.rectTransform, 6);
+            UIKit.Stretch(hint.rectTransform, 36);   // dentro do pergaminho (a borda do papel tem margem transparente)
 
             UpdateInfo();
         }

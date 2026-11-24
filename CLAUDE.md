@@ -149,7 +149,7 @@
   - As ilhas fecham com borda de pedra dos dois lados (`IslandBuilder.Solid`: fora das colunas é mar).
   - Construções das ilhas desenhadas **de lado** (as do pacote são vistas de cima e pareciam flutuar): `Props/tenda_lado` (acampamento) e `Props/barraca_lado` (porto, com mercadorias pequenas), feitas por `side_tent`/`side_stall` em `ninja_export.py`. A última linha da imagem é o chão.
   - `IslandBuilder.Flatten` nivela o terreno embaixo da tenda, da fogueira e da barraca. O comerciante fica atrás do balcão (ordem -26).
-  - **Ainda com arte provisória:** ícones do mapa-múndi (`Map/*`) e efeitos da vila (`FloatingText`).
+  - **Mapa-múndi:** fundo de pergaminho (`Icons/mapa_papel`, montado com as peças 1–9 do "Yellow Paper" do Treasure Hunters, borda de 32 px no importador; `MapPanel` usa Image Sliced com `pixelsPerUnitMultiplier = 0.5 * 100 / PPU` = 1 pixel do papel para 2 pontos da tela). Ícones de ilha desenhados à mão (24×24: casa, porto, selvagem, acampamento, desconhecida, navio), feitos em `ninja_export.py`. As ilhas ficam com margem dentro do papel (`MapPanel.ToUI`).
 - **Modo Sandbox (24/11/2026), em `Village/Sandbox/`:** botão "Sandbox (testes)" no menu inicial.
   - Começa com +10.000 ouro, +50 de cada item e 4 tripulantes de nível 3 (`SandboxMode.Begin`).
   - **Nunca salva:** `SavingEnabled = false`, e `SaveSystem.Save` recusa enquanto `SandboxMode.Active`. O menu inicial chama `SandboxMode.Reset`.

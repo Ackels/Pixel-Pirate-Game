@@ -321,3 +321,91 @@ stamp(stall, BOTTLE, 35, 18)
 stamp(stall, BARREL, 18, 18)
 save('Props', 'barraca_lado', stall)
 print('construcoes ok')
+
+# ---------- Mapa-múndi: pergaminho e ícones das ilhas (24x24, desenhados no estilo do Ninja Adventure) ----------
+import math
+PAPER = T + '/Wood and Paper UI/Sprites/Yellow Paper/'
+paper = [[(0, 0, 0, 0)] * 96 for _ in range(96)]
+for i in range(9):   # 1..9 = canto sup. esq., topo, canto sup. dir., esquerda, meio, direita, cantos e base de baixo
+    piece = load(PAPER + f'{i + 1}.png')[2]
+    ox, oy = (i % 3) * 32, (i // 3) * 32
+    for y in range(32):
+        for x in range(32):
+            if piece[y][x][3]: paper[oy + y][ox + x] = piece[y][x]
+save('Icons', 'mapa_papel', paper)
+
+MC = {'o': (20, 27, 27, 255), 's': (255, 203, 141, 255), 'S': (255, 173, 93, 255), 'g': (173, 188, 58, 255),
+      'G': (116, 163, 52, 255), 'w': (241, 230, 200, 255), 'r': (214, 60, 52, 255), 'R': (150, 40, 40, 255),
+      'l': (241, 196, 113, 255), 'm': (215, 139, 74, 255), 'd': (163, 117, 78, 255), 'D': (145, 82, 44, 255),
+      't': (150, 87, 70, 255), 'T': (228, 109, 58, 255), 'k': (40, 40, 45, 255), 'f': (113, 200, 230, 255),
+      'b': (60, 150, 90, 255), 'c': (214, 220, 232, 255), 'C': (170, 178, 196, 255), 'y': (255, 220, 90, 255), '.': None}
+
+
+def icon_island():
+    img = [[(0, 0, 0, 0)] * 24 for _ in range(24)]
+    for y in range(24):
+        for x in range(24):
+            sand = ((x - 11.5) / 10.5) ** 2 + ((y - 18.5) / 3.6) ** 2 <= 1
+            grass = ((x - 11.5) / 8.2) ** 2 + ((y - 17.0) / 2.4) ** 2 <= 1 and y <= 18
+            if sand: img[y][x] = MC['S'] if y >= 20 else MC['s']
+            if grass: img[y][x] = MC['G'] if y >= 18 else MC['g']
+    # contorno
+    out = [row[:] for row in img]
+    for y in range(24):
+        for x in range(24):
+            if img[y][x][3]: continue
+            if any(0 <= y + dy < 24 and 0 <= x + dx < 24 and img[y + dy][x + dx][3] for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                out[y][x] = MC['o']
+    return out
+
+
+def stamp_map(img, art, ox, oy):
+    for y, row in enumerate(art):
+        for x, ch in enumerate(row):
+            c = MC[ch]
+            if c and 0 <= oy + y < 24 and 0 <= ox + x < 24: img[oy + y][ox + x] = c
+
+
+HOUSE = ['.....oo.....', '....orro....', '...orrrro...', '..orrrrrro..', '.orrrrrrrro.', 'oRRRRRRRRRRo',
+         '.owwwwwwwwo.', '.owwoowwwwo.', '.owwoowwoow.', '.owwoowwwwo.', '.oooooooooo.']
+STALL = ['oooooooooooo', 'orrwwrrwwrro', 'oRRwwRRwwRRo', 'oooooooooooo', '.d........d.', '.d.ff..b..d.',
+         'oooooooooooo', 'olllllllllll', 'oDDDDDDDDDDo', 'oooooooooooo']
+PALM = ['..GG...GG...', '.GggG.GggG..', 'Gg..gGg..gG.', 'G....tT...G.', '.....tT.....', '......tT....',
+        '......tT....', '.....tT.....', '.....tT.....', '....tTT.....', '....tTTt....']
+TENT = ['......o.kkk.', '......okkwk.', '......okkkk.', '......o.....', '.....olo....', '....ollmo...',
+        '...olllmmo..', '..ollloommo.', '.olllloommmo', 'oooooooooooo']
+SHIP = ['.........ok.........', '.........okk........', '.....wwwwowww.......', '....wrrwwowrrw......',
+        '....wwwwwowwww......', '....wrrwwowrrw......', '.....wwwwowww.......', '.........o..........',
+        '.oooooooooooooooooo.', '.oddddddddddddddddo.', '..oDDDDDDDDDDDDDDo..', '...oddddddddddddo...',
+        '....oooooooooooo....']
+QMARK = ['.ooo.', 'o...o', '....o', '...o.', '..o..', '.....', '..o..']
+
+
+def make(name, art, ox, oy, island=True):
+    img = icon_island() if island else [[(0, 0, 0, 0)] * 24 for _ in range(24)]
+    stamp_map(img, art, ox, oy)
+    save('Icons', name, img)
+
+
+make('mapa_casa', HOUSE, 6, 6)
+make('mapa_porto', STALL, 6, 7)
+make('mapa_selvagem', PALM, 6, 5)
+make('mapa_acampamento', TENT, 6, 7)
+make('mapa_navio', SHIP, 2, 6, island=False)
+# Ilha desconhecida: névoa com um "?"
+fog = [[(0, 0, 0, 0)] * 24 for _ in range(24)]
+blobs = [(7, 13, 5), (12, 10, 6), (17, 13, 5), (12, 15, 6)]
+for y in range(24):
+    for x in range(24):
+        if any((x - bx) ** 2 + (y - by) ** 2 <= r * r for bx, by, r in blobs):
+            fog[y][x] = MC['C'] if y > 15 else MC['c']
+edge = [row[:] for row in fog]
+for y in range(24):
+    for x in range(24):
+        if fog[y][x][3] == 0 and any(0 <= y + dy < 24 and 0 <= x + dx < 24 and fog[y + dy][x + dx][3] for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+            edge[y][x] = MC['o']
+for y, row in enumerate(QMARK):
+    for x, ch in enumerate(row):
+        if ch == 'o': edge[8 + y][10 + x] = MC['k']
+save('Icons', 'mapa_desconhecida', edge)
+print('mapa ok')

@@ -249,8 +249,8 @@ namespace Pixel.EditorTools
             var hud = new GameObject("HUD do Mar").AddComponent<SeaHUD>();
             hud.mapIcons = new[]
             {
-                LoadSprite("Map/map_paper"), LoadSprite("Map/map_home"), LoadSprite("Map/map_port"), LoadSprite("Map/map_wild"),
-                LoadSprite("Map/map_camp"), LoadSprite("Map/map_unknown"), LoadSprite("Map/map_ship"),
+                Ninja("Icons/mapa_papel"), Ninja("Icons/mapa_casa"), Ninja("Icons/mapa_porto"), Ninja("Icons/mapa_selvagem"),
+                Ninja("Icons/mapa_acampamento"), Ninja("Icons/mapa_desconhecida"), Ninja("Icons/mapa_navio"),
             };
             hud.sea = sea;
 
