@@ -145,7 +145,11 @@
     - Personagens no mar: `LookFigure` usa o `CharacterLook` de perfil (e o quadro de ataque, via `Combatant.Attacked`). Tripulantes usam `CrewManager.LookOf`; inimigos piratas = `enemyPirate`, marinheiros e comerciantes = visitantes. `Combatant.figureHeight` posiciona a barra de vida e o golpe.
     - Ilhas: a praia fica **1 bloco acima d'água** (`beachTop = waterline + 1.5`, na altura do convés). Terreno por célula com peças de borda (`IslandBuilder.TerrainSet`; mapa manual das peças em `TERRAIN_MAP`, pois o Treasure Hunters tem a borda no contorno). Bichos sorteados entre caranguejo, estrela-do-mar e baleote (`IslandBuilder.creatures`).
     - A câmera em terra segue o capitão até `RegionMax - 13`.
-  - **Próximos passos da arte:** ícones da interface (ouro, rum, peixe, cana), masmorras e bichos das expedições, fogueira do acampamento.
+  - **Ícones, expedições e fogueira (24/11/2026):** ícones em `Art/Ninja/Icons` (peixe do Ninja, garrafa de rum e moeda do Treasure Hunters, talo de bambu como cana, retrato do capitão para a tripulação), aplicados nos itens por `ApplyItemArt`. Bichos da faixa de expedições em `Art/Ninja/Monsters` (caranguejo do Treasure Hunters, cobra e esqueleto do Ninja). Fogueira desenhada à mão no estilo do Ninja (`Props/fogueira`, mapa de pixels em `ninja_export.py`).
+  - As ilhas fecham com borda de pedra dos dois lados (`IslandBuilder.Solid`: fora das colunas é mar).
+  - Construções das ilhas desenhadas **de lado** (as do pacote são vistas de cima e pareciam flutuar): `Props/tenda_lado` (acampamento) e `Props/barraca_lado` (porto, com mercadorias pequenas), feitas por `side_tent`/`side_stall` em `ninja_export.py`. A última linha da imagem é o chão.
+  - `IslandBuilder.Flatten` nivela o terreno embaixo da tenda, da fogueira e da barraca. O comerciante fica atrás do balcão (ordem -26).
+  - **Ainda com arte provisória:** ícones do mapa-múndi (`Map/*`) e efeitos da vila (`FloatingText`).
 - **Modo Sandbox (24/11/2026), em `Village/Sandbox/`:** botão "Sandbox (testes)" no menu inicial.
   - Começa com +10.000 ouro, +50 de cada item e 4 tripulantes de nível 3 (`SandboxMode.Begin`).
   - **Nunca salva:** `SavingEnabled = false`, e `SaveSystem.Save` recusa enquanto `SandboxMode.Active`. O menu inicial chama `SandboxMode.Reset`.

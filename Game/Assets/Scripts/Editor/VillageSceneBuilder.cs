@@ -280,6 +280,7 @@ namespace Pixel.EditorTools
         {
             var data = CreateData();
             ApplyBuildingArt(data.buildings);
+            ApplyItemArt(data.items);
             var looks = CreateLibrary();
             BuildSeaScene(data.shipBlocks);
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -489,9 +490,9 @@ namespace Pixel.EditorTools
 
             var expeditions = village.AddComponent<ExpeditionManager>();
             expeditions.dungeons = data.dungeons;
-            expeditions.crab = new[] { LoadSprite("Island/crab_0"), LoadSprite("Island/crab_1") };
-            expeditions.skeleton = new[] { LoadSprite("Dungeon/skeleton_0"), LoadSprite("Dungeon/skeleton_1") };
-            expeditions.serpent = new[] { LoadSprite("Dungeon/serpent_0"), LoadSprite("Dungeon/serpent_1") };
+            expeditions.crab = new[] { Ninja("Monsters/caranguejo_0"), Ninja("Monsters/caranguejo_1") };
+            expeditions.skeleton = new[] { Ninja("Monsters/esqueleto_0"), Ninja("Monsters/esqueleto_1") };
+            expeditions.serpent = new[] { Ninja("Monsters/serpente_0"), Ninja("Monsters/serpente_1") };
 
             var flowGo = new GameObject("Jogo");
             var flow = flowGo.AddComponent<GameFlow>();
@@ -509,8 +510,8 @@ namespace Pixel.EditorTools
             var hudGo = new GameObject("HUD");
             var hud = hudGo.AddComponent<VillageHUD>();
             hud.buildMode = buildMode;
-            hud.goldIcon = LoadSprite("Icons/icon_gold");
-            hud.crewIcon = LoadSprite("Icons/icon_crew");
+            hud.goldIcon = Ninja("Icons/ouro");
+            hud.crewIcon = Ninja("Icons/tripulacao");
             flow.villageHUD = hudGo;
 
             EditorSceneManager.SaveScene(scene, ScenePath);

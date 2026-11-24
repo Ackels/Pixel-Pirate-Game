@@ -51,6 +51,7 @@ namespace Pixel.Ship
         public Creature[] creatures;
 
         public const int Columns = 30;
+        const int CampTentCol = Columns - 8, PortStallCol = 12;
         public GameObject Root { get; private set; }
         /// <summary>Ilha que está ficando para trás (sem colisão, se afastando).</summary>
         GameObject departing;
@@ -102,6 +103,9 @@ namespace Pixel.Ship
                 }
                 tops[i] = i < 5 ? 0 : h;
             }
+            // Chão plano embaixo das construções largas (senão ficam com um pedaço no ar)
+            if (node.type == IslandType.PirateCamp) { Flatten(CampTentCol, 2); Flatten(CampTentCol - 3, 1); }
+            if (node.type == IslandType.Port) Flatten(PortStallCol, 2);
             for (int i = 0; i < Columns; i++) BuildColumn(i);
 
             var free = new List<int>();
@@ -132,7 +136,7 @@ namespace Pixel.Ship
                     break;
 
                 case IslandType.PirateCamp:
-                    int tentCol = Columns - 8;
+                    int tentCol = CampTentCol;
                     Decor(tent, tentCol, -25, 1f);
                     Decor(campfire, tentCol - 3, -24, 1f);
                     free.Remove(tentCol); free.Remove(tentCol - 3);
@@ -146,13 +150,21 @@ namespace Pixel.Ship
                     break;
 
                 case IslandType.Port:
-                    int stallCol = 12;
+                    int stallCol = PortStallCol;
                     Decor(market, stallCol, -25, 1f);
                     Merchant(stallCol);
                     break;
             }
 
             if (node.hasTreasureHint && !node.looted) Chest(Columns - 3, rng.Next(120, 201), Items(("Rum", 3, 6)), true);
+        }
+
+        /// <summary>Deixa as colunas em volta de "col" na mesma altura dela (fora da praia).</summary>
+        void Flatten(int col, int radius)
+        {
+            int h = tops[col];
+            for (int c = col - radius; c <= col + radius; c++)
+                if (c >= 5 && c < Columns) tops[c] = h;
         }
 
         Vector2 GameFlowHome() => GameFlow.Instance != null ? GameFlow.Instance.World.Home.pos : Vector2.zero;
@@ -170,8 +182,8 @@ namespace Pixel.Ship
 
         const int DetailRows = 4;   // linhas com peças de borda abaixo da praia; mais fundo, enchimento repetido
 
-        /// <summary>Tem terra na célula (coluna x, linha r)? Linha 0 = altura da praia. À direita a ilha continua.</summary>
-        bool Solid(int x, int r) => x >= 0 && r <= tops[Mathf.Min(x, Columns - 1)];
+        /// <summary>Tem terra na célula (coluna x, linha r)? Linha 0 = altura da praia. Fora das colunas é mar (bordas dos dois lados).</summary>
+        bool Solid(int x, int r) => x >= 0 && x < Columns && r <= tops[x];
 
         int MaskAt(int x, int r)
         {
@@ -261,7 +273,7 @@ namespace Pixel.Ship
             if (lib != null && lib.visitors != null && lib.visitors.Length > 0)
             {
                 var fig = go.AddComponent<LookFigure>();
-                fig.Init(lib.visitors[Node.seed % lib.visitors.Length], 7);
+                fig.Init(lib.visitors[Node.seed % lib.visitors.Length], -26);   // atrás do balcão da barraca
                 fig.Pose(false, true, false);
             }
             else

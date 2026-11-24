@@ -27,7 +27,7 @@ namespace Pixel.EditorTools
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 string file = Path.GetFileName(path);
                 bool sheet = file == "SpriteSheet.png";
-                bool centered = path.Contains("/Auto/") || path.Contains("/Tiles/") || file == "Faceset.png";
+                bool centered = path.Contains("/Auto/") || path.Contains("/Tiles/") || path.Contains("/Icons/") || file == "Faceset.png";
                 var imp = (TextureImporter)AssetImporter.GetAtPath(path);
                 imp.textureType = TextureImporterType.Sprite;
                 imp.spriteImportMode = sheet ? SpriteImportMode.Multiple : SpriteImportMode.Single;
@@ -156,6 +156,21 @@ namespace Pixel.EditorTools
                 d.sprite = s;
                 d.icon = null; // a barra de construção usa o próprio desenho
                 EditorUtility.SetDirty(d);
+            }
+            AssetDatabase.SaveAssets();
+        }
+
+        // ---------- Ícones dos itens ----------
+        static void ApplyItemArt(ItemDef[] items)
+        {
+            var map = new Dictionary<string, string> { { "Cana", "cana" }, { "Rum", "rum" }, { "Peixe", "peixe" } };
+            foreach (var i in items)
+            {
+                if (i == null || !map.TryGetValue(i.name, out var file)) continue;
+                var s = Ninja("Icons/" + file);
+                if (s == null) continue;
+                i.icon = s;
+                EditorUtility.SetDirty(i);
             }
             AssetDatabase.SaveAssets();
         }

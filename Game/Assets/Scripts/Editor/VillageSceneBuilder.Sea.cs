@@ -231,12 +231,12 @@ namespace Pixel.EditorTools
             islands.sand = TerrainSet("areia");
             islands.chestClosed = Mar("Ilha/bau_fechado");
             islands.chestOpen = Mar("Ilha/bau_aberto");
-            islands.tent = Ninja("Buildings/cabana_pesca");
-            islands.campfire = LoadSprite("Island/campfire");
+            islands.tent = Ninja("Props/tenda_lado");   // a tenda do pacote é vista de cima
+            islands.campfire = Ninja("Props/fogueira");
             islands.palm = Mar("Ilha/coqueiro");
             islands.backPalms = new[] { Mar("Ilha/coqueiro_fundo_0"), Mar("Ilha/coqueiro_fundo_1"), Mar("Ilha/coqueiro_fundo_2") };
             islands.grassDecor = Mar("Ilha/grama");
-            islands.market = Ninja("Buildings/mercado");
+            islands.market = Ninja("Props/barraca_lado");   // barraca vista de lado
             islands.plank = Mar("Navio/prancha");
             islands.creatures = new[]
             {

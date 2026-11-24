@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Cana
   m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.ItemDef
   displayName: Cana
-  icon: {fileID: 21300000, guid: 35aa08350bc38c84abf7842597847930, type: 3}
+  icon: {fileID: 21300000, guid: 4807cd29839e02041ab47f4795b16535, type: 3}
   sellPrice: 3
   textColor: {r: 0.6, g: 0.95, b: 0.45, a: 1}
   reservePerCrew: 0

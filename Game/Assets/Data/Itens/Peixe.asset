@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Peixe
   m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.ItemDef
   displayName: Peixe
-  icon: {fileID: 21300000, guid: b2cff5168f3aa7a4dbeb36e190d112b8, type: 3}
+  icon: {fileID: 21300000, guid: 506dd2613977fcc47b9b4f95e7c0e198, type: 3}
   sellPrice: 4
   textColor: {r: 0.6, g: 0.85, b: 1, a: 1}
   reservePerCrew: 2
