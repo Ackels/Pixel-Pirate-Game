@@ -37,25 +37,28 @@ namespace Pixel.EditorTools
 
         static void BuildSeaScene(ShipBlockDef[] blocks)
         {
+            ImportMarArt();
+            ApplyShipArt(blocks);
+            var looks = CreateLibrary();
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             float waterline = SeaCenter.y - 6f + ShipLayout.WaterRow + 0.5f;   // 996.5
 
-            // Câmera
+            // Câmera: blocos de 32 px; 960x540 de referência = 30 blocos de largura
             var camGo = new GameObject("Camera do Mar");
             camGo.tag = "MainCamera";
             camGo.transform.position = new Vector3(SeaCenter.x, SeaCenter.y, -10f);
             var cam = camGo.AddComponent<Camera>();
             cam.orthographic = true;
-            cam.orthographicSize = 360f / 2f / PPU;
+            cam.orthographicSize = 540f / 2f / SeaPPU;
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = new Color32(135, 200, 232, 255);
+            cam.backgroundColor = new Color32(0xdd, 0xc6, 0xa1, 255);   // céu do Treasure Hunters
             cam.allowHDR = false;
             cam.allowMSAA = false;
             camGo.AddComponent<UniversalAdditionalCameraData>();
             var ppc = camGo.AddComponent<PixelPerfectCamera>();
-            ppc.assetsPPU = PPU;
-            ppc.refResolutionX = 640;
-            ppc.refResolutionY = 360;
+            ppc.assetsPPU = SeaPPU;
+            ppc.refResolutionX = 960;
+            ppc.refResolutionY = 540;
             ppc.gridSnapping = PixelPerfectCamera.GridSnapping.PixelSnapping;
             var seaCam = camGo.AddComponent<SeaCamera>();
 
@@ -66,41 +69,55 @@ namespace Pixel.EditorTools
             dayNight.tintCamera = cam;
             dayNight.skyColor = cam.backgroundColor;
 
-            // Cenário
+            // Cenário: horizonte, nuvens e água
             var scenery = new GameObject("Cenario").transform;
-            var deepSprite = LoadSprite("Sea/sea_water_deep");
-            var topSprite = LoadSprite("Sea/sea_water_top");
-            float deepBottom = SeaCenter.y - 30f;
-            float deepHeight = waterline - 0.5f - deepBottom;
-            var backDeep = Tiled(scenery, "AguaFundo", deepSprite, new Vector2(0, deepBottom + deepHeight / 2f), new Vector2(90, deepHeight), -50, Color.white);
-            var frontDeep = Tiled(scenery, "AguaFrenteFundo", deepSprite, new Vector2(0, deepBottom + deepHeight / 2f), new Vector2(90, deepHeight), 20, new Color(1, 1, 1, 0.55f));
-            var backTop = Tiled(scenery, "AguaSuperficie", topSprite, new Vector2(0, waterline), new Vector2(90, 1), -49, Color.white);
-            var frontTop = Tiled(scenery, "AguaFrenteSuperficie", topSprite, new Vector2(0, waterline), new Vector2(90, 1), 21, new Color(1, 1, 1, 0.55f));
+            // Horizonte em cópias soltas (no modo repetido, a borda de cima "puxa" a linha azul de baixo)
+            var horizon = Mar("Ceu/horizonte");
+            for (float hx = -60f; hx <= 60f; hx += 12f)
+            {
+                var h = new GameObject("Horizonte").AddComponent<SpriteRenderer>();
+                h.transform.SetParent(scenery, false);
+                h.sprite = horizon;
+                h.sortingOrder = -95;
+                h.transform.position = new Vector3(hx, waterline + 1.5f, 0);
+            }
 
-            var cloudSprite = LoadSprite("Sea/sea_cloud");
+            float deepBottom = SeaCenter.y - 30f;
+            float deepTop = waterline + 0.5f;
+            float deepHeight = deepTop - deepBottom;
+            // Fundo opaco atrás de tudo; na frente, a superfície (ondas) e uma camada translúcida que tinge o que está submerso
+            var backDeep = Tiled(scenery, "AguaFundo", Mar("Ceu/agua_fundo"), new Vector2(0, deepBottom + deepHeight / 2f), new Vector2(90, deepHeight), -50, Color.white);
+            var frontDeep = Tiled(scenery, "AguaFrente", Mar("Ceu/agua_baixo"), new Vector2(0, deepBottom + (deepHeight - 1f) / 2f), new Vector2(90, deepHeight - 1f), 20, Color.white);
+            var frontTop = Tiled(scenery, "AguaSuperficie", Mar("Ceu/agua_topo"), new Vector2(0, waterline), new Vector2(90, 1), 21, Color.white);
+
+            var cloudSprites = new[] { Mar("Ceu/nuvem_0"), Mar("Ceu/nuvem_1"), Mar("Ceu/nuvem_2") };
             var clouds = new Transform[6];
             var rng = new System.Random(3);
             for (int i = 0; i < clouds.Length; i++)
             {
                 var c = new GameObject("Nuvem").AddComponent<SpriteRenderer>();
                 c.transform.SetParent(scenery, false);
-                c.sprite = cloudSprite;
+                c.sprite = cloudSprites[i % cloudSprites.Length];
                 c.sortingOrder = -90;
-                c.transform.position = new Vector3(-30f + i * 11f + rng.Next(-3, 3), SeaCenter.y + 4f + rng.Next(0, 6), 0);
+                c.transform.position = new Vector3(-30f + i * 11f + rng.Next(-3, 3), SeaCenter.y + 3f + rng.Next(0, 5), 0);
                 clouds[i] = c.transform;
             }
+            var bigClouds = new Transform[6];
+            for (int i = 0; i < bigClouds.Length; i++)
+            {
+                var c = new GameObject("NuvemGrande").AddComponent<SpriteRenderer>();
+                c.transform.SetParent(scenery, false);
+                c.sprite = Mar("Ceu/nuvem_grande");
+                c.sortingOrder = -92;
+                c.transform.position = new Vector3(-40f + i * 14f, waterline + 3.6f, 0);
+                bigClouds[i] = c.transform;
+            }
 
-            var island = new GameObject("IlhaDistante").AddComponent<SpriteRenderer>();
-            island.transform.SetParent(scenery, false);
-            island.sprite = LoadSprite("Sea/sea_island");
-            island.sortingOrder = -80;
-            island.transform.position = new Vector3(-15f, waterline - 0.3f, 0);
-            island.transform.localScale = new Vector3(1.6f, 1.6f, 1);
-
+            // Docas da Enseada (à esquerda do navio, ficam para trás ao zarpar)
             var dock = new GameObject("Docas").transform;
             dock.SetParent(scenery, false);
-            var plank = LoadSprite("Sea/sea_dock_plank");
-            var post = LoadSprite("Sea/sea_dock_post");
+            var plank = Mar("Navio/tabua");
+            var post = Mar("Navio/mastro");
             for (int x = -26; x <= -5; x++)
             {
                 var p = new GameObject("Tabua").AddComponent<SpriteRenderer>();
@@ -109,7 +126,7 @@ namespace Pixel.EditorTools
                 p.sortingOrder = -40;
                 p.transform.position = new Vector3(x + 0.5f, waterline + 1f, 0);
             }
-            for (int x = -24; x <= -5; x += 5)
+            for (int x = -24; x <= -5; x += 4)
                 for (float y = waterline + 0.5f; y > waterline - 6f; y -= 1f)
                 {
                     var p = new GameObject("Poste").AddComponent<SpriteRenderer>();
@@ -130,7 +147,7 @@ namespace Pixel.EditorTools
             editor.view = view;
             editor.gridSprite = LoadSprite("Ship/ship_grid");
 
-            // Capitão no convés
+            // Capitão no convés: o mesmo personagem da vila, de perfil
             const string matPath = DataDir + "/Fisica/SemAtrito.physicsMaterial2D";
             var noFriction = AssetDatabase.LoadAssetAtPath<PhysicsMaterial2D>(matPath);
             if (noFriction == null)
@@ -147,15 +164,17 @@ namespace Pixel.EditorTools
             body.interpolation = RigidbodyInterpolation2D.Interpolate;
             body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
             var capsule = capGo.AddComponent<CapsuleCollider2D>();
-            capsule.size = new Vector2(0.6f, 1.35f);
-            capsule.offset = new Vector2(0, 0.68f);
+            capsule.size = new Vector2(0.55f, 0.9f);
+            capsule.offset = new Vector2(0, 0.45f);
             capsule.sharedMaterial = noFriction;
             var sr = capGo.AddComponent<SpriteRenderer>();
-            sr.sprite = LoadSprite("Captain/captain_right_0");
+            sr.sprite = looks.captain.right[0];
             sr.sortingOrder = 10;
             var side = capGo.AddComponent<SideCaptainController>();
-            side.left = Frames("Captain", "captain", "left");
-            side.right = Frames("Captain", "captain", "right");
+            side.left = looks.captain.left;
+            side.right = looks.captain.right;
+            side.attackLeft = looks.captain.attack[2];
+            side.attackRight = looks.captain.attack[3];
             var capFighter = capGo.AddComponent<Combatant>();
             capFighter.team = Team.Player;
             capFighter.displayName = "Capitão";
@@ -164,13 +183,17 @@ namespace Pixel.EditorTools
             capFighter.attackCooldown = 0.45f;
             capFighter.attackRange = 1.25f;
             capFighter.knockOutInsteadOfDeath = true;
+            capFighter.figureHeight = 1f;
 
             // Controle e HUD
             var seaGo = new GameObject("Mar");
             var scroller = seaGo.AddComponent<SeaScroller>();
-            scroller.waterLayers = new[] { backDeep, frontDeep, backTop, frontTop };
+            scroller.waterLayers = new[] { backDeep, frontDeep, frontTop };
+            scroller.waterPeriod = 3f;   // a onda do Treasure Hunters tem 3 blocos de largura
             scroller.clouds = clouds;
-            scroller.farScenery = island.transform;
+            scroller.farClouds = bigClouds;
+            scroller.farCloudWrapLeft = -44f;
+            scroller.farCloudWrapWidth = bigClouds.Length * 14f;
             scroller.nearScenery = dock;
             var sea = seaGo.AddComponent<SeaController>();
             sea.shipView = view;
@@ -186,35 +209,41 @@ namespace Pixel.EditorTools
             var director = seaGo.AddComponent<EncounterDirector>();
             director.sea = sea;
             director.seaCamera = seaCam;
-            director.flagPirate = LoadSprite("Fx/flag_pirate");
-            director.flagMerchant = LoadSprite("Fx/flag_merchant");
-            director.plankSprite = LoadSprite("Sea/sea_dock_plank");
-            director.fxPuff = LoadSprite("Fx/fx_puff");
-            director.fxBoom = LoadSprite("Fx/fx_boom");
-            director.fxSplash = LoadSprite("Fx/fx_splash");
-            director.fxSlash = LoadSprite("Fx/fx_slash");
-            director.fxCannonball = LoadSprite("Fx/fx_cannonball");
+            director.flagPirate = Mar("Navio/bandeira_pirata");
+            director.flagMerchant = Mar("Navio/bandeira_mercante");
+            director.plankSprite = Mar("Navio/prancha");
+            director.fxPuff = Mar("Fx/poeira");
+            director.fxBoom = Mar("Fx/explosao");
+            director.fxSplash = Mar("Fx/respingo");
+            director.fxSlash = Mar("Fx/golpe");
+            director.fxCannonball = Mar("Fx/bala");
             director.crewSprites = new Pixel.Village.CrewManager.LayerSprites
             {
                 down = CrewDir("down"), up = CrewDir("up"), left = CrewDir("left"), right = CrewDir("right"),
             };
+            director.looks = looks;
 
             var islandGo = new GameObject("Ilhas");
             var islands = islandGo.AddComponent<IslandBuilder>();
             islands.sea = sea;
             islands.director = director;
-            islands.grassTop = LoadSprite("Island/land_grass_top");
-            islands.dirt = LoadSprite("Island/land_dirt");
-            islands.sandTop = LoadSprite("Island/land_sand_top");
-            islands.sand = LoadSprite("Island/land_sand");
-            islands.chestClosed = LoadSprite("Island/chest_closed");
-            islands.chestOpen = LoadSprite("Island/chest_open");
-            islands.tent = LoadSprite("Island/tent");
+            islands.grass = TerrainSet("terra");
+            islands.sand = TerrainSet("areia");
+            islands.chestClosed = Mar("Ilha/bau_fechado");
+            islands.chestOpen = Mar("Ilha/bau_aberto");
+            islands.tent = Ninja("Buildings/cabana_pesca");
             islands.campfire = LoadSprite("Island/campfire");
-            islands.palm = LoadSprite("obj_palm");
-            islands.market = LoadSprite("obj_market");
-            islands.plank = LoadSprite("Sea/sea_dock_plank");
-            islands.crabFrames = new[] { LoadSprite("Island/crab_0"), LoadSprite("Island/crab_1") };
+            islands.palm = Mar("Ilha/coqueiro");
+            islands.backPalms = new[] { Mar("Ilha/coqueiro_fundo_0"), Mar("Ilha/coqueiro_fundo_1"), Mar("Ilha/coqueiro_fundo_2") };
+            islands.grassDecor = Mar("Ilha/grama");
+            islands.market = Ninja("Buildings/mercado");
+            islands.plank = Mar("Navio/prancha");
+            islands.creatures = new[]
+            {
+                new IslandBuilder.Creature { name = "Caranguejo", frames = MarFrames("Bichos/caranguejo") },
+                new IslandBuilder.Creature { name = "Estrela-do-mar", frames = MarFrames("Bichos/estrela") },
+                new IslandBuilder.Creature { name = "Baleote", frames = MarFrames("Bichos/baleote") },
+            };
             sea.islands = islands;
 
             var hud = new GameObject("HUD do Mar").AddComponent<SeaHUD>();

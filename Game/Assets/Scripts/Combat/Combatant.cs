@@ -25,10 +25,14 @@ namespace Pixel.Combat
         public float attackRange = 1.1f;
         [Tooltip("Jogador: nocauteia em vez de morrer. Inimigo: morre e some.")]
         public bool knockOutInsteadOfDeath;
+        [Tooltip("Altura do boneco (unidades): posiciona a barra de vida e o golpe.")]
+        public float figureHeight = 1.5f;
 
         public bool IsDown => hp <= 0;
         public bool FacingRight { get; set; } = true;
         public event Action<Combatant> Downed;
+        /// <summary>Disparado a cada golpe (o boneco mostra o quadro de ataque).</summary>
+        public event Action Attacked;
         /// <summary>Ligado ao tripulante da vila (para ferimentos e moral).</summary>
         [NonSerialized] public object link;
 
@@ -67,7 +71,7 @@ namespace Pixel.Combat
         {
             bar = new GameObject("BarraDeVida").transform;
             bar.SetParent(transform, false);
-            bar.localPosition = new Vector3(0, 1.75f, 0);
+            bar.localPosition = new Vector3(0, figureHeight + 0.25f, 0);
             var bg = bar.gameObject.AddComponent<SpriteRenderer>();
             bg.sprite = Fx.White;
             bg.color = new Color(0, 0, 0, 0.7f);
@@ -118,7 +122,8 @@ namespace Pixel.Combat
             cooldown = attackCooldown;
             float dir = FacingRight ? 1f : -1f;
             Vector2 pos = transform.position;
-            Fx.Spawn(Fx.Slash, pos + new Vector2(dir * 0.7f, 0.8f), 0.18f, 1.1f, !FacingRight, 40);
+            Fx.Spawn(Fx.Slash, pos + new Vector2(dir * 0.7f, figureHeight * 0.5f), 0.18f, 1.1f, !FacingRight, 40);
+            Attacked?.Invoke();
             AudioManager.Play(Sfx.Swing, 0.5f);
             foreach (var other in All.ToArray())
             {

@@ -14,7 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Pixel.Ship.ShipBlockDef
   displayName: Vela
   description: Mais velas = mais velocidade (o peso do navio atrapalha).
-  sprite: {fileID: 21300000, guid: ee4de56ce3b20654eb3cf217495a8c3f, type: 3}
+  sprite: {fileID: 21300000, guid: 6ff69359aa95f4f4bba9a21e739df4e2, type: 3}
+  spriteTop: {fileID: 21300000, guid: c184b0444c253014683a5f09aa903772, type: 3}
+  spriteBottom: {fileID: 21300000, guid: 8c99967c4c72b2d43ac491bb7cd87dec, type: 3}
+  spriteSingle: {fileID: 21300000, guid: ec512abbbc43b1840acc158a60b2cf9b, type: 3}
   role: 3
   cost: 25
   solid: 0

@@ -14,7 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Pixel.Ship.ShipBlockDef
   displayName: "Canh\xE3o"
   description: Poder de fogo para a Fase 4. Precisa de piso embaixo.
-  sprite: {fileID: 21300000, guid: b2317e51203216e47906da420bc828ad, type: 3}
+  sprite: {fileID: 21300000, guid: 0972daa1b65c22e45baf2d2ab2c7e773, type: 3}
+  spriteTop: {fileID: 0}
+  spriteBottom: {fileID: 0}
+  spriteSingle: {fileID: 0}
   role: 4
   cost: 60
   solid: 0

@@ -136,6 +136,24 @@
     - `CrewMember.look` guarda o nome do visual (vai no save); saves antigos sem visual ganham um pelo nome (`CharacterLibrary.ForName`). As cores (`skin/outfit/hair`) continuam só para o boneco em camadas do mar, até a arte nova chegar lá.
   - Os sprites dos prédios são reaplicados a cada montagem (`ApplyBuildingArt`); os tamanhos de terreno (footprint) não mudaram.
   - Cenas de teste da arte (sem lógica): `ArtTest_Village` e `ArtTest_Sea`, geradas por **Pixel > Montar cenas de teste de arte** (`ArtTestBuilder`).
-  - **Próximos passos da arte:** mar e ilhas (Treasure Hunters + personagens do Ninja de perfil), ícones da interface e masmorras.
+  - **Mar e ilhas (23/11/2026):** Treasure Hunters em `Game/Assets/Art/Mar` (gerado por `tools/arte/mar_export.py`), importado com **32 PPU** (`ImportMarArt`).
+    - A câmera do mar usa `assetsPPU` 32 e referência **960×540** (30 blocos de largura). O mundo continua com 1 unidade = 1 bloco. Os personagens do Ninja (16 PPU) aparecem com pixel 2× maior que o cenário: decisão aceita pelo usuário para serem os mesmos da vila.
+    - Janela do Game menor que 540 px de altura gera o aviso "Target resolution is smaller than the reference resolution" (só no editor).
+    - Texturas do mar com `wrapMode` **Clamp**: com Repeat, a borda de cima puxa a linha de baixo (aparecia uma linha azul no céu).
+    - Água: fundo opaco (`agua_fundo`, -50) atrás de tudo e, na frente, a superfície (`agua_topo`, 21) e uma camada translúcida (`agua_baixo`, 20) que tinge o que está submerso. A onda tem 3 blocos de largura (`SeaScroller.waterPeriod = 3`). Horizonte em cópias soltas e nuvens grandes no fundo (`SeaScroller.farClouds`).
+    - Blocos do navio desenhados no estilo do pacote (`mar_export.py`). As velas têm peças que se encaixam na vertical (`ShipBlockDef.spriteTop/spriteBottom/spriteSingle`, aplicadas em `ShipView.RefreshConnected`).
+    - Personagens no mar: `LookFigure` usa o `CharacterLook` de perfil (e o quadro de ataque, via `Combatant.Attacked`). Tripulantes usam `CrewManager.LookOf`; inimigos piratas = `enemyPirate`, marinheiros e comerciantes = visitantes. `Combatant.figureHeight` posiciona a barra de vida e o golpe.
+    - Ilhas: a praia fica **1 bloco acima d'água** (`beachTop = waterline + 1.5`, na altura do convés). Terreno por célula com peças de borda (`IslandBuilder.TerrainSet`; mapa manual das peças em `TERRAIN_MAP`, pois o Treasure Hunters tem a borda no contorno). Bichos sorteados entre caranguejo, estrela-do-mar e baleote (`IslandBuilder.creatures`).
+    - A câmera em terra segue o capitão até `RegionMax - 13`.
+  - **Próximos passos da arte:** ícones da interface (ouro, rum, peixe, cana), masmorras e bichos das expedições, fogueira do acampamento.
+- **Modo Sandbox (24/11/2026), em `Village/Sandbox/`:** botão "Sandbox (testes)" no menu inicial.
+  - Começa com +10.000 ouro, +50 de cada item e 4 tripulantes de nível 3 (`SandboxMode.Begin`).
+  - **Nunca salva:** `SavingEnabled = false`, e `SaveSystem.Save` recusa enquanto `SandboxMode.Active`. O menu inicial chama `SandboxMode.Reset`.
+  - Painel de truques na tecla **F1** (`SandboxPanel`), criado no HUD da vila e no do mar.
+    - Comuns: ouro, itens e velocidade 1x/2x/4x/8x (`SandboxMode.ApplySpeed`; menus pausados continuam pausados).
+    - Vila: novo tripulante, +1 nível, moral 100, terminar o dia, concluir a crônica, liberar masmorras.
+    - Mar: consertar, curar, revelar o mapa, chegar agora, navio inimigo agora, vencer o combate, derrubar inimigos da ilha.
+  - Os ganchos ficam nos próprios sistemas (métodos `Sandbox*` em CrewManager, ChronicleManager, ExpeditionManager, SeaController, IslandBuilder e EncounterDirector).
+- **Saves e o sandbox das ferramentas:** o Editor Unity e os shells do Claude podem enxergar pastas diferentes em `AppData/LocalLow` (um arquivo criado por um não aparece para o outro). Para mexer em saves, use o próprio Unity (`script eval`) e não o shell. Há uma cópia de segurança do save de 23/11 18:17 em `SaveBackup/` (fora do git).
 - Repositório: https://github.com/Ackels/Pixel-Pirate-Game (privado, branch `main`). O `gh` CLI não está instalado; o push usa o gerenciador de credenciais do git.
 - Outro projeto do usuário, PirateRPG (`C:\Users\jhona\Projetos\PirateRPG`), é **separado**. Não misturar.

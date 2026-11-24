@@ -16,13 +16,14 @@ namespace Pixel.Ship
         public float moveSpeed = 5f;
         public float jumpSpeed = 10f;
         public Sprite[] left, right;
+        public Sprite attackLeft, attackRight;
 
         Rigidbody2D body;
         SpriteRenderer sr;
         Collider2D col;
         InputAction move, jump, attack;
         Combatant combatant;
-        float inputX, anim;
+        float inputX, anim, attackShow;
         bool facingRight = true;
         readonly Collider2D[] hits = new Collider2D[4];
 
@@ -83,13 +84,16 @@ namespace Pixel.Ship
                 combatant.FacingRight = facingRight;
                 bool overUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
                 bool editing = SeaController.Instance != null && SeaController.Instance.Mode == SeaMode.Editing;
-                if (attack.WasPressedThisFrame() && !overUI && !editing) combatant.TryAttack();
+                if (attack.WasPressedThisFrame() && !overUI && !editing && combatant.TryAttack()) attackShow = 0.18f;
             }
             var set = facingRight ? right : left;
-            if (set != null && set.Length >= 3 && sr != null)
+            if (attackShow > 0f) attackShow -= Time.deltaTime;
+            var atk = facingRight ? attackRight : attackLeft;
+            if (attackShow > 0f && atk != null && sr != null) sr.sprite = atk;
+            else if (set != null && set.Length > 0 && sr != null)
             {
-                if (!Grounded()) sr.sprite = set[1];
-                else if (Mathf.Abs(inputX) > 0.01f) { anim += Time.deltaTime * 9f; sr.sprite = set[1 + (int)anim % 2]; }
+                if (!Grounded()) sr.sprite = set[Mathf.Min(1, set.Length - 1)];
+                else if (Mathf.Abs(inputX) > 0.01f) { anim += Time.deltaTime * 9f; sr.sprite = set[(int)anim % set.Length]; }
                 else { anim = 0f; sr.sprite = set[0]; }
             }
 

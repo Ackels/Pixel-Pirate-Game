@@ -102,7 +102,10 @@ namespace Pixel.Ship
 
         Combatant AddFighter(CrewMember m, Vector2 pos)
         {
-            var c = EncounterDirector.Instance.SpawnFighter(pos, Team.Player, m.name, shipView, m.outfit, m.hair, m.skin);
+            var look = CrewManager.Instance != null ? CrewManager.Instance.LookOf(m) : null;
+            var c = look != null
+                ? EncounterDirector.Instance.SpawnFighter(pos, Team.Player, m.name, shipView, look)
+                : EncounterDirector.Instance.SpawnFighter(pos, Team.Player, m.name, shipView, m.outfit, m.hair, m.skin);
             c.maxHp = c.hp = m.CombatHp;
             c.damage = m.CombatDamage;
             c.link = m;
@@ -112,6 +115,34 @@ namespace Pixel.Ship
         }
 
         void RaiseChanged() => Changed?.Invoke();
+
+        // ---------- Modo Sandbox (testes) ----------
+        public void SandboxRepair() { Damage = 0; RaiseChanged(); }
+
+        public void SandboxRevealMap()
+        {
+            foreach (var n in World.Islands) n.revealed = true;
+            RaiseChanged();
+        }
+
+        /// <summary>Termina a viagem atual na hora (se houver combate, chega logo depois dele).</summary>
+        public bool SandboxArrive()
+        {
+            if (Mode != SeaMode.Sailing || legSeconds <= 0f) return false;
+            legElapsed = legSeconds;
+            return true;
+        }
+
+        public void SandboxHealAll()
+        {
+            void Heal(Combatant c)
+            {
+                if (c == null) return;
+                if (c.IsDown) c.Revive(1f); else c.HealFull();
+            }
+            Heal(captainCombatant);
+            foreach (var c in CrewFighters) Heal(c);
+        }
 
         void OnLayoutChanged()
         {

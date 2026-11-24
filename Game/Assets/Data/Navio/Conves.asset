@@ -14,7 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Pixel.Ship.ShipBlockDef
   displayName: "Conv\xE9s"
   description: 'Piso mais leve e barato: +6 de vida.'
-  sprite: {fileID: 21300000, guid: 14efc046cc8a7134f8776aea80e55764, type: 3}
+  sprite: {fileID: 21300000, guid: 9687134d3a534c846889e17662324828, type: 3}
+  spriteTop: {fileID: 0}
+  spriteBottom: {fileID: 0}
+  spriteSingle: {fileID: 0}
   role: 1
   cost: 10
   solid: 1

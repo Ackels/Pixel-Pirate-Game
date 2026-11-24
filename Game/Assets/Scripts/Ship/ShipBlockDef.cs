@@ -11,6 +11,8 @@ namespace Pixel.Ship
         public string displayName = "Bloco";
         [TextArea] public string description;
         public Sprite sprite;
+        [Tooltip("Opcional: peças que se encaixam na vertical com blocos iguais (ex.: vela). Vazio = usa o sprite.")]
+        public Sprite spriteTop, spriteBottom, spriteSingle;
         public BlockRole role;
         public int cost = 10;
         [Tooltip("Sólido = dá pra pisar e bloqueia (casco, convés).")]

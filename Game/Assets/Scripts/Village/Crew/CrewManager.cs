@@ -413,6 +413,30 @@ namespace Pixel.Village
             return m;
         }
 
+        // ---------- Modo Sandbox (testes) ----------
+        /// <summary>Tripulante de graça (sem precisar de Taverna nem de ouro).</summary>
+        public CrewMember SandboxAddCrew(int level)
+        {
+            var m = Generate((Profession)Random.Range(0, 4), level);
+            m.morale = 90;
+            AddToCrew(m, idleArea + Random.insideUnitCircle);
+            Log($"[Sandbox] {m.name} entrou para o bando (nível {level}).", new Color(0.7f, 1f, 0.7f));
+            return m;
+        }
+
+        public void SandboxBoostCrew(bool levelUp, bool fullMorale)
+        {
+            foreach (var m in crew)
+            {
+                if (levelUp && m.level < 10) { m.level++; m.xp = 0; }
+                if (fullMorale) m.morale = 100;
+            }
+            Changed?.Invoke();
+        }
+
+        /// <summary>Faz o dia acabar agora (paga salários, come, etc.).</summary>
+        public void SandboxEndDay() => dayTimer = dayLength - 0.05f;
+
         /// <summary>Escreve uma notícia no registro da vila.</summary>
         public void Report(string msg, Color color) => Log(msg, color);
 

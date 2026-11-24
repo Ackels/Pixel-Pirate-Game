@@ -23,7 +23,7 @@ namespace Pixel.Village
         // ---------- Salvar ----------
         public static bool Save()
         {
-            if (!CanSaveNow) return false;
+            if (!CanSaveNow || SandboxMode.Active) return false;   // o Sandbox nunca grava por cima do save
             try
             {
                 var data = Collect();

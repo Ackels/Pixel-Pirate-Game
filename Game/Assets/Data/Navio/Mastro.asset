@@ -14,7 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Pixel.Ship.ShipBlockDef
   displayName: Mastro
   description: Segura as velas. Precisa de apoio embaixo.
-  sprite: {fileID: 21300000, guid: 5d5103020cf866e4f9aa1abf1db4853b, type: 3}
+  sprite: {fileID: 21300000, guid: a312c7de0dd57d540ac66988c74d85bb, type: 3}
+  spriteTop: {fileID: 0}
+  spriteBottom: {fileID: 0}
+  spriteSingle: {fileID: 0}
   role: 2
   cost: 20
   solid: 0

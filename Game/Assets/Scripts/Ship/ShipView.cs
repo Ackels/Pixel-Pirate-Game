@@ -85,6 +85,22 @@ namespace Pixel.Ship
                 }
                 views[kv.Key] = (def, go);
             }
+            RefreshConnected();
+        }
+
+        /// <summary>Blocos que se encaixam na vertical (velas): topo, meio, base ou peça única, conforme os vizinhos.</summary>
+        void RefreshConnected()
+        {
+            foreach (var kv in views)
+            {
+                var def = kv.Value.def;
+                if (def.spriteTop == null && def.spriteBottom == null && def.spriteSingle == null) continue;
+                bool above = layout.Get(kv.Key + Vector2Int.up) == def;
+                bool below = layout.Get(kv.Key + Vector2Int.down) == def;
+                Sprite s = !above && !below ? def.spriteSingle : !above ? def.spriteTop : !below ? def.spriteBottom : def.sprite;
+                var sr = kv.Value.go.GetComponent<SpriteRenderer>();
+                if (sr != null) sr.sprite = s != null ? s : def.sprite;
+            }
         }
 
         // ---------- Consultas úteis para o combate ----------

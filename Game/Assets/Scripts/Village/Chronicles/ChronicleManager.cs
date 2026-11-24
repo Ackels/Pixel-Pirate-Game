@@ -131,6 +131,17 @@ namespace Pixel.Village
             Changed?.Invoke();
         }
 
+        /// <summary>Sandbox: conclui a crônica atual na hora (com a recompensa).</summary>
+        public void SandboxSkip()
+        {
+            if (AllDone) return;
+            var c = Active;
+            VM?.AddGold(c.reward);
+            Current++;
+            Completed?.Invoke(c);
+            Changed?.Invoke();
+        }
+
         public void RestoreFromSave(int index)
         {
             Current = Mathf.Clamp(index, 0, Chronicles.Count);

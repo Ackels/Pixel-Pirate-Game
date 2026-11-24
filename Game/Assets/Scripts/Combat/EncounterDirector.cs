@@ -23,12 +23,17 @@ namespace Pixel.Combat
         [Header("Ritmo")]
         [Tooltip("Chance base de encontro por trecho de viagem (+5% por nível de perigo).")]
         public float encounterChance = 0.55f;
-        public float holdGap = 7f;
+        public float holdGap = 5f;
 
         [Header("Visual")]
         public Sprite flagPirate, flagMerchant, plankSprite;
         public Sprite fxPuff, fxBoom, fxSplash, fxSlash, fxCannonball;
         public CrewManager.LayerSprites crewSprites;
+        [Tooltip("Visuais dos personagens (usado se a vila não estiver carregada).")]
+        public CharacterLibrary looks;
+
+        /// <summary>Catálogo de visuais (o da vila, se existir).</summary>
+        public CharacterLibrary Looks => CrewManager.Instance != null && CrewManager.Instance.looks != null ? CrewManager.Instance.looks : looks;
 
         public EncounterState State { get; private set; }
         public bool Busy => State != EncounterState.None;
@@ -95,7 +100,7 @@ namespace Pixel.Combat
                         // Em terra, a câmera acompanha o capitão pela ilha
                         bool landed = sea.Mode == SeaMode.Landed && sea.islands != null && sea.islands.Root != null;
                         seaCamera.targetX = landed && sea.captain != null
-                            ? Mathf.Clamp(sea.captain.transform.position.x - 4f, 0f, Mathf.Max(0f, sea.islands.RegionMax - 18f))
+                            ? Mathf.Clamp(sea.captain.transform.position.x - 3f, 0f, Mathf.Max(0f, sea.islands.RegionMax - 13f))
                             : 0f;
                     }
                     break;
@@ -203,7 +208,7 @@ namespace Pixel.Combat
             if (top.x < 0) return;
             var f = new GameObject("Bandeira").AddComponent<SpriteRenderer>();
             f.transform.SetParent(view.transform, false);
-            f.transform.localPosition = (Vector2)top + new Vector2(0.5f, 1.5f);
+            f.transform.localPosition = (Vector2)top + new Vector2(0.5f, 1f);
             f.sprite = pirate ? flagPirate : flagMerchant;
             f.flipX = true;
             f.sortingOrder = -9;
@@ -274,15 +279,47 @@ namespace Pixel.Combat
             for (int i = 0; i < count; i++)
             {
                 var spawn = enemyShip.SpawnPoint(Random.Range(-2.5f, 2.5f)) + Vector2.up * 0.2f;
-                var c = SpawnFighter(spawn, Team.Enemy, pirate ? "Pirata" : "Marinheiro", enemyShip,
-                    pirate ? new Color32(40, 40, 45, 255) : new Color32(70, 110, 190, 255),
-                    pirate ? new Color32(160, 30, 30, 255) : new Color32(90, 60, 30, 255));
+                var lib = Looks;
+                CharacterLook look = null;
+                if (lib != null) look = pirate ? lib.enemyPirate : lib.visitors[Random.Range(0, lib.visitors.Length)];
+                var c = look != null
+                    ? SpawnFighter(spawn, Team.Enemy, pirate ? "Pirata" : "Marinheiro", enemyShip, look)
+                    : SpawnFighter(spawn, Team.Enemy, pirate ? "Pirata" : "Marinheiro", enemyShip,
+                        pirate ? new Color32(40, 40, 45, 255) : new Color32(70, 110, 190, 255),
+                        pirate ? new Color32(160, 30, 30, 255) : new Color32(90, 60, 30, 255));
                 c.maxHp = c.hp = pirate ? 55 : 35;
                 c.damage = pirate ? new Vector2Int(8, 12) : new Vector2Int(5, 8);
                 c.attackCooldown = pirate ? 0.85f : 1f;
                 c.FacingRight = false;
                 enemyCrew.Add(c);
             }
+        }
+
+        /// <summary>Lutador com o visual de um personagem (o mesmo da vila).</summary>
+        public Combatant SpawnFighter(Vector2 pos, Team team, string name, ShipView home, CharacterLook look)
+        {
+            var go = new GameObject(name);
+            go.transform.position = pos;
+            var body = go.AddComponent<Rigidbody2D>();
+            body.gravityScale = 3f;
+            body.freezeRotation = true;
+            body.interpolation = RigidbodyInterpolation2D.Interpolate;
+            var capsule = go.AddComponent<CapsuleCollider2D>();
+            capsule.size = new Vector2(0.55f, 0.9f);
+            capsule.offset = new Vector2(0, 0.45f);
+            var captainCol = sea.captain != null ? sea.captain.GetComponent<Collider2D>() : null;
+            if (captainCol != null) capsule.sharedMaterial = captainCol.sharedMaterial;
+            go.AddComponent<LookFigure>().Init(look, team == Team.Player ? 9 : 8);
+            var c = go.AddComponent<Combatant>();
+            c.team = team;
+            c.displayName = name;
+            c.figureHeight = 1f;
+            c.knockOutInsteadOfDeath = team == Team.Player;
+            var ai = go.AddComponent<CombatAI>();
+            ai.homeShip = home;
+            ai.homeX = pos.x;
+            ai.charge = false;
+            return c;
         }
 
         public Combatant SpawnFighter(Vector2 pos, Team team, string name, ShipView home, Color outfit, Color hair, Color? skin = null)
@@ -324,14 +361,15 @@ namespace Pixel.Combat
             body.gravityScale = 3f;
             body.freezeRotation = true;
             var box = go.AddComponent<BoxCollider2D>();
-            box.size = new Vector2(0.7f, 0.5f);
-            box.offset = new Vector2(0, 0.25f);
+            box.size = new Vector2(0.8f, 0.6f);
+            box.offset = new Vector2(0, 0.3f);
             var captainCol = sea.captain != null ? sea.captain.GetComponent<Collider2D>() : null;
             if (captainCol != null) box.sharedMaterial = captainCol.sharedMaterial;
             go.AddComponent<SimpleFigure>().Init(frames, 8);
             var c = go.AddComponent<Combatant>();
             c.team = Team.Enemy;
             c.displayName = name;
+            c.figureHeight = 0.8f;
             var ai = go.AddComponent<CombatAI>();
             ai.homeX = pos.x;
             ai.moveSpeed = 2.6f;
@@ -372,6 +410,32 @@ namespace Pixel.Combat
             EnemyHp = Mathf.Max(0, EnemyHp - dmg);
             Changed?.Invoke();
             if (EnemyHp <= 0) Sink();
+        }
+
+        // ---------- Modo Sandbox (testes) ----------
+        /// <summary>Faz aparecer um navio agora (só navegando, sem ilha na tela).</summary>
+        public bool SandboxEncounter()
+        {
+            if (State != EncounterState.None || sea.Mode != SeaMode.Sailing || (sea.islands != null && sea.islands.Present)) return false;
+            SpawnEnemy();
+            return true;
+        }
+
+        /// <summary>Vence o combate atual: na abordagem derruba a tripulação; antes dela, afunda o navio.</summary>
+        public bool SandboxWin()
+        {
+            switch (State)
+            {
+                case EncounterState.Approaching:
+                case EncounterState.Engaged:
+                    DamageEnemy(99999);
+                    return true;
+                case EncounterState.Closing:
+                case EncounterState.Boarding:
+                    foreach (var c in enemyCrew) if (c != null && !c.IsDown) c.TakeDamage(99999, null);
+                    return true;
+            }
+            return false;
         }
 
         // ---------- Ações do jogador ----------

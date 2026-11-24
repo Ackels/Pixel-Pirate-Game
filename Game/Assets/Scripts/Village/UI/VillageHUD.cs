@@ -38,6 +38,7 @@ namespace Pixel.Village
         TavernPanel tavernPanel;
         CrewPanel crewPanel;
         GameMenu menu;
+        SandboxPanel sandbox;
         ExpeditionPanel expeditionPanel;
         ChronicleUI chronicles;
         Camera cam;
@@ -131,6 +132,7 @@ namespace Pixel.Village
             ExpeditionStrip.Create(root);
             infoPanel = BuildingInfoPanel.Create(root, () => { infoPanel.Hide(); tavernPanel.Show(); }, () => { infoPanel.Hide(); expeditionPanel.Show(); });
             chronicles = ChronicleUI.Create(root);
+            sandbox = SandboxPanel.Create(root, false, m => { Toast(m); return true; });
             menu = GameMenu.Create(root);
             menu.OpenStart();
 
@@ -168,6 +170,7 @@ namespace Pixel.Village
             if (kb != null && kb.cKey.wasPressedThisFrame) ToggleCrew();
             if (kb != null && kb.xKey.wasPressedThisFrame) ToggleExpeditions();
             if (kb != null && kb.jKey.wasPressedThisFrame) { bool o = chronicles.WindowOpen; CloseWindows(); if (!o) chronicles.ToggleWindow(); }
+            if (kb != null && kb.escapeKey.wasPressedThisFrame && sandbox != null && sandbox.IsOpen) { sandbox.Hide(); return; }
             if (kb != null && kb.escapeKey.wasPressedThisFrame)
             {
                 bool anyOpen = tavernPanel.gameObject.activeSelf || crewPanel.gameObject.activeSelf || infoPanel.gameObject.activeSelf || expeditionPanel.IsOpen || chronicles.WindowOpen;

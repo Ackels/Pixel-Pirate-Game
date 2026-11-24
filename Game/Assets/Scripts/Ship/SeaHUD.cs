@@ -41,6 +41,8 @@ namespace Pixel.Ship
             scaler.matchWidthOrHeight = 0.5f;
             var root = canvasGo.transform;
 
+            SandboxPanel.Create(root, true, m => { sea.Say(m); return true; });
+
             var top = UIKit.Panel("Topo", root, new Vector2(0, 1), new Vector2(0, 1), new Vector2(12, -12), new Vector2(260, 64));
             goldText = UIKit.Text(top, "", 18, TextAnchor.MiddleLeft, UIKit.GoldColor);
             UIKit.Stretch(goldText.rectTransform, 10);

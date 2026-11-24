@@ -154,6 +154,13 @@ namespace Pixel.Village
         }
 
         // ---------- Salvar / carregar ----------
+        /// <summary>Sandbox: libera todas as masmorras (marca as anteriores como concluídas).</summary>
+        public void SandboxUnlockAll()
+        {
+            for (int i = 0; i < dungeons.Length - 1; i++) if (dungeons[i] != null) cleared.Add(dungeons[i].name);
+            Changed?.Invoke();
+        }
+
         public void RestoreFromSave(List<string> clearedNames, Preset[] savedPresets)
         {
             Active.Clear();

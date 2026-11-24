@@ -74,6 +74,7 @@ namespace Pixel.Village
 
         void ShowStart(bool confirming)
         {
+            SandboxMode.Reset();
             Open();
             confirmNew = confirming;
             var save = SaveSystem.Peek();
@@ -84,7 +85,16 @@ namespace Pixel.Village
             if (save != null) Btn("Continuar", Continue);
             Btn(confirming ? "Sim, apagar e começar do zero" : "Novo jogo", NewGame);
             if (confirming) Btn("Não, voltar", () => ShowStart(false));
+            if (!confirming) Btn("Sandbox (testes)", StartSandbox);
             Btn("Sair", Quit);
+        }
+
+        /// <summary>Jogo de testes: muito ouro, itens e tripulantes, painel de truques (F1). Não salva.</summary>
+        void StartSandbox()
+        {
+            Close();
+            SandboxMode.Begin();
+            VillageHUD.Instance?.Toast("Modo Sandbox! F1 abre os truques. Nada é salvo.");
         }
 
         void Continue()
@@ -108,7 +118,7 @@ namespace Pixel.Village
         public void OpenPause()
         {
             Open();
-            Header("Pausa", $"Arquivo de save:\n{SaveSystem.FilePath}");
+            Header("Pausa", SandboxMode.Active ? "Modo Sandbox: nada é salvo.\nF1 abre o painel de truques." : $"Arquivo de save:\n{SaveSystem.FilePath}");
             subtitle.fontSize = 12;
             Btn("Continuar", Close);
             Btn("Salvar agora", () =>
@@ -118,7 +128,7 @@ namespace Pixel.Village
                 Btn("Continuar", Close);
                 Btn("Sair para o menu", BackToMenu);
                 Btn("Sair do jogo", Quit);
-            }, SaveSystem.CanSaveNow);
+            }, SaveSystem.CanSaveNow && !SandboxMode.Active);
             Btn(AudioManager.SoundOn ? "Som: ligado" : "Som: desligado", () => { AudioManager.SoundOn = !AudioManager.SoundOn; OpenPause(); });
             Btn("Sair para o menu", BackToMenu);
             Btn("Sair do jogo", Quit);

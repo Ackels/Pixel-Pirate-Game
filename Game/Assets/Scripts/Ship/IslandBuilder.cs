@@ -14,9 +14,41 @@ namespace Pixel.Ship
         public SeaController sea;
         public EncounterDirector director;
 
+        /// <summary>Peças de terreno escolhidas pela máscara de vizinhos (1=N 2=NE 4=L 8=SE 16=S 32=SO 64=O 128=NO).</summary>
+        [System.Serializable]
+        public class TerrainSet
+        {
+            public int[] masks;
+            public Sprite[] sprites;
+
+            public Sprite Get(int mask)
+            {
+                int best = -1, bestScore = int.MaxValue;
+                for (int i = 0; i < masks.Length; i++)
+                {
+                    int diff = masks[i] ^ mask;
+                    int score = Bits(diff & 0b01010101) * 10 + Bits(diff & 0b10101010);
+                    if (score < bestScore) { bestScore = score; best = i; }
+                }
+                return best >= 0 ? sprites[best] : null;
+            }
+
+            static int Bits(int v) { int c = 0; while (v != 0) { c += v & 1; v >>= 1; } return c; }
+        }
+
+        [System.Serializable]
+        public class Creature
+        {
+            public string name;
+            public Sprite[] frames;
+        }
+
         [Header("Sprites")]
-        public Sprite grassTop, dirt, sandTop, sand, chestClosed, chestOpen, tent, campfire, palm, market, plank;
-        public Sprite[] crabFrames;
+        public TerrainSet grass, sand;
+        public Sprite chestClosed, chestOpen, tent, campfire, palm, market, plank, grassDecor;
+        public Sprite[] backPalms;
+        [Tooltip("Bichos das ilhas selvagens (um é sorteado para cada inimigo).")]
+        public Creature[] creatures;
 
         public const int Columns = 30;
         public GameObject Root { get; private set; }
@@ -50,7 +82,7 @@ namespace Pixel.Ship
             clearedAnnounced = node.cleared;
             rng = new System.Random(node.seed);
             waterline = sea.shipView.WaterlineY;
-            beachTop = waterline + 0.5f;
+            beachTop = waterline + 1.5f;   // praia um bloco acima d'água (na altura do convés)
             targetX = sea.shipView.RightEdge + 1.6f;
 
             Root = new GameObject($"Ilha {node.name}", typeof(Rigidbody2D), typeof(CompositeCollider2D));
@@ -69,15 +101,23 @@ namespace Pixel.Ship
                     run = rng.Next(3, 6);
                 }
                 tops[i] = i < 5 ? 0 : h;
-                BuildColumn(i, beachTop + tops[i], i < 5);
             }
+            for (int i = 0; i < Columns; i++) BuildColumn(i);
 
             var free = new List<int>();
             for (int i = 6; i < Columns - 1; i++) free.Add(i);
             int danger = node.Danger(GameFlowHome());
 
-            // Coqueiros de enfeite
+            // Coqueiros de enfeite (na frente e no fundo) e tufos de grama
             for (int k = 0; k < 4; k++) Decor(palm, Take(free), -36, 1f);
+            if (backPalms != null && backPalms.Length > 0)
+                for (int k = 0; k < 5; k++)
+                {
+                    int col = 6 + rng.Next(Columns - 7);
+                    Decor(backPalms[rng.Next(backPalms.Length)], col, -50, 1f);
+                }
+            if (grassDecor != null)
+                for (int k = 0; k < 6; k++) Decor(grassDecor, 6 + rng.Next(Columns - 8), -44, 1f);
 
             switch (node.type)
             {
@@ -128,19 +168,44 @@ namespace Pixel.Ship
 
         Vector2 Top(int col) => new Vector2(col + 0.5f, beachTop + tops[col]);
 
-        void BuildColumn(int i, float top, bool isSand)
+        const int DetailRows = 4;   // linhas com peças de borda abaixo da praia; mais fundo, enchimento repetido
+
+        /// <summary>Tem terra na célula (coluna x, linha r)? Linha 0 = altura da praia. À direita a ilha continua.</summary>
+        bool Solid(int x, int r) => x >= 0 && r <= tops[Mathf.Min(x, Columns - 1)];
+
+        int MaskAt(int x, int r)
         {
+            bool N = Solid(x, r + 1), E = Solid(x + 1, r), S = Solid(x, r - 1), W = Solid(x - 1, r);
+            int m = 0;
+            if (N) m |= 1;
+            if (N && E && Solid(x + 1, r + 1)) m |= 2;
+            if (E) m |= 4;
+            if (S && E && Solid(x + 1, r - 1)) m |= 8;
+            if (S) m |= 16;
+            if (S && W && Solid(x - 1, r - 1)) m |= 32;
+            if (W) m |= 64;
+            if (N && W && Solid(x - 1, r + 1)) m |= 128;
+            return m;
+        }
+
+        void BuildColumn(int i)
+        {
+            var set = i < 5 ? sand : grass;
+            float top = beachTop + tops[i];
             float bottom = waterline - 30f;
-            // Topo na frente da água de trás (-49); o enchimento fica atrás dela (-50),
-            // então a parte submersa da ilha some no mar e a praia continua visível.
-            var topSr = Sprite(isSand ? sandTop : grassTop, new Vector2(i + 0.5f, top - 0.5f), -45);
-            topSr.name = "Topo";
-            var fill = Sprite(isSand ? sand : dirt, new Vector2(i + 0.5f, (top - 1f + bottom) / 2f), -60);
+            // Peças com borda perto da superfície; a parte submersa fica atrás da água translúcida.
+            for (int r = tops[i]; r >= -DetailRows; r--)
+            {
+                var sr = Sprite(set.Get(MaskAt(i, r)), new Vector2(i + 0.5f, beachTop + r - 0.5f), r == tops[i] ? -45 : -46);
+                sr.name = r == tops[i] ? "Topo" : "Terra";
+            }
+            float fillTop = beachTop - DetailRows - 1f;
+            var fill = Sprite(set.Get(MaskAt(i, -DetailRows - 2)), new Vector2(i + 0.5f, (fillTop + bottom) / 2f), -46);
             fill.drawMode = SpriteDrawMode.Tiled;
-            fill.size = new Vector2(1f, top - 1f - bottom);
+            fill.size = new Vector2(1f, fillTop - bottom);
             var box = fill.gameObject.AddComponent<BoxCollider2D>();
             box.size = new Vector2(1f, top - bottom);
-            box.offset = new Vector2(0, 0.5f);
+            box.offset = new Vector2(0, (top - bottom) / 2f - (fillTop - bottom) / 2f);
             box.compositeOperation = Collider2D.CompositeOperation.Merge;
         }
 
@@ -192,10 +257,20 @@ namespace Pixel.Ship
             var go = new GameObject("Comerciante");
             go.transform.SetParent(Root.transform, false);
             go.transform.localPosition = Top(col) + new Vector2(-0.8f, 0);
-            var sprites = CrewManager.Instance != null ? CrewManager.Instance.sprites : director.crewSprites;
-            var fig = go.AddComponent<LayeredFigure>();
-            fig.Init(sprites, new Color32(232, 178, 128, 255), new Color32(200, 160, 60, 255), new Color32(90, 55, 30, 255), 7);
-            fig.Pose(false, true, false);
+            var lib = director.Looks;
+            if (lib != null && lib.visitors != null && lib.visitors.Length > 0)
+            {
+                var fig = go.AddComponent<LookFigure>();
+                fig.Init(lib.visitors[Node.seed % lib.visitors.Length], 7);
+                fig.Pose(false, true, false);
+            }
+            else
+            {
+                var sprites = CrewManager.Instance != null ? CrewManager.Instance.sprites : director.crewSprites;
+                var fig = go.AddComponent<LayeredFigure>();
+                fig.Init(sprites, new Color32(232, 178, 128, 255), new Color32(200, 160, 60, 255), new Color32(90, 55, 30, 255), 7);
+                fig.Pose(false, true, false);
+            }
             var it = go.AddComponent<Interactable>();
             it.prompt = "E: negociar com o comerciante";
             it.range = 1.6f;
@@ -205,7 +280,8 @@ namespace Pixel.Ship
         void Crab(int col, int danger)
         {
             Vector2 world = (Vector2)Root.transform.position + Top(col) + Vector2.up * 0.1f;
-            var c = director.SpawnCreature(world, "Caranguejo", crabFrames);
+            var kind = creatures[rng.Next(creatures.Length)];
+            var c = director.SpawnCreature(world, kind.name, kind.frames);
             c.maxHp = c.hp = Mathf.RoundToInt(25 * (1f + danger * 0.15f));
             c.damage = new Vector2Int(3, 6 + danger);
             c.attackCooldown = 1.1f;
@@ -216,7 +292,10 @@ namespace Pixel.Ship
         void Pirate(int col, int danger)
         {
             Vector2 world = (Vector2)Root.transform.position + Top(col) + Vector2.up * 0.1f;
-            var c = director.SpawnFighter(world, Team.Enemy, "Pirata", null, new Color32(40, 40, 45, 255), new Color32(160, 30, 30, 255));
+            var lib = director.Looks;
+            var c = lib != null && lib.enemyPirate != null
+                ? director.SpawnFighter(world, Team.Enemy, "Pirata", null, lib.enemyPirate)
+                : director.SpawnFighter(world, Team.Enemy, "Pirata", null, new Color32(40, 40, 45, 255), new Color32(160, 30, 30, 255));
             c.maxHp = c.hp = Mathf.RoundToInt(50 * (1f + danger * 0.15f));
             c.damage = new Vector2Int(7 + danger, 11 + danger);
             c.attackCooldown = 1.0f;
@@ -279,6 +358,14 @@ namespace Pixel.Ship
         }
 
         public bool HasLiveEnemies => enemies.Exists(e => e != null && !e.IsDown);
+
+        /// <summary>Sandbox: derruba todos os inimigos da ilha.</summary>
+        public int SandboxKillAll()
+        {
+            int n = 0;
+            foreach (var e in enemies) if (e != null && !e.IsDown) { e.TakeDamage(99999, null); n++; }
+            return n;
+        }
 
         /// <summary>Sai da ilha: some com a prancha e os inimigos; a ilha fica para trás.</summary>
         /// <param name="towardsHome">Voltando pra Enseada: a ilha sai pela direita (o navio dá meia-volta).</param>

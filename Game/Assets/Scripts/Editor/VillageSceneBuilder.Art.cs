@@ -221,5 +221,91 @@ namespace Pixel.EditorTools
             tileCache[rel] = t;
             return t;
         }
+        // ---------- Mar (Treasure Hunters, 32 px por bloco) ----------
+        const string MarDir = "Assets/Art/Mar";
+        const int SeaPPU = 32;
+
+        static void ImportMarArt()
+        {
+            foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { MarDir }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                string file = Path.GetFileNameWithoutExtension(path);
+                // Objetos que ficam "em pé" no chão têm o pivô embaixo; peças de bloco, céu e efeitos, no centro.
+                bool bottom = path.Contains("/Bichos/") || file.StartsWith("coqueiro") || file.StartsWith("bau_")
+                              || file == "grama" || file.StartsWith("bandeira");
+                var imp = (TextureImporter)AssetImporter.GetAtPath(path);
+                imp.textureType = TextureImporterType.Sprite;
+                imp.spriteImportMode = SpriteImportMode.Single;
+                imp.spritePixelsPerUnit = SeaPPU;
+                imp.filterMode = FilterMode.Point;
+                imp.mipmapEnabled = false;
+                imp.textureCompression = TextureImporterCompression.Uncompressed;
+                imp.alphaIsTransparency = true;
+                imp.wrapMode = TextureWrapMode.Clamp;   // Repeat faz a borda de cima "puxar" a linha de baixo
+                var s = new TextureImporterSettings();
+                imp.ReadTextureSettings(s);
+                s.spriteAlignment = (int)(bottom ? SpriteAlignment.BottomCenter : SpriteAlignment.Center);
+                s.spriteMeshType = SpriteMeshType.FullRect;
+                imp.SetTextureSettings(s);
+                imp.SaveAndReimport();
+            }
+        }
+
+        static Sprite Mar(string relPath)
+        {
+            var s = AssetDatabase.LoadAssetAtPath<Sprite>($"{MarDir}/{relPath}.png");
+            if (s == null) Debug.LogWarning("[Pixel] Sprite do mar não encontrado: " + relPath);
+            return s;
+        }
+
+        static Sprite[] MarFrames(string relPrefix)
+        {
+            var list = new List<Sprite>();
+            for (int i = 0; ; i++)
+            {
+                var s = AssetDatabase.LoadAssetAtPath<Sprite>($"{MarDir}/{relPrefix}_{i}.png");
+                if (s == null) break;
+                list.Add(s);
+            }
+            return list.ToArray();
+        }
+
+        static Pixel.Ship.IslandBuilder.TerrainSet TerrainSet(string prefix)
+        {
+            var masks = new List<int>();
+            var sprites = new List<Sprite>();
+            foreach (var f in Directory.GetFiles($"{MarDir}/Ilha", $"{prefix}_*.png"))
+            {
+                if (!int.TryParse(Path.GetFileNameWithoutExtension(f).Substring(prefix.Length + 1), out int m)) continue;
+                masks.Add(m);
+                sprites.Add(Mar($"Ilha/{prefix}_{m:000}"));
+            }
+            return new Pixel.Ship.IslandBuilder.TerrainSet { masks = masks.ToArray(), sprites = sprites.ToArray() };
+        }
+
+        static void ApplyShipArt(Pixel.Ship.ShipBlockDef[] blocks)
+        {
+            var map = new Dictionary<Pixel.Ship.BlockRole, string>
+            {
+                { Pixel.Ship.BlockRole.Hull, "casco" }, { Pixel.Ship.BlockRole.Deck, "conves" }, { Pixel.Ship.BlockRole.Mast, "mastro" },
+                { Pixel.Ship.BlockRole.Sail, "vela" }, { Pixel.Ship.BlockRole.Cannon, "canhao" }, { Pixel.Ship.BlockRole.Cabin, "cabine" },
+            };
+            foreach (var b in blocks)
+            {
+                if (b == null || !map.TryGetValue(b.role, out var file)) continue;
+                var s = Mar("Navio/" + file);
+                if (s == null) continue;
+                b.sprite = s;
+                if (b.role == Pixel.Ship.BlockRole.Sail)
+                {
+                    b.spriteTop = Mar("Navio/vela_topo");
+                    b.spriteBottom = Mar("Navio/vela_base");
+                    b.spriteSingle = Mar("Navio/vela_unica");
+                }
+                EditorUtility.SetDirty(b);
+            }
+            AssetDatabase.SaveAssets();
+        }
     }
 }
