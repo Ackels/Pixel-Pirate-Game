@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Pixel.Combat;
 using UnityEngine;
 
 namespace Pixel.Ship
@@ -21,6 +22,13 @@ namespace Pixel.Ship
         readonly Dictionary<Vector2Int, (ShipBlockDef def, int rot, GameObject go)> views = new Dictionary<Vector2Int, (ShipBlockDef, int, GameObject)>();
 
         public ShipLayout Layout => layout;
+
+        /// <summary>0 = inteiro, 1 = destruído: com o casco avariado sai fumaça das rachaduras.</summary>
+        public float damageLevel;
+        readonly List<GameObject> decals = new List<GameObject>();
+        readonly Dictionary<Vector2Int, int> sailMask = new Dictionary<Vector2Int, int>();
+        float animTime, smokeTimer;
+        static readonly int[] WindPattern = { 0, 1, 0, 2 };
         public Vector2 origin => transform.position;
         public float WaterlineY => origin.y + ShipLayout.WaterRow + 0.5f;
 
@@ -255,6 +263,7 @@ namespace Pixel.Ship
                               | (layout.Get(c + Vector2Int.left) == def || IsMast(c + Vector2Int.left) ? 4 : 0)
                               | (layout.Get(c + Vector2Int.right) == def || IsMast(c + Vector2Int.right) ? 8 : 0);
                         if (def.connectSprites != null && m < def.connectSprites.Length) s = def.connectSprites[m];
+                        sailMask[c] = m;
                         break;
                     }
                     case ConnectMode.ExposedTop:
@@ -301,6 +310,108 @@ namespace Pixel.Ship
             return origin + new Vector2(right ? maxX + 1 : minX, ShipLayout.WaterRow + 1);
         }
 
+        // ---------- Vida: vento nas velas, bandeira, fumaça das avarias ----------
+        void Update()
+        {
+            if (layout == null) return;
+            animTime += Time.deltaTime;
+            int windStep = (int)(animTime / 0.22f);
+            foreach (var kv in views)
+            {
+                var def = kv.Value.def;
+                var go = kv.Value.go;
+                if (go == null) continue;
+                if (def.connect == ConnectMode.Sail16 && def.connectSprites != null && def.connectSprites.Length >= 48
+                    && sailMask.TryGetValue(kv.Key, out int m))
+                {
+                    int f = WindPattern[(windStep + kv.Key.x + kv.Key.y) % WindPattern.Length];
+                    var sr = go.GetComponent<SpriteRenderer>();
+                    var s = def.connectSprites[m + 16 * f];
+                    if (sr != null && s != null && sr.sprite != s) sr.sprite = s;
+                }
+                else if (def.animFrames != null && def.animFrames.Length > 0)
+                {
+                    var sr = go.GetComponent<SpriteRenderer>();
+                    int f = (int)((animTime + kv.Key.x * 0.37f) * def.animFps) % def.animFrames.Length;
+                    if (sr != null && def.animFrames[f] != null) sr.sprite = def.animFrames[f];
+                }
+            }
+
+            // Casco avariado: fumaça subindo das rachaduras
+            if (damageLevel > 0.35f && decals.Count > 0)
+            {
+                smokeTimer -= Time.deltaTime;
+                if (smokeTimer <= 0f)
+                {
+                    smokeTimer = Mathf.Lerp(1.4f, 0.35f, damageLevel);
+                    var d = decals[Random.Range(0, decals.Count)];
+                    if (d != null) Fx.Spawn(Fx.Puff, (Vector2)d.transform.position + Vector2.up * 0.3f, 1.4f, 2.2f, false, 8, 0.7f);
+                }
+            }
+        }
+
+        /// <summary>Canhões com a posição da boca e o bloco (para animar o tiro).</summary>
+        public List<(Vector2 muzzle, GameObject go)> Cannons()
+        {
+            var list = new List<(Vector2, GameObject)>();
+            foreach (var kv in views)
+                if (kv.Value.def.role == BlockRole.Cannon)
+                    list.Add((CellCenter(kv.Key) + new Vector2(facingLeft ? -0.5f : 0.5f, 0.05f), kv.Value.go));
+            return list;
+        }
+
+        /// <summary>O canhão recua ao atirar e volta para o desenho parado.</summary>
+        public void PlayCannonFire(GameObject cannon)
+        {
+            if (cannon == null || Fx.CannonFire == null || Fx.CannonFire.Length == 0) return;
+            var sr = cannon.GetComponent<SpriteRenderer>();
+            if (sr == null) return;
+            var a = cannon.GetComponent<SpriteAnim>() ?? cannon.AddComponent<SpriteAnim>();
+            var def = views.TryGetValue(WorldToCell(cannon.transform.position), out var v) ? v.def : null;
+            a.Restart(Fx.CannonFire, 16f, def != null ? def.sprite : sr.sprite);
+        }
+
+        /// <summary>Rachadura no bloco atingido (fica até consertar o navio).</summary>
+        public void AddDamageDecal(Vector2 world)
+        {
+            if (Fx.Cracks == null || Fx.Cracks.Length == 0 || layout == null) return;
+            var cell = WorldToCell(world);
+            if (!views.TryGetValue(cell, out var v) || v.def == null || !v.def.solid)
+            {
+                // Acertou perto de um bloco sólido? Usa o mais próximo
+                float best = 2.25f; bool found = false;
+                foreach (var kv in views)
+                {
+                    if (!kv.Value.def.solid) continue;
+                    float d = ((Vector2)CellCenter(kv.Key) - world).sqrMagnitude;
+                    if (d < best) { best = d; cell = kv.Key; v = kv.Value; found = true; }
+                }
+                if (!found) return;
+            }
+            if (decals.Count >= 24) { if (decals[0] != null) Destroy(decals[0]); decals.RemoveAt(0); }
+            var go = new GameObject("Dano");
+            go.transform.SetParent(v.go.transform, false);
+            go.transform.localPosition = new Vector3(Random.Range(-0.15f, 0.15f), Random.Range(-0.15f, 0.15f), 0);
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = Fx.Cracks[Random.Range(0, Fx.Cracks.Length)];
+            sr.flipX = Random.value < 0.5f;
+            sr.flipY = Random.value < 0.5f;
+            sr.sortingOrder = v.def.sortingOrder + 1;
+            decals.Add(go);
+        }
+
+        /// <summary>Espalha rachaduras (ex.: ao voltar ao mar com o casco ainda avariado).</summary>
+        public void ScatterDamage(int count)
+        {
+            for (int i = 0; i < count; i++) AddDamageDecal(RandomBlockPoint());
+        }
+
+        public void ClearDamage()
+        {
+            foreach (var d in decals) if (d != null) Destroy(d);
+            decals.Clear();
+        }
+
         public List<Vector2> CannonMuzzles()
         {
             var list = new List<Vector2>();
@@ -310,6 +421,24 @@ namespace Pixel.Ship
             return list;
         }
 
+        /// <summary>Topo do mastro mais perto de um lado do navio (onde se prendem as cordas da abordagem).</summary>
+        public bool MastTop(bool towardRight, out Vector2 top)
+        {
+            top = default;
+            bool found = false;
+            foreach (var kv in layout.Blocks)
+            {
+                if (kv.Value == null || kv.Value.role != BlockRole.Mast) continue;
+                var p = CellCenter(kv.Key) + Vector2.up * 0.5f;
+                if (!found || (towardRight ? p.x > top.x + 0.1f : p.x < top.x - 0.1f) || (Mathf.Abs(p.x - top.x) <= 0.1f && p.y > top.y))
+                {
+                    top = p;
+                    found = true;
+                }
+            }
+            return found;
+        }
+
         public Vector2 RandomBlockPoint()
         {
             int i = Random.Range(0, layout.Blocks.Count), n = 0;
@@ -317,20 +446,49 @@ namespace Pixel.Ship
             return origin;
         }
 
+        /// <summary>Ponto no convés mais perto de uma posição x do mundo.</summary>
+        public Vector2 DeckNear(float worldX)
+        {
+            float mid = TryGetBounds(out int a, out int b) ? (a + b) / 2f : ShipLayout.Width / 2f;
+            return SpawnPoint(worldX - origin.x - 0.5f - mid);
+        }
+
         /// <summary>Ponto em cima do bloco sólido mais alto, perto do meio do navio (para alguém nascer).</summary>
         public Vector2 SpawnPoint(float offsetX = 0f)
         {
+            float mid = TryGetBounds(out int a, out int b) ? (a + b) / 2f + offsetX : ShipLayout.Width / 2f;
+
+            // Chão onde dá pra ficar em pé: casco cheio ou piso, sem nada sólido logo em cima
+            bool Floor(Vector2Int c, ShipBlockDef d)
+            {
+                if (!((d.solid && d.shape == BlockShape.Full) || d.role == BlockRole.Platform)) return false;
+                var above = layout.Get(c + Vector2Int.up);
+                return above == null || !(above.solid || above.role == BlockRole.Platform);
+            }
+            // Aberto para o céu (convés): em cima não tem parede, rede nem escada
+            bool Open(Vector2Int c)
+            {
+                var above = layout.Get(c + Vector2Int.up);
+                return above == null || above.role == BlockRole.Decor || above.role == BlockRole.Cannon
+                       || above.role == BlockRole.Mast || above.role == BlockRole.Sail || above.role == BlockRole.Flag;
+            }
+
+            // Convés principal = a linha com mais chão aberto (empate: a mais alta). Evita nascer no topo de uma
+            // parede lateral ou de um mastro curto, de onde a tripulação não volta.
+            var count = new Dictionary<int, int>();
+            foreach (var kv in layout.Blocks)
+                if (Floor(kv.Key, kv.Value) && Open(kv.Key))
+                    count[kv.Key.y] = (count.TryGetValue(kv.Key.y, out int n) ? n : 0) + 1;
+            int deckY = int.MinValue, bestCount = 0;
+            foreach (var kv in count)
+                if (kv.Value > bestCount || (kv.Value == bestCount && kv.Key > deckY)) { bestCount = kv.Value; deckY = kv.Key; }
+
             Vector2Int best = new Vector2Int(-1, -1);
             float bestScore = float.MaxValue;
-            float mid = TryGetBounds(out int a, out int b) ? (a + b) / 2f + offsetX : ShipLayout.Width / 2f;
             foreach (var kv in layout.Blocks)
             {
-                // nasce em cima de um casco cheio ou de um piso, de preferência no convés mais alto
-                bool floor = (kv.Value.solid && kv.Value.shape == BlockShape.Full) || kv.Value.role == BlockRole.Platform;
-                if (!floor) continue;
-                var above = layout.Get(kv.Key + Vector2Int.up);
-                if (above != null && (above.solid || above.role == BlockRole.Platform)) continue;
-                float score = Mathf.Abs(kv.Key.x - mid) - kv.Key.y * 1.5f;
+                if (!Floor(kv.Key, kv.Value)) continue;
+                float score = Mathf.Abs(kv.Key.x - mid) + (kv.Key.y == deckY ? 0f : 1000f + Mathf.Abs(kv.Key.y - deckY));
                 if (score < bestScore) { bestScore = score; best = kv.Key; }
             }
             if (best.x < 0) return CellCenter(new Vector2Int(ShipLayout.Width / 2, ShipLayout.WaterRow + 2));

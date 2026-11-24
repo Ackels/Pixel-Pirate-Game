@@ -87,6 +87,11 @@ namespace Pixel.Village
             if (confirming) Btn("Não, voltar", () => ShowStart(false));
             if (!confirming) Btn("Sandbox (testes)", StartSandbox);
             Btn("Sair", Quit);
+            // Créditos (a música de combate é CC-BY: o nome do autor precisa aparecer no jogo)
+            var credits = UIKit.Text(box, "Música: Dizzy Crow, Thimras, beardalaxy (CC0) e \"Blackmoor Tides\" de Matthew Pablo, matthewpablo.com (CC-BY 3.0). Arte: Pixel-boy & AAA, Pixel Frog (CC0).",
+                11, TextAnchor.MiddleCenter, UIKit.MutedText);
+            UIKit.Size(credits, height: 34);
+            UIKit.Fit(credits, 9);
         }
 
         /// <summary>Jogo de testes: muito ouro, itens e tripulantes, painel de truques (F1). Não salva.</summary>

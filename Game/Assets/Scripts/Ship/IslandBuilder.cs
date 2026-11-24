@@ -79,6 +79,9 @@ namespace Pixel.Ship
             Leave();
             Node = node;
             chestsTotal = chestsOpened = 0;
+            buriedChest = null;
+            buriedUse = null;
+            digMark = null;
             Arrived = false;
             clearedAnnounced = node.cleared;
             rng = new System.Random(node.seed);
@@ -262,6 +265,71 @@ namespace Pixel.Ship
                 Destroy(it);
                 if (++chestsOpened >= chestsTotal) Node.looted = true;
             };
+            if (treasure) Bury(sr, it);
+        }
+
+        // ---------- Tesouro enterrado: um X na areia; cave em cima dele (botão Cavar ou G) ----------
+        SpriteRenderer buriedChest, digMark;
+        Interactable buriedUse;
+        static Sprite xSprite;
+
+        public bool HasBuriedTreasure => buriedChest != null;
+        public bool NearDigMark(float worldX) => digMark != null && Mathf.Abs(digMark.transform.position.x - worldX) <= 0.9f;
+
+        void Bury(SpriteRenderer chest, Interactable use)
+        {
+            chest.enabled = false;
+            use.enabled = false;
+            buriedChest = chest;
+            buriedUse = use;
+            digMark = Sprite(XSprite(), (Vector2)chest.transform.localPosition + Vector2.up * 0.02f, -4);
+            digMark.transform.localScale = Vector3.one * 1.6f;
+        }
+
+        /// <summary>Cavar aqui: se for em cima do X, o baú do tesouro aparece.</summary>
+        public bool TryDig(float worldX)
+        {
+            if (!NearDigMark(worldX) || buriedChest == null) return false;
+            buriedChest.enabled = true;
+            buriedUse.enabled = true;
+            Fx.Spawn(Fx.Puff, buriedChest.transform.position + Vector3.up * 0.4f, 0.6f, 2f);
+            Destroy(digMark.gameObject);
+            buriedChest = null;
+            buriedUse = null;
+            digMark = null;
+            return true;
+        }
+
+        /// <summary>X vermelho pintado na areia (16x10, 32 px por bloco, pivô embaixo).</summary>
+        static Sprite XSprite()
+        {
+            if (xSprite != null) return xSprite;
+            const int W = 16, H = 10;
+            var tex = new Texture2D(W, H, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
+            var px = new Color32[W * H];
+            var red = new Color32(196, 38, 38, 255);
+            var dark = new Color32(70, 22, 22, 255);
+            bool Line(int x, int y)
+            {
+                for (int i = 0; i < 8; i++)
+                {
+                    int ax = 2 + i * 12 / 8, ay = 1 + i;
+                    if ((x == ax || x == ax + 1) && y == ay) return true;
+                    int bx = 12 - i * 12 / 8;
+                    if ((x == bx || x == bx + 1) && y == ay) return true;
+                }
+                return false;
+            }
+            for (int y = 0; y < H; y++)
+                for (int x = 0; x < W; x++)
+                {
+                    if (Line(x, y)) px[y * W + x] = red;
+                    else if (Line(x - 1, y) || Line(x + 1, y) || Line(x, y - 1) || Line(x, y + 1)) px[y * W + x] = dark;
+                }
+            tex.SetPixels32(px);
+            tex.Apply();
+            xSprite = UnityEngine.Sprite.Create(tex, new Rect(0, 0, W, H), new Vector2(0.5f, 0f), 32f);
+            return xSprite;
         }
 
         void Merchant(int col)

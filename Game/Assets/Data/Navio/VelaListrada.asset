@@ -35,15 +35,50 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 576163c34cd92574d987197fdc42f905, type: 3}
   - {fileID: 21300000, guid: 483256da1185a764caeabd63ddd4432d, type: 3}
   - {fileID: 21300000, guid: 456e9b3a2c031ae4384592134063b8e6, type: 3}
+  - {fileID: 21300000, guid: c0805df055790304d8ce4b31cf18d3d9, type: 3}
+  - {fileID: 21300000, guid: 979b1111c208718469aed659c119752b, type: 3}
+  - {fileID: 21300000, guid: dbb3e35c9b360d74c8fc3ae9ab13cbf9, type: 3}
+  - {fileID: 21300000, guid: 6b3f947237bfe0f4b96f96700ffdcd99, type: 3}
+  - {fileID: 21300000, guid: 5fffc3912c584a841b0a94d670972b4d, type: 3}
+  - {fileID: 21300000, guid: d8fd9c918dd4579499204ce5bc63b9d8, type: 3}
+  - {fileID: 21300000, guid: a7111ef1e15f3b149888cc341835f92a, type: 3}
+  - {fileID: 21300000, guid: e3ebfe61e31619a4d9277701b263d2c4, type: 3}
+  - {fileID: 21300000, guid: 7ca1b0fc77e1d8447961096917214523, type: 3}
+  - {fileID: 21300000, guid: 4ebc7b2136d97c74a89e77022d8c7754, type: 3}
+  - {fileID: 21300000, guid: 79fab639270691f4e80d49282141dbd7, type: 3}
+  - {fileID: 21300000, guid: e3f2cf5912a1e0e41bb3cbb1fa0ef2e0, type: 3}
+  - {fileID: 21300000, guid: daf69e9a142d7bd4b8b05c3dd1415f7c, type: 3}
+  - {fileID: 21300000, guid: 46f14d358ac1f8b49a2e037fecaea5f1, type: 3}
+  - {fileID: 21300000, guid: 5f83d1997a505f341becd3dab1a55610, type: 3}
+  - {fileID: 21300000, guid: c8f9a65e3c9a9d144843c0016c5a29fc, type: 3}
+  - {fileID: 21300000, guid: 7cc98f419599c22478e3c3f5e58f6e43, type: 3}
+  - {fileID: 21300000, guid: 5762cb99745aa8248b794b19696b033d, type: 3}
+  - {fileID: 21300000, guid: 14d609cc28bd836439082e5c4d7467cf, type: 3}
+  - {fileID: 21300000, guid: 59849cc5b3dc76b4b908edc3c5c2f1fc, type: 3}
+  - {fileID: 21300000, guid: 0c5e53b5c090fb648b2afebc09306155, type: 3}
+  - {fileID: 21300000, guid: cfa7e507e9ad71f4a9df4418388f614c, type: 3}
+  - {fileID: 21300000, guid: ccb71b15126f8ae499257309a684b29e, type: 3}
+  - {fileID: 21300000, guid: e3d492afa9310d54685a3fdd31cef000, type: 3}
+  - {fileID: 21300000, guid: 261986b90a30ac04da7fe40bc0a7b6b8, type: 3}
+  - {fileID: 21300000, guid: 30a2550dbf42444448f2d68a97f7feb1, type: 3}
+  - {fileID: 21300000, guid: e69970c29be83e746a2def0ef756a1d9, type: 3}
+  - {fileID: 21300000, guid: aae77dbb644061a4f9533dd28bd86634, type: 3}
+  - {fileID: 21300000, guid: 4dbb3f5b726c0a347b824bd913e5782e, type: 3}
+  - {fileID: 21300000, guid: 9ec7902dce615614ca4a61d4622b6330, type: 3}
+  - {fileID: 21300000, guid: ccca21bd8565715488c70eaf38bf5b1b, type: 3}
+  - {fileID: 21300000, guid: 9ae07ff321b90834f8b5a1d612d1e89c, type: 3}
   tabSprites:
   - {fileID: 21300000, guid: 757ddde5a5a018e45bcf1816230c8eee, type: 3}
   - {fileID: 21300000, guid: 7702b2d8bd1153e4da7777cbddb8868a, type: 3}
   - {fileID: 21300000, guid: 820efd081df90564c88a593297c0b1b8, type: 3}
   - {fileID: 21300000, guid: 432da2b8d02c1964781330cd18291e56, type: 3}
+  animFrames: []
+  animFps: 10
   connect: 2
   role: 3
   shape: 0
   category: 2
+  use: 0
   family: vela
   swatch: {r: 0.78431374, g: 0.27450982, b: 0.24313726, a: 1}
   cost: 30

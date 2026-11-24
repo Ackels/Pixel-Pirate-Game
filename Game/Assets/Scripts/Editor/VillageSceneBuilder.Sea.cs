@@ -67,10 +67,11 @@ namespace Pixel.EditorTools
             // Enfeites
             Block("Amurada", "Amurada", BlockRole.Decor, 6, false, 1, 0, 0, 0, "Corrimão na beira do convés.");
             Block("Lanterna", "Lanterna", BlockRole.Decor, 10, false, 1, 0, 0, 0, "Vela acesa num pires.");
-            Block("Barril", "Barril", BlockRole.Decor, 8, false, 1, 0, 0, 0, "Barril de rum (vazio, infelizmente).");
+            Block("Barril", "Barril de rum", BlockRole.Decor, 8, false, 1, 0, 0, 0, "A tripulação bebe aqui de vez em quando: gasta 1 rum do estoque e anima o bando.");
             Block("Caixote", "Caixote", BlockRole.Decor, 8, false, 1, 0, 0, 0, "Carga do navio.");
             Block("Ancora", "Âncora", BlockRole.Decor, 12, false, 1, 0, 0, 0, "Toda embarcação que se preza tem uma.");
             Block("Timao", "Timão", BlockRole.Decor, 20, false, 1, 0, 0, 0, "O leme do capitão.");
+            Block("Comida", "Caixa de comida", BlockRole.Decor, 15, false, 1, 0, 0, 0, "A tripulação come aqui quando bate a fome. Sem ela, o bando passa fome no mar (perde moral).");
 
             var all = list.ToArray();
             ConfigureShipBlocks(all);
@@ -94,8 +95,16 @@ namespace Pixel.EditorTools
                 b.spriteTop = b.spriteBottom = b.spriteSingle = null;
                 b.connectSprites = null;
                 b.tabSprites = null;
+                b.animFrames = null;
                 b.shape = BlockShape.Full;
                 string n = b.name;
+                b.use = n == "Comida" ? BlockUse.Food : n == "Barril" ? BlockUse.Rum : n == "Cabine" ? BlockUse.Bed : BlockUse.None;
+                if (n == "Barril")   // antes era só enfeite: o texto muda junto com a função
+                {
+                    b.displayName = "Barril de rum";
+                    b.description = "A tripulação bebe aqui de vez em quando: gasta 1 rum do estoque e anima o bando.";
+                }
+                if (n == "Cabine") b.description = "Parede com rede de dormir: +1 tripulante no navio. À noite a tripulação dorme aqui.";
 
                 if (n.StartsWith("Casco"))
                 {
@@ -120,8 +129,9 @@ namespace Pixel.EditorTools
                     {
                         string estilo = n == "Vela" ? "branca" : n == "VelaListrada" ? "listrada" : "preta";
                         b.category = BlockCategory.Velas; b.family = "vela"; b.sortingOrder = -10; b.connect = ConnectMode.Sail16;
-                        b.connectSprites = new Sprite[16];
-                        for (int m = 0; m < 16; m++) b.connectSprites[m] = Mar($"Navio/vela_{estilo}_{m}");
+                        b.connectSprites = new Sprite[48];
+                        for (int f = 0; f < 3; f++)
+                            for (int m = 0; m < 16; m++) b.connectSprites[m + 16 * f] = Mar($"Navio/vela_{estilo}_{m}" + (f > 0 ? $"_b{f}" : ""));
                         b.tabSprites = new Sprite[4];
                         for (int m = 0; m < 4; m++) b.tabSprites[m] = Mar($"Navio/vela_{estilo}_aba_{m}");
                         b.sprite = b.connectSprites[15];
@@ -129,7 +139,11 @@ namespace Pixel.EditorTools
                         break;
                     }
                     case "Bandeira":
-                        b.category = BlockCategory.Velas; b.family = "bandeira"; b.sortingOrder = -9; b.sprite = Mar("Navio/bandeira"); break;
+                        b.category = BlockCategory.Velas; b.family = "bandeira"; b.sortingOrder = -9; b.sprite = Mar("Navio/bandeira");
+                        b.animFrames = new Sprite[9];
+                        for (int f = 0; f < 9; f++) b.animFrames[f] = Mar($"Navio/flamula_{f + 1}");
+                        b.animFps = 10f;
+                        break;
                     case "Canhao":
                         b.category = BlockCategory.Armas; b.family = "canhao"; b.sortingOrder = 5; b.sprite = Mar("Navio/canhao"); break;
                     case "Cabine":
@@ -147,7 +161,7 @@ namespace Pixel.EditorTools
                     default:
                     {
                         string art = n == "Lanterna" ? "lanterna" : n == "Barril" ? "barril" : n == "Caixote" ? "caixote"
-                                   : n == "Ancora" ? "ancora" : n == "Timao" ? "timao" : null;
+                                   : n == "Ancora" ? "ancora" : n == "Timao" ? "timao" : n == "Comida" ? "comida" : null;
                         if (art == null) break;
                         b.category = BlockCategory.Enfeites; b.family = art; b.sortingOrder = 3; b.sprite = Mar($"Navio/{art}");
                         break;
@@ -235,6 +249,19 @@ namespace Pixel.EditorTools
                 c.transform.position = new Vector3(-40f + i * 14f, waterline + 3.6f, 0);
                 bigClouds[i] = c.transform;
             }
+
+            // Céu que muda com a hora (degradê, sol, lua, estrelas) e o clima (chuva, tempestade)
+            var sky = new GameObject("Ceu e Clima").AddComponent<SeaSky>();
+            sky.cam = cam;
+            sky.horizonY = waterline + 3.5f;   // topo da faixa do horizonte (bege opaco)
+            sky.sun = Mar("Ceu/sol");
+            sky.moon = Mar("Ceu/lua");
+            sky.star = Mar("Ceu/estrela");
+            sky.drop = Mar("Ceu/gota");
+            var cloudRenderers = new System.Collections.Generic.List<SpriteRenderer>();
+            foreach (var t in clouds) cloudRenderers.Add(t.GetComponent<SpriteRenderer>());
+            foreach (var t in bigClouds) cloudRenderers.Add(t.GetComponent<SpriteRenderer>());
+            sky.clouds = cloudRenderers.ToArray();
 
             // Docas da Enseada (à esquerda do navio, ficam para trás ao zarpar)
             var dock = new GameObject("Docas").transform;
@@ -333,6 +360,16 @@ namespace Pixel.EditorTools
             director.sea = sea;
             director.seaCamera = seaCam;
             director.flagPirate = Mar("Navio/bandeira_pirata");
+            Sprite[] Frames(string prefix, int n) { var a = new Sprite[n]; for (int i = 0; i < n; i++) a[i] = Mar($"{prefix}_{i + 1}"); return a; }
+            director.fxExplosion = Frames("Fx/explosao", 7);
+            director.fxFlash = Frames("Fx/clarao", 6);
+            director.fxSplashAnim = Frames("Fx/respingo", 5);
+            director.fxSmoke = Frames("Fx/fumaca", 6);
+            director.fxDebris = Frames("Fx/lasca", 6);
+            director.fxCracks = Frames("Fx/dano", 3);
+            director.cannonFireFrames = Frames("Navio/canhao_tiro", 6);
+            director.flagPirateFrames = Frames("Navio/bandeira_pirata", 9);
+            director.flagMerchantFrames = Frames("Navio/bandeira_mercante", 9);
             director.flagMerchant = Mar("Navio/bandeira_mercante");
             director.plankSprite = Mar("Navio/prancha");
             director.fxPuff = Mar("Fx/poeira");

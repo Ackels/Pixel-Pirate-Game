@@ -5,8 +5,9 @@ using UnityEngine.UI;
 namespace Pixel.Ship
 {
     /// <summary>
-    /// Janela do mapa-múndi: ilhas reveladas com ícone do tipo, o navio onde está,
-    /// e um painel com distância, tempo, perigo e provisões do destino escolhido.
+    /// Janela do mapa-múndi: ilhas reveladas com ícone do tipo, ilhas "?" (desconhecidas, perto de onde você já
+    /// esteve: dá pra navegar até elas para descobrir), o navio onde está, a rota pontilhada até o destino,
+    /// dica no mouse (tipo, perigo, distância) e um painel com distância, tempo, perigo e provisões.
     /// </summary>
     public class MapPanel : MonoBehaviour
     {
@@ -86,7 +87,28 @@ namespace Pixel.Ship
             MarginX + miles.x / WorldMap.Width * (AreaW - 2f * MarginX) - AreaW / 2f,
             -AreaH + MarginBottom + miles.y / WorldMap.Height * (AreaH - MarginTop - MarginBottom));
 
-        Sprite IconFor(IslandNode n) => n.type switch
+        /// <summary>Até onde, a partir das ilhas visitadas, aparecem as ilhas "?".</summary>
+        const float RumorRadius = WorldMap.RevealRadius * 2f;
+
+        bool Rumored(IslandNode n)
+        {
+            if (n.revealed) return false;
+            foreach (var v in sea.World.Islands)
+                if (v.visited && Vector2.Distance(v.pos, n.pos) <= RumorRadius) return true;
+            return false;
+        }
+
+        static Color DangerColor(int d) => d <= 1 ? new Color(0.45f, 0.85f, 0.4f) : d <= 3 ? new Color(1f, 0.8f, 0.3f) : new Color(1f, 0.42f, 0.38f);
+
+        string Tooltip(IslandNode n)
+        {
+            int danger = n.Danger(sea.World.Home.pos);
+            string title = n.revealed ? $"{n.name}\n{IslandNode.TypeName(n.type)}" : "Ilha desconhecida\nNinguém sabe o que tem lá";
+            string dist = n == sea.Location ? "Você está aqui" : $"{sea.LegMiles(n):0} milhas · ~{sea.LegSecondsTo(n):0} s";
+            return $"{title}\n{UIKit.Colored($"Perigo {danger}/5", DangerColor(danger))}\n{dist}";
+        }
+
+        Sprite IconFor(IslandNode n) => !n.revealed ? unknownIcon : n.type switch
         {
             IslandType.Home => homeIcon,
             IslandType.Port => portIcon,
@@ -98,9 +120,26 @@ namespace Pixel.Ship
         {
             UIKit.Clear(mapArea);
             var world = sea.World;
+            // Rota pontilhada até o destino escolhido (desenhada antes, fica embaixo das ilhas)
+            if (selected != null && sea.Location != null)
+            {
+                Vector2 a = ToUI(sea.Location.pos), b = ToUI(selected.pos);
+                int dots = Mathf.Max(1, Mathf.RoundToInt(Vector2.Distance(a, b) / 12f));
+                for (int i = 1; i < dots; i++)
+                {
+                    var d = UIKit.Rect("Rota", mapArea);
+                    d.anchorMin = d.anchorMax = new Vector2(0.5f, 1f);
+                    d.sizeDelta = new Vector2(5, 5);
+                    d.anchoredPosition = Vector2.Lerp(a, b, i / (float)dots);
+                    var di = d.gameObject.AddComponent<Image>();
+                    di.color = new Color(0.55f, 0.12f, 0.1f, 0.85f);
+                    di.raycastTarget = false;
+                }
+            }
+
             foreach (var n in world.Islands)
             {
-                if (!n.revealed) continue;
+                if (!n.revealed && !Rumored(n)) continue;
                 var node = n;
                 var rt = UIKit.Rect(n.name, mapArea);
                 rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);
@@ -112,8 +151,25 @@ namespace Pixel.Ship
                 var btn = rt.gameObject.AddComponent<Button>();
                 btn.targetGraphic = img;
                 btn.onClick.AddListener(() => { selected = node; Rebuild(); });
+                UIKit.Tip(rt, () => Tooltip(node));
 
-                string label = n.name + (n.hasTreasureHint && !n.looted ? " (X)" : "") + (n.visited && n.type != IslandType.Home ? " (visitada)" : "");
+                // Selo de perigo no canto do ícone
+                if (n.type != IslandType.Home)
+                {
+                    int dg = n.Danger(world.Home.pos);
+                    var badge = UIKit.Rect("Perigo", rt);
+                    badge.anchorMin = badge.anchorMax = new Vector2(1f, 1f);
+                    badge.sizeDelta = new Vector2(16, 16);
+                    badge.anchoredPosition = new Vector2(-2, -2);
+                    var bi = badge.gameObject.AddComponent<Image>();
+                    bi.color = new Color(0.12f, 0.08f, 0.05f, 0.85f);
+                    bi.raycastTarget = false;
+                    var bt = UIKit.Text(badge, dg.ToString(), 12, TextAnchor.MiddleCenter, DangerColor(dg));
+                    UIKit.Stretch(bt.rectTransform);
+                    bt.raycastTarget = false;
+                }
+
+                string label = !n.revealed ? "???" : n.name + (n.hasTreasureHint && !n.looted ? " (X)" : "") + (n.visited && n.type != IslandType.Home ? " (visitada)" : "");
                 var t = UIKit.Text(rt, label, 13, TextAnchor.UpperCenter, new Color(0.15f, 0.1f, 0.05f));
                 t.rectTransform.anchorMin = t.rectTransform.anchorMax = new Vector2(0.5f, 0f);
                 t.rectTransform.pivot = new Vector2(0.5f, 1f);
@@ -134,7 +190,7 @@ namespace Pixel.Ship
                 si.raycastTarget = false;
             }
 
-            var hint = UIKit.Text(mapArea, "Ilhas mais longe ficam escondidas: explore para revelar.", 13, TextAnchor.LowerRight, new Color(0.15f, 0.1f, 0.05f));
+            var hint = UIKit.Text(mapArea, "Ilhas \"?\" são desconhecidas: navegue até elas para descobrir. O número é o perigo.", 13, TextAnchor.LowerRight, new Color(0.15f, 0.1f, 0.05f));
             UIKit.Stretch(hint.rectTransform, 36);   // dentro do pergaminho (a borda do papel tem margem transparente)
 
             UpdateInfo();
@@ -158,12 +214,14 @@ namespace Pixel.Ship
                 : UIKit.Colored($"{rations} peixe (só tem {sea.FoodStock}! vão passar fome)", new Color(1f, 0.45f, 0.4f));
             string status = n.type == IslandType.Home ? "Voltar encerra a viagem." :
                 (n.visited ? (n.looted ? "Já saqueada. " : "Visitada. ") + (n.cleared ? "Sem inimigos." : "") : "Nunca visitada.");
-            info.text = $"{UIKit.Colored(n.name, UIKit.GoldColor)} — {IslandNode.TypeName(n.type)}   Perigo: {danger}/5\n" +
+            string who = n.revealed ? $"{UIKit.Colored(n.name, UIKit.GoldColor)} — {IslandNode.TypeName(n.type)}" : UIKit.Colored("Ilha desconhecida", UIKit.GoldColor) + " — vá descobrir!";
+            if (!n.revealed) status = "Ninguém sabe o que tem lá: pode ser um porto, uma ilha selvagem ou um acampamento pirata.";
+            info.text = $"{who}   {UIKit.Colored($"Perigo: {danger}/5", DangerColor(danger))}\n" +
                         $"Distância: {miles:0} milhas · Tempo: ~{sea.LegSecondsTo(n):0} s · Provisões: {food}\n{status}" +
                         (n.hasTreasureHint && !n.looted ? "\nUm X de tesouro marca esta ilha!" : "");
             bool can = sea.CanSetCourse(n, out string why);
             goButton.interactable = can;
-            goLabel.text = can ? (n.type == IslandType.Home ? "Voltar pra casa" : "Navegar até lá") : why;
+            goLabel.text = can ? (n.type == IslandType.Home ? "Voltar pra casa" : n.revealed ? "Navegar até lá" : "Explorar!") : why;
         }
 
         void Go()

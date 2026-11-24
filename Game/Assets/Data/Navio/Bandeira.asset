@@ -20,10 +20,22 @@ MonoBehaviour:
   spriteSingle: {fileID: 0}
   connectSprites: []
   tabSprites: []
+  animFrames:
+  - {fileID: 21300000, guid: d77c60afe3afaa74f910156c82a60f9d, type: 3}
+  - {fileID: 21300000, guid: c28bc049fd826d84f8738b76e8983e2a, type: 3}
+  - {fileID: 21300000, guid: 0f1254cb162bbf947a747c8a1b3768ec, type: 3}
+  - {fileID: 21300000, guid: 4d8b1b761f0c7884e82ecd11bddd5b05, type: 3}
+  - {fileID: 21300000, guid: 1dd699fe264e12846ab47d1c764e3adf, type: 3}
+  - {fileID: 21300000, guid: 7e47672e357d4b54da7aaf7ad907e8fa, type: 3}
+  - {fileID: 21300000, guid: 9308a7843ceef644e9d24b151711c363, type: 3}
+  - {fileID: 21300000, guid: 2485a83f47067fe4b89ad8810d71c2e8, type: 3}
+  - {fileID: 21300000, guid: 5f98798cef7f7be41947beb2b940055e, type: 3}
+  animFps: 10
   connect: 0
   role: 10
   shape: 0
   category: 2
+  use: 0
   family: bandeira
   swatch: {r: 1, g: 1, b: 1, a: 1}
   cost: 15

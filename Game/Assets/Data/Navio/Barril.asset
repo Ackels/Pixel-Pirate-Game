@@ -12,18 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23256d35b8548c347ba084f9718bcef5, type: 3}
   m_Name: Barril
   m_EditorClassIdentifier: Assembly-CSharp::Pixel.Ship.ShipBlockDef
-  displayName: Barril
-  description: Barril de rum (vazio, infelizmente).
+  displayName: Barril de rum
+  description: "A tripula\xE7\xE3o bebe aqui de vez em quando: gasta 1 rum do estoque e anima o bando."
   sprite: {fileID: 21300000, guid: d92e84517cfe96140bc662a74a2ec55d, type: 3}
   spriteTop: {fileID: 0}
   spriteBottom: {fileID: 0}
   spriteSingle: {fileID: 0}
   connectSprites: []
   tabSprites: []
+  animFrames: []
+  animFps: 10
   connect: 0
   role: 9
   shape: 0
   category: 4
+  use: 2
   family: barril
   swatch: {r: 1, g: 1, b: 1, a: 1}
   cost: 8

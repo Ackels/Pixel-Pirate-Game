@@ -37,8 +37,19 @@ namespace Pixel.Combat
 
         public EncounterState State { get; private set; }
         public bool Busy => State != EncounterState.None;
-        public bool CanBoard => State == EncounterState.Engaged;
+        /// <summary>Abordar só depois de amolecer o inimigo com os canhões (sem canhão no navio: depois de um tempo).</summary>
+        public const float BoardHullFraction = 0.6f;
+        public bool CanBoard => State == EncounterState.Engaged &&
+            (EnemyHp <= EnemyMaxHp * BoardHullFraction || (sea.shipView.CannonMuzzles().Count == 0 && stateTimer > 12f));
+        public string BoardHint => CanBoard ? null
+            : sea.shipView.CannonMuzzles().Count == 0 ? "aguarde um instante"
+            : $"casco dele até {Mathf.RoundToInt(BoardHullFraction * 100)}%";
         public bool CanFlee => State == EncounterState.Approaching || State == EncounterState.Engaged;
+        /// <summary>Os seus canhões estão atirando (botão Atirar / Cessar fogo).</summary>
+        public bool PlayerFiring { get; private set; }
+        /// <summary>O inimigo está atirando: piratas atacam sozinhos; mercantes só revidam depois do seu primeiro tiro.</summary>
+        public bool Hostile { get; private set; }
+        public bool HasCannons => sea.shipView.CannonMuzzles().Count > 0;
         public string EnemyName { get; private set; }
         public int EnemyHp { get; private set; }
         public int EnemyMaxHp { get; private set; }
@@ -61,6 +72,8 @@ namespace Pixel.Combat
         {
             Instance = this;
             Fx.Puff = fxPuff; Fx.Boom = fxBoom; Fx.Splash = fxSplash; Fx.Slash = fxSlash; Fx.Cannonball = fxCannonball;
+            Fx.Explosion = fxExplosion; Fx.Flash = fxFlash; Fx.SplashAnim = fxSplashAnim; Fx.Smoke = fxSmoke;
+            Fx.Debris = fxDebris; Fx.Cracks = fxCracks; Fx.CannonFire = cannonFireFrames;
         }
 
         /// <summary>Sorteia se vai haver um encontro neste trecho e quando.</summary>
@@ -89,11 +102,13 @@ namespace Pixel.Combat
             switch (State)
             {
                 case EncounterState.None:
-                    // Só aparece navio com o mar livre (sem ilha chegando ou indo embora)
-                    if (sea.Mode == SeaMode.Sailing && (sea.islands == null || !sea.islands.Present))
+                    // O relógio do encontro corre desde a partida; o navio só aparece com o mar livre
+                    // (sem ilha chegando ou indo embora). Antes o relógio parava enquanto a ilha de onde
+                    // saímos sumia, e em trechos curtos (navio rápido) o encontro nunca chegava.
+                    if (sea.Mode == SeaMode.Sailing)
                     {
                         timer -= Time.deltaTime;
-                        if (timer <= 0f) SpawnEnemy();
+                        if (timer <= 0f && (sea.islands == null || !sea.islands.Present)) SpawnEnemy();
                     }
                     if (seaCamera)
                     {
@@ -111,23 +126,27 @@ namespace Pixel.Combat
                     {
                         SpawnEnemyCrew();
                         SetState(EncounterState.Engaged);
-                        Say(pirate ? "Piratas! Eles vão atirar — e abordar se você fraquejar." : "Ao alcance dos canhões! Clique em Abordar para tomar a carga.");
+                        Say(pirate
+                            ? "Piratas! Vão abrir fogo. Atirar = canhões · Abordar (casco deles até 60%) · Fugir."
+                            : HasCannons
+                                ? "Um mercante parado. Atirar para atacar (depois aborde e leve a carga toda), ou Seguir viagem."
+                                : "Um mercante parado. Sem canhões: a abordagem libera em instantes. Ou Seguir viagem.");
                     }
                     break;
 
                 case EncounterState.Engaged:
+                    // Nada acontece sozinho do seu lado: você dá as ordens. Os piratas abrem fogo depois de alguns segundos.
+                    if (pirate && !Hostile && stateTimer > 4f) { Hostile = true; Say("Os piratas abriram fogo!"); Changed?.Invoke(); }
                     FireCannons();
-                    if (pirate && (sea.ShipHp < sea.Stats.hp / 2 || stateTimer > 25f))
+                    if (pirate && (sea.ShipHp < sea.Stats.hp / 2 || stateTimer > 45f))
                     {
-                        Say("Os piratas estão vindo abordar o seu navio!");
-                        StartClosing();
+                        Say("Os piratas lançaram as cordas: vão abordar o seu navio!");
+                        StartBoarding(true);
                     }
                     break;
 
-                case EncounterState.Closing:
-                    float boardX = sea.shipView.RightEdge + 1.4f - (enemyShip.LeftEdge - enemyShip.origin.x);
-                    MoveEnemyTowards(boardX, 4f);
-                    if (Mathf.Abs(enemyShip.origin.x - boardX) < 0.05f) StartBoarding();
+                case EncounterState.Closing:   // não é mais usado (a abordagem agora é com cordas, sem encostar)
+                    StartBoarding(false);
                     break;
 
                 case EncounterState.Boarding:
@@ -135,11 +154,33 @@ namespace Pixel.Combat
                     break;
 
                 case EncounterState.Victory:
-                    if (stateTimer > 2.5f) MoveEnemyTowards(enemyShip.origin.x + 30f, 5f);
-                    if (stateTimer > 6f) EndEncounter();
+                    if (!leaving) break;   // esperando o capitão decidir: Capturar, Saquear ou Deixar ir
+                    if (bridge != null)
+                    {
+                        // Espera todo mundo voltar (no máximo 7 s; quem ficou é trazido de volta) e só então recolhe a prancha
+                        if (stateTimer > 1f && (AllAboard() || stateTimer > 7f))
+                        {
+                            BringEveryoneBack();
+                            RemoveBridge();
+                            leaveAt = stateTimer + 1f;
+                        }
+                    }
+                    else if (float.IsPositiveInfinity(leaveAt)) leaveAt = stateTimer + 1f;
+                    if (stateTimer > leaveAt) MoveEnemyTowards(enemyShip.origin.x + 30f, 5f);
+                    if (stateTimer > leaveAt + 3.5f) EndEncounter();
                     break;
 
                 case EncounterState.Sinking:
+                    if (enemyShip == null) { EndEncounter(); break; }
+                    sinkFx -= Time.deltaTime;
+                    if (sinkFx <= 0f && stateTimer < 2.4f)
+                    {
+                        sinkFx = Random.Range(0.18f, 0.35f);
+                        var p = enemyShip.RandomBlockPoint();
+                        Fx.Play(Fx.Explosion, p, 16f, false, 37, Random.Range(0.6f, 1f));
+                        Fx.Splinters(p, 5);
+                        AudioManager.PlayVaried(Sfx.Wood, 0.6f, 0.25f);
+                    }
                     enemyShip.transform.position += Vector3.down * (1.6f * Time.deltaTime);
                     enemyShip.transform.rotation = Quaternion.Euler(0, 0, Mathf.Min(stateTimer * 6f, 18f));
                     if (stateTimer > 4f) EndEncounter();
@@ -193,11 +234,40 @@ namespace Pixel.Combat
             var stats = layout.ComputeStats();
             EnemyMaxHp = EnemyHp = Mathf.RoundToInt(stats.hp * (pirate ? 0.35f : 0.45f));
             playerReload.Clear(); enemyReload.Clear();
+            PlayerFiring = false;
+            Hostile = false;
             foreach (var _ in sea.shipView.CannonMuzzles()) playerReload.Add(Random.Range(1f, 2.5f));
             foreach (var _ in view.CannonMuzzles()) enemyReload.Add(Random.Range(1.5f, 3f));
 
             SetState(EncounterState.Approaching);
+            AudioManager.Instance?.PlayBattle(true);
             Say(pirate ? "Bandeira negra no horizonte! Navio pirata!" : "Navio mercante à vista! Carga gorda...");
+            AskOnSight();
+        }
+
+        /// <summary>Chance de escapar logo que o navio aparece (depende da diferença de velocidade).</summary>
+        public float EscapeChance => Mathf.Round(Mathf.Clamp(0.5f + (sea.Stats.speedKnots - enemySpeedKnots) * 0.12f, 0.15f, 0.95f) * 20f) / 20f;
+
+        /// <summary>Tela de decisão quando o navio aparece: enfrentar ou fugir (mercante: deixar passar).</summary>
+        void AskOnSight()
+        {
+            if (pirate)
+            {
+                int pct = Mathf.RoundToInt(EscapeChance * 100f);
+                SeaDialog.Ask("Encontro hostil! O que vamos fazer, capitão?",
+                    $"Bandeira negra no horizonte: um navio pirata ({enemySpeedKnots:0.0} nós; o nosso faz {sea.Stats.speedKnots:0.0}).",
+                    new SeaDialog.Option("Enfrentar!", () => Say("Às armas! Preparem os canhões!")),
+                    new SeaDialog.Option($"Fugir ({pct}% de chance)", () =>
+                    {
+                        if (Random.value < EscapeChance) { Say("Escapamos! Os piratas ficaram para trás."); ClearEnemyCrew(); SetState(EncounterState.Fled); }
+                        else Say("Não deu para fugir: eles nos alcançaram! Às armas!");
+                    }));
+            }
+            else
+                SeaDialog.Ask("Navio mercante à vista! O que vamos fazer, capitão?",
+                    "Um navio de carga navegando devagar. Atacar rende ouro e mercadorias.",
+                    new SeaDialog.Option("Interceptar!", () => Say("Vamos atrás da carga!")),
+                    new SeaDialog.Option("Deixar passar", () => { Say("Deixamos o mercante seguir viagem."); ClearEnemyCrew(); SetState(EncounterState.Fled); }));
         }
 
         void AddFlag(ShipView view, ShipLayout layout)
@@ -212,6 +282,12 @@ namespace Pixel.Combat
             f.sprite = pirate ? flagPirate : flagMerchant;
             f.flipX = true;
             f.sortingOrder = -9;
+            var frames = pirate ? flagPirateFrames : flagMerchantFrames;
+            if (frames != null && frames.Length > 0)
+            {
+                var anim = f.gameObject.AddComponent<SpriteAnim>();
+                anim.frames = frames; anim.fps = 10f; anim.loop = true;
+            }
         }
 
         ShipBlockDef Def(BlockRole role)
@@ -316,6 +392,10 @@ namespace Pixel.Combat
         }
 
         /// <summary>Lutador com o visual de um personagem (o mesmo da vila).</summary>
+        [Header("Animações (quadros)")]
+        public Sprite[] fxExplosion;
+        public Sprite[] fxFlash, fxSplashAnim, fxSmoke, fxDebris, fxCracks, cannonFireFrames, flagPirateFrames, flagMerchantFrames;
+
         public Combatant SpawnFighter(Vector2 pos, Team team, string name, ShipView home, CharacterLook look)
         {
             var go = new GameObject(name);
@@ -400,27 +480,78 @@ namespace Pixel.Combat
         // ---------- Canhões ----------
         void FireCannons()
         {
-            var pm = sea.shipView.CannonMuzzles();
-            for (int i = 0; i < pm.Count && i < playerReload.Count; i++)
+            var pm = sea.shipView.Cannons();
+            for (int i = 0; PlayerFiring && i < pm.Count && i < playerReload.Count; i++)
             {
                 playerReload[i] -= Time.deltaTime;
                 if (playerReload[i] > 0) continue;
                 playerReload[i] = Random.Range(2.6f, 3.4f);
                 bool hit = Random.value < 0.7f;
-                Vector2 target = hit ? enemyShip.RandomBlockPoint() : new Vector2(enemyShip.CenterX + Random.Range(-6f, 6f), enemyShip.WaterlineY - 0.2f);
-                Cannonball.Fire(pm[i], target, hit, () => { if (enemyShip != null) DamageEnemy(Random.Range(8, 13)); });
+                Vector2 target = hit ? AimAt(enemyShip, Team.Enemy) : new Vector2(enemyShip.CenterX + Random.Range(-6f, 6f), enemyShip.WaterlineY - 0.2f);
+                sea.shipView.PlayCannonFire(pm[i].go);
+                if (seaCamera) seaCamera.Shake(0.08f);
+                Cannonball.Fire(pm[i].muzzle, target, hit, () =>
+                {
+                    if (enemyShip == null) return;
+                    enemyShip.AddDamageDecal(target);
+                    HurtAround(target, Team.Enemy);
+                    DamageEnemy(Random.Range(8, 13));
+                }, true);
             }
 
-            var em = enemyShip.CannonMuzzles();
-            for (int i = 0; i < em.Count && i < enemyReload.Count; i++)
+            var em = enemyShip.Cannons();
+            for (int i = 0; Hostile && i < em.Count && i < enemyReload.Count; i++)
             {
                 enemyReload[i] -= Time.deltaTime;
                 if (enemyReload[i] > 0) continue;
                 enemyReload[i] = Random.Range(2.8f, 3.8f);
                 bool hit = Random.value < 0.6f;
-                Vector2 target = hit ? sea.shipView.RandomBlockPoint() : new Vector2(sea.shipView.CenterX + Random.Range(-6f, 6f), sea.shipView.WaterlineY - 0.2f);
+                Vector2 target = hit ? AimAt(sea.shipView, Team.Player) : new Vector2(sea.shipView.CenterX + Random.Range(-6f, 6f), sea.shipView.WaterlineY - 0.2f);
                 int dmg = pirate ? Random.Range(9, 14) : Random.Range(6, 10);
-                Cannonball.Fire(em[i], target, hit, () => { sea.DamageShip(dmg); if (seaCamera) seaCamera.Shake(0.35f); });
+                enemyShip.PlayCannonFire(em[i].go);
+                Cannonball.Fire(em[i].muzzle, target, hit, () =>
+                {
+                    sea.DamageShip(dmg);
+                    sea.shipView.AddDamageDecal(target);
+                    HurtAround(target, Team.Player);
+                    if (seaCamera) seaCamera.Shake(0.35f);
+                }, false);
+            }
+        }
+
+        /// <summary>Onde a bala vai cair: às vezes mira em alguém no convés (25%), senão num bloco qualquer.</summary>
+        Vector2 AimAt(ShipView ship, Team team)
+        {
+            if (Random.value < 0.25f)
+            {
+                var people = new List<Combatant>();
+                foreach (var c in Combatant.All)
+                    if (c != null && c.team == team && !c.IsDown && ship.ContainsX(c.transform.position.x)) people.Add(c);
+                if (people.Count > 0) return (Vector2)people[Random.Range(0, people.Count)].transform.position + Vector2.up * 0.5f;
+            }
+            return ship.RandomBlockPoint();
+        }
+
+        /// <summary>A explosão da bala fere e empurra quem estiver perto (do time atingido).</summary>
+        void HurtAround(Vector2 point, Team team)
+        {
+            bool any = false;
+            foreach (var c in new List<Combatant>(Combatant.All))
+            {
+                if (c == null || c.team != team || c.IsDown) continue;
+                Vector2 body = (Vector2)c.transform.position + Vector2.up * 0.5f;
+                Vector2 d = body - point;
+                if (d.magnitude > 1.15f) continue;
+                c.TakeDamage(Random.Range(10, 17), null);
+                var rb = c.GetComponent<Rigidbody2D>();
+                if (rb != null && rb.bodyType == RigidbodyType2D.Dynamic)
+                    rb.linearVelocity = new Vector2(Mathf.Sign(d.x == 0 ? 1 : d.x) * 4f, 6f);
+                any = true;
+            }
+            if (any)
+            {
+                AudioManager.PlayVaried(Sfx.Hurt, 0.8f);
+                if (team == Team.Enemy && Random.value < 0.5f) Say("Bala certeira no convés deles!");
             }
         }
 
@@ -462,26 +593,122 @@ namespace Pixel.Combat
         public void Board()
         {
             if (!CanBoard) return;
-            Say("Preparar ganchos! Encostando para a abordagem...");
-            StartClosing();
+            Say("Lançar cordas! Todos para o navio deles! (Capitão: atravesse pela prancha · F, J ou clique para golpear)");
+            StartBoarding(false);
         }
 
-        void StartClosing() => SetState(EncounterState.Closing);
-
-        void StartBoarding()
+        /// <summary>Atirar / Cessar fogo. Atirar num mercante faz ele revidar.</summary>
+        public void ToggleFire()
         {
-            bridge = Gangplank.Create(sea.shipView.EdgeDeck(true), enemyShip.EdgeDeck(false), plankSprite, "PranchaDeAbordagem");
+            if (State != EncounterState.Engaged || !HasCannons) return;
+            PlayerFiring = !PlayerFiring;
+            if (PlayerFiring && !Hostile)
+            {
+                Hostile = true;
+                Say("Fogo! O mercante vai revidar...");
+            }
+            else Say(PlayerFiring ? "Fogo à vontade!" : "Cessar fogo!");
+            Changed?.Invoke();
+        }
 
-            foreach (var c in sea.CrewFighters) if (c != null) { var ai = c.GetComponent<CombatAI>(); if (ai) ai.charge = true; }
-            if (pirate) foreach (var c in enemyCrew) if (c != null) { var ai = c.GetComponent<CombatAI>(); if (ai) ai.charge = true; }
+        Vector2 ropeAnchor;
+
+        public bool EnemyShipContains(float x) => enemyShip != null && enemyShip.ContainsX(x);
+
+        /// <summary>De um navio para o outro (o seu e o inimigo): aí só dá pra ir na corda.</summary>
+        public bool NeedsCrossing(Vector2 from, Vector2 to)
+        {
+            if (enemyShip == null || State == EncounterState.Sinking || State == EncounterState.Fled) return false;
+            bool fromMine = sea.shipView.ContainsX(from.x), toMine = sea.shipView.ContainsX(to.x);
+            bool fromTheirs = enemyShip.ContainsX(from.x), toTheirs = enemyShip.ContainsX(to.x);
+            return (fromMine && toTheirs) || (fromTheirs && toMine);
+        }
+
+        /// <summary>
+        /// Leva alguém (capitão ou tripulante com ordem) para o outro navio balançando na corda. Antes da abordagem,
+        /// tenta abordar (precisa do casco deles em 60%); se não pode, avisa e devolve false.
+        /// </summary>
+        public bool TryCross(Component who, Vector2 dest)
+        {
+            if (who == null) return false;
+            if (State == EncounterState.Engaged)
+            {
+                if (!CanBoard) { Say($"Ainda não dá pra abordar ({BoardHint})."); return false; }
+                Board();
+            }
+            if (State != EncounterState.Boarding && State != EncounterState.Victory) return false;
+            if (RopeSwing.IsBusy(who.gameObject)) return true;
+            bool toTheirs = enemyShip.ContainsX(dest.x);
+            var ship = toTheirs ? enemyShip : sea.shipView;
+            float side = who.transform.position.x < dest.x ? -0.8f : 0.8f;
+            Vector2 land = ship.DeckNear(dest.x + side) + Vector2.up * 0.1f;
+            RopeSwing.Begin(who, land, AnchorFor(!toTheirs));
+            return true;
+        }
+
+        /// <summary>Onde a corda fica presa: no topo do mastro do navio de onde a pessoa sai.</summary>
+        Vector2 AnchorFor(bool fromEnemy)
+        {
+            Vector2 mine = sea.shipView.EdgeDeck(true), theirs = enemyShip.EdgeDeck(false);
+            var a = new Vector2((mine.x + theirs.x) / 2f, Mathf.Max(mine.y, theirs.y) + 4.5f);
+            if (fromEnemy ? enemyShip.MastTop(false, out var mast) : sea.shipView.MastTop(true, out mast))
+                a = new Vector2(Mathf.Lerp(mast.x, (mine.x + theirs.x) / 2f, 0.35f), Mathf.Max(mast.y, a.y - 1.5f));
+            return a;
+        }
+
+        /// <summary>
+        /// Abordagem com cordas (os navios não se aproximam): ganchos prendem os dois cascos, a tripulação de quem
+        /// aborda atravessa balançando e uma prancha fica para o capitão andar (e para todos voltarem).
+        /// </summary>
+        void StartBoarding(bool byEnemy)
+        {
+            PlayerFiring = false;
+            Vector2 mine = sea.shipView.EdgeDeck(true), theirs = enemyShip.EdgeDeck(false);
+            bridge = Gangplank.Create(mine, theirs, plankSprite, "PranchaDeAbordagem");
+            for (int k = 0; k < 3; k++)
+            {
+                var rope = RopeSwing.MakeRope(bridge.transform, "Gancho", 12);
+                Vector2 a = mine + new Vector2(-0.25f - k * 0.5f, 0.35f + k * 0.25f);
+                Vector2 b = theirs + new Vector2(0.25f + k * 0.5f, 0.35f + k * 0.25f);
+                RopeSwing.Sag(rope, a, b, 0.35f + k * 0.1f);
+            }
+            // As cordas de balanço ficam presas no topo do mastro de quem ataca (sem mastro: bem no alto, no meio)
+            ropeAnchor = AnchorFor(byEnemy);
+            AudioManager.PlayVaried(Sfx.Wood, 0.6f);
+
+            int i = 0;
+            foreach (var c in sea.CrewFighters)
+            {
+                if (c == null) continue;
+                var ai = c.GetComponent<CombatAI>();
+                if (ai) ai.charge = true;
+                if (!byEnemy && !c.IsDown)
+                    RopeSwing.Begin(c, enemyShip.SpawnPoint(Random.Range(-2.5f, 1.5f)) + Vector2.up * 0.1f, ropeAnchor, 0.2f + i++ * 0.2f);
+            }
+            i = 0;
+            if (pirate || byEnemy)
+                foreach (var c in enemyCrew)
+                {
+                    if (c == null) continue;
+                    var ai = c.GetComponent<CombatAI>();
+                    if (ai) ai.charge = true;
+                    if (byEnemy && !c.IsDown)
+                        RopeSwing.Begin(c, sea.shipView.SpawnPoint(Random.Range(-1.5f, 2.5f)) + Vector2.up * 0.1f, ropeAnchor, 0.3f + i++ * 0.25f);
+                }
             SetState(EncounterState.Boarding);
-            Say("ABORDAR! Derrube a tripulação inimiga! (F, J ou clique para golpear)");
+            if (byEnemy) Say("Defendam o navio! (F, J ou clique para golpear)");
         }
 
         public void Flee()
         {
             if (!CanFlee) return;
-            if (sea.Stats.speedKnots > enemySpeedKnots)
+            if (!Hostile)
+            {
+                Say(pirate ? "Escapamos antes que atirassem!" : "Deixamos o mercante seguir viagem.");
+                ClearEnemyCrew();
+                SetState(EncounterState.Fled);
+            }
+            else if (sea.Stats.speedKnots > enemySpeedKnots)
             {
                 Say($"Fugimos! Nosso navio ({sea.Stats.speedKnots:0.0} nós) é mais rápido.");
                 ClearEnemyCrew();
@@ -493,16 +720,126 @@ namespace Pixel.Combat
         // ---------- Resultados ----------
         void Win()
         {
+            // A rendição dá o ouro do cofre deles; a carga (itens) só vem saqueando o navio
             int gold = pirate ? Random.Range(80, 161) : Random.Range(35, 71);
-            var items = new Dictionary<string, int> { { "Rum", pirate ? Random.Range(4, 11) : Random.Range(2, 7) } };
-            if (!pirate) { items["Peixe"] = Random.Range(4, 11); items["Cana"] = Random.Range(3, 9); }
-            sea.AddLoot(gold, items);
+            sea.AddLoot(gold, new Dictionary<string, int>());
             GameStats.Add(GameStats.SeaVictories);
             AudioManager.Play(Sfx.Chest);
-            Say($"VITÓRIA! O {EnemyName.ToLower()} se rendeu. Saque: {gold} ouro{ItemsText(items)}.");
-            RemoveBridge();
+            Say($"VITÓRIA! O {EnemyName.ToLower()} se rendeu: +{gold} ouro. Capture o navio, ou volte para o seu e saqueie a carga!");
             sea.ReviveCrew();
+            sea.ClearCrewOrders();
+            // A tripulação volta pela prancha; ela só é recolhida quando todos estiverem a bordo
+            int i = 0;
+            foreach (var c in sea.CrewFighters)
+            {
+                if (c == null) continue;
+                var ai = c.GetComponent<CombatAI>();
+                var home = sea.shipView.SpawnPoint((i % 2 == 0 ? -1.2f : 1.2f) * (1 + i / 2));
+                if (ai != null) { ai.charge = false; ai.homeX = home.x; }
+                // Quem está no navio deles volta balançando na corda
+                if (!c.IsDown && c.transform.position.x > sea.shipView.RightEdge + 0.1f)
+                    RopeSwing.Begin(c, home + Vector2.up * 0.1f, ropeAnchor, 0.8f + i * 0.2f);
+                i++;
+            }
+            leaveAt = float.PositiveInfinity;
+            leaving = false;
             SetState(EncounterState.Victory);
+        }
+
+        bool leaving;
+        /// <summary>Navio rendido esperando a decisão do capitão.</summary>
+        public bool Deciding => State == EncounterState.Victory && !leaving;
+        /// <summary>Saquear só com todos de volta ao próprio navio (ele vai explodir).</summary>
+        public bool CanPlunder => Deciding && AllAboard();
+
+        /// <summary>Deixar o navio rendido ir embora (todos voltam, a prancha é recolhida).</summary>
+        public void LetGo()
+        {
+            if (!Deciding) return;
+            leaving = true;
+            stateTimer = 1.1f;
+            Say($"Deixamos o {EnemyName.ToLower()} ir embora.");
+            Changed?.Invoke();
+        }
+
+        /// <summary>Saquear: tira a carga e explode o navio rendido. Tem chance de cada mercadoria.</summary>
+        public void Plunder()
+        {
+            if (!CanPlunder) { if (Deciding) Say("Todos de volta ao nosso navio antes de explodir o deles!"); return; }
+            int gold = pirate ? Random.Range(40, 91) : Random.Range(20, 51);
+            var items = new Dictionary<string, int>();
+            void Chance(string name, float p, int min, int max) { if (Random.value < p) items[name] = Random.Range(min, max + 1); }
+            Chance("Rum", 0.8f, pirate ? 4 : 2, pirate ? 10 : 6);
+            Chance("Peixe", pirate ? 0.4f : 0.9f, 3, 10);
+            Chance("Cana", pirate ? 0.3f : 0.8f, 3, 9);
+            sea.AddLoot(gold, items);
+            AudioManager.PlayVaried(Sfx.Boom, 1f, 0.05f);
+            if (seaCamera) seaCamera.Shake(0.45f);
+            Say($"Saque! +{gold} ouro{ItemsText(items)}. BUM! O navio deles foi pelos ares.");
+            ClearEnemyCrew();
+            RemoveBridge();
+            SetState(EncounterState.Sinking);
+        }
+
+
+        /// <summary>Capturar: passa a navegar no navio rendido (o seu é vendido pela metade do valor).</summary>
+        public void Capture()
+        {
+            if (!Deciding) return;
+            var newStats = enemyShip.Layout.ComputeStats();
+            int sell = sea.Stats.value / 2;
+            SeaDialog.Ask($"Capturar o {EnemyName.ToLower()}?",
+                $"Você passa a navegar nele: {newStats.blocks} blocos, {newStats.cannons} canhões, {newStats.speedKnots:0.0} nós, " +
+                $"tripulação máx. {newStats.MaxCrew}. Ele vem avariado (casco {Mathf.RoundToInt(100f * EnemyHp / Mathf.Max(1, EnemyMaxHp))}%).\n" +
+                $"O seu navio atual é vendido por {sell} ouro (metade do valor). Dá para reformar o novo no Estaleiro.",
+                new SeaDialog.Option("Capturar!", DoCapture),
+                new SeaDialog.Option("Cancelar", () => { }));
+        }
+
+        void DoCapture()
+        {
+            if (!Deciding || enemyShip == null) return;
+            float damage = 1f - (float)EnemyHp / Mathf.Max(1, EnemyMaxHp);
+            sea.AdoptShip(enemyShip.Layout, damage, out int sold);
+            AudioManager.Play(Sfx.Quest);
+            Say($"O navio agora é nosso! O antigo foi vendido por {sold} ouro. Conserte o casco nas docas.");
+            ClearEnemyCrew();
+            RemoveBridge();
+            Destroy(enemyShip.gameObject);
+            enemyShip = null;
+            EndEncounter();
+        }
+
+        float leaveAt = float.PositiveInfinity;
+        float sinkFx;
+
+        /// <summary>Capitão e tripulação (de pé) já estão do lado do seu navio.</summary>
+        bool AllAboard()
+        {
+            float edge = sea.shipView.RightEdge + 0.1f;
+            if (sea.captain != null && sea.captain.transform.position.x > edge) return false;
+            foreach (var c in sea.CrewFighters)
+                if (c != null && !c.IsDown && c.transform.position.x > edge) return false;
+            return true;
+        }
+
+        void BringEveryoneBack()
+        {
+            float edge = sea.shipView.RightEdge + 0.1f;
+            if (sea.captain != null && sea.captain.transform.position.x > edge) sea.captain.Teleport(sea.shipView.SpawnPoint());
+            int i = 0;
+            foreach (var c in sea.CrewFighters)
+            {
+                if (c == null) continue;
+                if (c.transform.position.x > edge)
+                {
+                    var p = sea.shipView.SpawnPoint((i % 2 == 0 ? -1.2f : 1.2f) * (1 + i / 2)) + Vector2.up * 0.2f;
+                    c.transform.position = p;
+                    var body = c.GetComponent<Rigidbody2D>();
+                    if (body != null) { body.position = p; body.linearVelocity = Vector2.zero; }
+                }
+                i++;
+            }
         }
 
         void Sink()
@@ -510,6 +847,8 @@ namespace Pixel.Combat
             int gold = (pirate ? Random.Range(80, 161) : Random.Range(35, 71)) / 2;
             sea.AddLoot(gold, new Dictionary<string, int>());
             GameStats.Add(GameStats.SeaVictories);
+            AudioManager.PlayVaried(Sfx.Boom, 1f, 0.05f);
+            if (seaCamera) seaCamera.Shake(0.4f);
             Say($"O {EnemyName.ToLower()} afundou! Você recolheu {gold} ouro dos destroços (abordando ganharia mais).");
             ClearEnemyCrew();
             SetState(EncounterState.Sinking);
@@ -529,8 +868,13 @@ namespace Pixel.Combat
             if (enemyShip != null) Destroy(enemyShip.gameObject);
             enemyShip = null;
             sea.ReviveCrew();
+            sea.ClearCrewOrders();
             foreach (var c in sea.CrewFighters) if (c != null) { var ai = c.GetComponent<CombatAI>(); if (ai) ai.charge = false; }
             timer = float.PositiveInfinity;   // no máximo um encontro por trecho
+            leaving = false;
+            PlayerFiring = false;
+            Hostile = false;
+            AudioManager.Instance?.PlayBattle(false);
             SetState(EncounterState.None);
         }
 

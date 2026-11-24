@@ -108,26 +108,28 @@ SAILS = {
 }
 YHI, YMID, YDK = hx('bc997f'), hx('ae7764'), hx('985252')
 for estilo, (cl, cls, cld, stripe) in SAILS.items():
-    for m in range(16):
-        up, down, left, right = m & 1, m & 2, m & 4, m & 8
-        t = tile()
-        y_end = [31 if down else 25 + int(round(3 * math.sin(math.pi * x / 31))) for x in range(32)]
-        for x in range(32):
-            for y in range(0, y_end[x] + 1):
-                band = stripe is not None and (y // 8) % 2 == 1
-                base, shade = (stripe if band else (cl, cls))
-                c = base
-                if (not left and x == 0) or (not right and x == 31) or (not down and y == y_end[x]): c = OUTL
-                elif (not left and x == 1) or (not right and x == 30) or (not down and y == y_end[x] - 1): c = cld
-                elif left and x == 0: c = shade                                   # costura entre painéis
-                elif y % 8 == 0 or (not left and x == 2) or (not right and x == 29): c = shade
-                t[y][x] = c
-        if not up:   # verga de madeira em cima
-            for x in range(32):
-                for y in range(5):
-                    end = (not left and x == 0) or (not right and x == 31)
-                    t[y][x] = OUTL if y in (0, 4) or end else (YHI if y == 1 else YMID if y < 3 else YDK)
-        save(f'vela_{estilo}_{m}', t)
+    # 3 quadros de vento: a barriga de baixo enche e esvazia (quadro 0 = nome antigo, sem sufixo)
+    for frame, amp in enumerate((3, 4, 2)):
+      for m in range(16):
+          up, down, left, right = m & 1, m & 2, m & 4, m & 8
+          t = tile()
+          y_end = [31 if down else 25 + int(round(amp * math.sin(math.pi * x / 31))) for x in range(32)]
+          for x in range(32):
+              for y in range(0, y_end[x] + 1):
+                  band = stripe is not None and (y // 8) % 2 == 1
+                  base, shade = (stripe if band else (cl, cls))
+                  c = base
+                  if (not left and x == 0) or (not right and x == 31) or (not down and y == y_end[x]): c = OUTL
+                  elif (not left and x == 1) or (not right and x == 30) or (not down and y == y_end[x] - 1): c = cld
+                  elif left and x == 0: c = shade                                   # costura entre painéis
+                  elif y % 8 == 0 or (not left and x == 2) or (not right and x == 29): c = shade
+                  t[y][x] = c
+          if not up:   # verga de madeira em cima
+              for x in range(32):
+                  for y in range(5):
+                      end = (not left and x == 0) or (not right and x == 31)
+                      t[y][x] = OUTL if y in (0, 4) or end else (YHI if y == 1 else YMID if y < 3 else YDK)
+          save(f'vela_{estilo}_{m}' + (f'_b{frame}' if frame else ''), t)
 
     # Aba de ligação com o mastro: desenhada na célula do mastro, do lado direito (o jogo espelha para o outro lado).
     # O pano vai da beira do mastro (x=20) até a vela; na peça de cima a verga atravessa o mastro inteiro.
@@ -218,6 +220,15 @@ bar_dir = T + '/Pirate Ship/Sprites/Decorations/Barrels and Bottles/'
 save('barril', bottom_center(load(bar_dir + sorted(os.listdir(bar_dir))[0])))
 box_dir = T + '/Merchant Ship/Sprites/Box/Idle/'
 save('caixote', bottom_center(load(box_dir + sorted(os.listdir(box_dir))[0])))
+
+# Caixa de comida: o caixote com peixes empilhados em cima (peixe do Ninja Adventure)
+NI = A + '/NinjaAdventure/Ninja Adventure - Asset Pack/Items/Food/'
+fish = trimmed(load(NI + 'Fish.png'))
+food = bottom_center(load(box_dir + sorted(os.listdir(box_dir))[0]))
+top = min(y for y in range(32) if any(c[3] for c in food[y]))
+for ox, oy in ((5, top - len(fish) + 3), (14, top - len(fish) + 2), (10, top - len(fish) - 2)):
+    paste(food, fish, ox, oy)
+save('comida', food)
 anc_dir = T + '/Merchant Ship/Sprites/Ship/Anchor/'
 anchor = trimmed(load(anc_dir + sorted(os.listdir(anc_dir))[0]))
 save('ancora', paste(tile(), anchor, (32 - len(anchor[0])) // 2, (32 - len(anchor)) // 2))

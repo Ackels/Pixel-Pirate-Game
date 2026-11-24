@@ -26,6 +26,10 @@ namespace Pixel.Ship
         readonly System.Collections.Generic.Dictionary<string, ShipBlockDef> familyChoice = new System.Collections.Generic.Dictionary<string, ShipBlockDef>();
         SeaMode builtFor = (SeaMode)(-1);
         EncounterState builtEncounter = (EncounterState)(-1);
+        bool builtCanBoard, builtFiring, builtHostile;
+        int buttonsBuilt;
+        bool builtPaused, builtDeciding, builtPlunder;
+        CrewCommander commander;
         Text enemyText;
         string message;
         float messageTimer;
@@ -47,6 +51,10 @@ namespace Pixel.Ship
             var root = canvasGo.transform;
 
             SandboxPanel.Create(root, true, m => { sea.Say(m); return true; });
+            // Ordens à tripulação (pausa tática com P e arrastar a espada) — fica embaixo das janelas
+            commander = gameObject.AddComponent<CrewCommander>();
+            commander.Init((RectTransform)root, sea);
+            SeaDialog.Create(root);   // tela de decisão (encontros e eventos), por cima de tudo
 
             // --- Topo esquerdo: recursos (igual à vila; o nome aparece ao passar o mouse) ---
             var vhud = VillageHUD.Instance;
@@ -147,7 +155,20 @@ namespace Pixel.Ship
             if (sea == null) return;
             var director = EncounterDirector.Instance;
             var est = director != null ? director.State : EncounterState.None;
-            if (builtFor != sea.Mode || builtEncounter != est) Refresh();
+            bool canBoard = director != null && director.CanBoard;
+            bool firing = director != null && director.PlayerFiring, hostile = director != null && director.Hostile;
+            if (builtFor != sea.Mode || builtEncounter != est || canBoard != builtCanBoard || firing != builtFiring || hostile != builtHostile
+                || CrewCommander.Paused != builtPaused
+                || (director != null && (director.Deciding != builtDeciding || director.CanPlunder != builtPlunder)))
+            {
+                builtPaused = CrewCommander.Paused;
+                builtDeciding = director != null && director.Deciding;
+                builtPlunder = director != null && director.CanPlunder;
+                builtCanBoard = canBoard;
+                builtFiring = firing;
+                builtHostile = hostile;
+                Refresh();
+            }
 
             enemyText.transform.parent.gameObject.SetActive(est != EncounterState.None);
             if (director != null && est != EncounterState.None)
@@ -167,7 +188,8 @@ namespace Pixel.Ship
             messageTimer -= Time.unscaledDeltaTime;
             string hint = messageTimer > 0 ? message
                 : sea.Mode == SeaMode.Editing ? sea.editor.Hint
-                : sea.NearbyInteractable != null ? sea.NearbyInteractable.prompt : null;
+                : sea.NearbyInteractable != null ? sea.NearbyInteractable.prompt
+                : sea.NearDigMark ? "Tem um X aqui! G (ou o botão da pá): cavar" : null;
             hintText.transform.parent.gameObject.SetActive(!string.IsNullOrEmpty(hint));
             hintText.text = hint;
             // No estaleiro a dica vai para o topo (embaixo fica a barra de peças)
@@ -282,6 +304,7 @@ namespace Pixel.Ship
             var director = EncounterDirector.Instance;
             builtEncounter = director != null ? director.State : EncounterState.None;
             UIKit.Clear(actionBar);
+            buttonsBuilt = 0;
             BuildShipyard();
 
             switch (sea.Mode)
@@ -305,19 +328,44 @@ namespace Pixel.Ship
 
                 case SeaMode.Sailing:
                     bool fighting = builtEncounter != EncounterState.None;
-                    titleText.text = fighting ? "Combate!" : sea.Destination != null ? $"Rumo a {sea.Destination.name}" : "Navegando";
-                    helpText.text = "A/D: andar · Espaço: pular\nF / J / clique: golpear com a espada";
-                    if (director != null && director.CanBoard) ActionButton("Abordar!", director.Board, true);
-                    if (director != null && director.CanFlee) ActionButton("Fugir", director.Flee, true);
+                    titleText.text = fighting ? "Combate!" : sea.Destination != null ? $"Rumo a {(sea.Destination.revealed ? sea.Destination.name : "???")}" : "Navegando";
+                    helpText.text = "A/D: andar · Espaço: pular · F/J: golpear\nClique num inimigo: o capitão vai lá e ataca\nArraste um tripulante até um inimigo ou um lugar: ordem\nP: pausa tática (dar ordens com o jogo parado)";
+                    if (fighting) PauseButton();
+                    if (director != null && director.State == EncounterState.Engaged)
+                    {
+                        // Ordens do capitão (como no Pixel Piracy): nada acontece até você mandar
+                        if (director.HasCannons) ActionButton(director.PlayerFiring ? "Cessar fogo" : "Atirar!\n(canhões)", director.ToggleFire, true);
+                        ActionButton(director.CanBoard ? "Abordar!\n(cordas)" : $"Abordar\n({director.BoardHint})", director.Board, director.CanBoard);
+                    }
+                    if (director != null && director.CanFlee) ActionButton(director.Hostile ? "Fugir" : "Seguir viagem", director.Flee, true);
+                    if (director != null && director.Deciding)
+                    {
+                        // Navio rendido: o capitão decide (como no Pixel Piracy)
+                        ActionButton("Capturar\no navio", director.Capture, true);
+                        ActionButton(director.CanPlunder ? "Saquear\n(e explodir)" : "Saquear\n(todos a bordo)", director.Plunder, director.CanPlunder);
+                        ActionButton("Deixar\nir", director.LetGo, true);
+                    }
                     if (!fighting) ActionButton("Ver mapa", map.Show, true);
                     break;
 
                 case SeaMode.Landed:
                     titleText.text = sea.Location != null ? sea.Location.name : "Em terra";
-                    helpText.text = "A/D: andar · Espaço: pular · F/J: golpear\nE: abrir baú / negociar";
+                    helpText.text = "A/D: andar · Espaço: pular · F/J: golpear · E: abrir baú / negociar\nClique num inimigo: o capitão vai lá e ataca\nArraste um tripulante até um inimigo ou um lugar: ordem\nP: pausa tática";
+                    PauseButton();
                     ActionButton("Zarpar\n(abrir mapa)", sea.OpenMap, true);
                     break;
             }
+            // Sem botões (ex.: no meio da abordagem), a barra some em vez de ficar uma caixinha vazia
+            if (sea.Mode != SeaMode.Editing)
+            {
+                actionBar.gameObject.SetActive(buttonsBuilt > 0);
+            }
+        }
+
+        void PauseButton()
+        {
+            if (sea.CrewFighters.Count == 0 && !CrewCommander.Paused) return;
+            ActionButton(CrewCommander.Paused ? "Continuar\n(P)" : "Pausa tática\n(P)", () => commander.Toggle(), true);
         }
 
         void BuildTrade(Transform root)
@@ -461,6 +509,7 @@ namespace Pixel.Ship
 
         void ActionButton(string label, UnityEngine.Events.UnityAction onClick, bool interactable)
         {
+            buttonsBuilt++;
             var (btn, _, _) = UIKit.Button(actionBar, label, onClick, 16);
             btn.interactable = interactable;
             UIKit.Size(btn, 170, 64);

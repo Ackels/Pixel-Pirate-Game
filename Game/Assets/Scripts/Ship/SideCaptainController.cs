@@ -7,7 +7,8 @@ namespace Pixel.Ship
 {
     /// <summary>
     /// Capitão na visão lateral (no convés): A/D ou setas para andar, Espaço/W para pular,
-    /// F/J ou clique para golpear com a espada. Na escada, W/S sobem e descem; em cima de um piso vazado,
+    /// F/J ou clique para golpear com a espada. Clique num inimigo: o capitão vai sozinho até ele
+    /// (na corda, se estiver no outro navio) e ataca até derrubá-lo; andar com A/D cancela. Na escada, W/S sobem e descem; em cima de um piso vazado,
     /// S desce para o andar de baixo.
     /// Usa os mesmos desenhos de perfil do capitão da vila.
     /// </summary>
@@ -28,6 +29,12 @@ namespace Pixel.Ship
         bool facingRight = true, climbing;
         readonly Collider2D[] hits = new Collider2D[8];
         readonly System.Collections.Generic.List<(Collider2D col, float until)> ignored = new System.Collections.Generic.List<(Collider2D, float)>();
+
+        /// <summary>Inimigo que o capitão está perseguindo (clicado com o mouse).</summary>
+        public Combatant AutoTarget { get; private set; }
+        float autoMoveX, stuck;
+
+        public void ClearAutoTarget() { AutoTarget = null; autoMoveX = 0f; }
 
         /// <summary>Disparado quando o capitão cai no mar (o HUD mostra um aviso).</summary>
         public event System.Action FellOverboard;
@@ -77,6 +84,8 @@ namespace Pixel.Ship
 
         void Update()
         {
+            // Pendurado na corda: o balanço controla o corpo
+            if (RopeSwing.IsBusy(gameObject)) { inputX = 0f; autoMoveX = 0f; return; }
             inputX = Mathf.Clamp(move.ReadValue<float>(), -1f, 1f);
             var kb = Keyboard.current;
             bool upKey = kb != null && (kb.wKey.isPressed || kb.upArrowKey.isPressed);
@@ -96,16 +105,35 @@ namespace Pixel.Ship
                 if (Time.time > ignored[i].until) { if (ignored[i].col != null) Physics2D.IgnoreCollision(col, ignored[i].col, false); ignored.RemoveAt(i); }
 
             bool jumpPressed = kb != null && kb.spaceKey.wasPressedThisFrame || (!onLadder && jump.WasPressedThisFrame());
+            if (AutoTarget != null && (Mathf.Abs(inputX) > 0.01f || jumpPressed || climbing)) ClearAutoTarget();   // o jogador assumiu
             if (!climbing && jumpPressed && Grounded())
                 body.linearVelocity = new Vector2(body.linearVelocity.x, jumpSpeed);
 
             if (Mathf.Abs(inputX) > 0.01f) facingRight = inputX > 0;
             if (combatant != null)
             {
-                combatant.FacingRight = facingRight;
                 bool overUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
                 bool editing = SeaController.Instance != null && SeaController.Instance.Mode == SeaMode.Editing;
-                if (attack.WasPressedThisFrame() && !overUI && !editing && combatant.TryAttack()) attackShow = 0.18f;
+                var mouse = Mouse.current;
+                bool clicked = mouse != null && mouse.leftButton.wasPressedThisFrame;
+                if (attack.WasPressedThisFrame() && !overUI && !editing && !CrewCommander.Dragging)
+                {
+                    Combatant enemy = null, ally = null;
+                    if (clicked && Camera.main != null)
+                    {
+                        Vector2 w = Camera.main.ScreenToWorldPoint(mouse.position.ReadValue());
+                        enemy = Orders.At(w, null, true);
+                        ally = enemy == null ? Orders.At(w, Team.Player, false) : null;
+                    }
+                    if (enemy != null)
+                    {
+                        AutoTarget = enemy;
+                        Orders.Flash((Vector2)transform.position + Vector2.up * 0.8f, (Vector2)enemy.transform.position + Vector2.up * 0.5f, Orders.AttackColor);
+                    }
+                    else if (ally == null && !CrewCommander.Paused && combatant.TryAttack()) attackShow = 0.18f;
+                }
+                if (AutoTarget != null) ChaseTarget();
+                combatant.FacingRight = facingRight;
             }
             var set = facingRight ? right : left;
             if (attackShow > 0f) attackShow -= Time.deltaTime;
@@ -114,7 +142,7 @@ namespace Pixel.Ship
             else if (set != null && set.Length > 0 && sr != null)
             {
                 if (!Grounded()) sr.sprite = set[Mathf.Min(1, set.Length - 1)];
-                else if (Mathf.Abs(inputX) > 0.01f) { anim += Time.deltaTime * 9f; sr.sprite = set[(int)anim % set.Length]; }
+                else if (Mathf.Abs(inputX) > 0.01f || Mathf.Abs(autoMoveX) > 0.01f) { anim += Time.deltaTime * 9f; sr.sprite = set[(int)anim % set.Length]; }
                 else { anim = 0f; sr.sprite = set[0]; }
             }
 
@@ -128,8 +156,35 @@ namespace Pixel.Ship
 
         void FixedUpdate()
         {
+            if (RopeSwing.IsBusy(gameObject)) return;
+            float x = AutoTarget != null ? autoMoveX : inputX;
             if (climbing) body.linearVelocity = new Vector2(inputX * moveSpeed * 0.5f, inputY * 4f);
-            else body.linearVelocity = new Vector2(inputX * moveSpeed, body.linearVelocity.y);
+            else body.linearVelocity = new Vector2(x * moveSpeed, body.linearVelocity.y);
+        }
+
+        /// <summary>Vai atrás do inimigo clicado: anda, pula degraus, atravessa na corda e golpeia quando alcança.</summary>
+        void ChaseTarget()
+        {
+            if (AutoTarget == null || AutoTarget.IsDown || combatant.IsDown) { ClearAutoTarget(); return; }
+            Vector2 me = transform.position, d = (Vector2)AutoTarget.transform.position - me;
+            facingRight = d.x >= 0;
+            var dir = EncounterDirector.Instance;
+            if (dir != null && dir.NeedsCrossing(me, AutoTarget.transform.position))
+            {
+                autoMoveX = 0f;
+                if (!dir.TryCross(this, AutoTarget.transform.position)) ClearAutoTarget();
+                return;
+            }
+            if (Mathf.Abs(d.x) <= combatant.attackRange * 0.85f && Mathf.Abs(d.y) < 1.2f)
+            {
+                autoMoveX = 0f;
+                if (!CrewCommander.Paused && combatant.TryAttack()) attackShow = 0.18f;
+                return;
+            }
+            autoMoveX = Mathf.Sign(d.x);
+            bool grounded = Grounded();
+            if (grounded && Mathf.Abs(body.linearVelocity.x) < 0.3f) stuck += Time.deltaTime; else stuck = 0f;
+            if (stuck > 0.25f && grounded) { body.linearVelocity = new Vector2(body.linearVelocity.x, jumpSpeed); stuck = 0f; }
         }
 
         bool Overlapping<T>(Vector2 center, Vector2 size) where T : Component

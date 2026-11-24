@@ -20,10 +20,13 @@ MonoBehaviour:
   spriteSingle: {fileID: 0}
   connectSprites: []
   tabSprites: []
+  animFrames: []
+  animFps: 10
   connect: 0
   role: 8
   shape: 0
   category: 1
+  use: 0
   family: parede
   swatch: {r: 1, g: 1, b: 1, a: 1}
   cost: 5

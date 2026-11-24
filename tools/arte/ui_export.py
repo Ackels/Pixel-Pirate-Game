@@ -106,3 +106,35 @@ for y in range(h_):
         if (x, y) in shape: continue
         if any((x + dx, y + dy) in shape for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))): anchor[y][x] = OUTL
 save('icone_ancora', anchor)
+
+
+# --- Ícones da barra de comandos da tripulação (mover, interagir, reunir, cavar) ---
+def outlined(rows, fill, hi):
+    h_, w_ = len(rows) + 2, len(rows[0]) + 2
+    img = canvas(w_, h_)
+    shape = {(x + 1, y + 1) for y, row in enumerate(rows) for x, ch in enumerate(row) if ch == '#'}
+    for (x, y) in shape:
+        img[y][x] = hi if (x, y - 1) not in shape else fill
+    for y in range(h_):
+        for x in range(w_):
+            if (x, y) not in shape and any((x + dx, y + dy) in shape for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                img[y][x] = OUTL
+    return img
+
+
+ARROW = [
+    '.......#.....',
+    '.......##....',
+    '.......###...',
+    '############.',
+    '#############',
+    '############.',
+    '.......###...',
+    '.......##....',
+    '.......#.....',
+]
+save('icone_mover', outlined(ARROW, (240, 196, 92, 255), (255, 236, 160, 255)))
+save('icone_mao', put(canvas(), load(NI, 'Action', 'Interact.png'), 0, 0))
+save('icone_pa', load(NI, 'Tool', 'Shovel.png'))
+FL = os.path.join(ROOT, 'ArteBaixada', 'NinjaAdventure', 'Ninja Adventure - Asset Pack', 'Backgrounds', 'Animated', 'Flag')
+save('icone_bandeira', crop(load(FL, 'FlagRed16x16.png'), 0, 0, 16, 16))

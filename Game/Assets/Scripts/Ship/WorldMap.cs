@@ -82,9 +82,44 @@ namespace Pixel.Ship
                 map.Islands[1].pos = map.Home.pos + new Vector2(16f, -8f);
                 map.Islands[2].pos = map.Home.pos + new Vector2(20f, 10f);
             }
+            map.Spread();
             map.RevealAround(map.Home);
             return map;
         }
+
+        /// <summary>
+        /// Afasta ilhas que ficaram coladas (as duas de perto de casa são arrastadas depois de geradas e podiam cair
+        /// em cima de outra). Conta a distância na vertical em dobro, porque o nome embaixo do ícone é largo.
+        /// Só mexe na posição (o id, o nome e o tipo continuam iguais, então saves antigos seguem valendo).
+        /// </summary>
+        void Spread()
+        {
+            const float MinGap = 18f;
+            for (int iter = 0; iter < 400; iter++)
+            {
+                bool moved = false;
+                for (int a = 0; a < Islands.Count; a++)
+                    for (int b = a + 1; b < Islands.Count; b++)
+                    {
+                        var pa = Islands[a].pos; var pb = Islands[b].pos;
+                        var d = new Vector2(pb.x - pa.x, (pb.y - pa.y) * 2f);
+                        float len = d.magnitude;
+                        if (len >= MinGap) continue;
+                        if (len < 0.01f) d = new Vector2(1f, 0.5f);
+                        var push = d.normalized * (MinGap - len) * 0.5f;
+                        push.y *= 0.5f;                          // volta para a escala real
+                        // Casa e as duas primeiras ficam paradas; a outra é que se afasta
+                        bool fixedA = a <= 2, fixedB = b <= 2;
+                        if (fixedA && fixedB) continue;
+                        if (!fixedB) Islands[b].pos = Clamp(pb + (fixedA ? push * 2f : push));
+                        if (!fixedA) Islands[a].pos = Clamp(pa - (fixedB ? push * 2f : push));
+                        moved = true;
+                    }
+                if (!moved) break;
+            }
+        }
+
+        static Vector2 Clamp(Vector2 p) => new Vector2(Mathf.Clamp(p.x, 18f, Width - 4f), Mathf.Clamp(p.y, 5f, Height - 5f));
 
         public void RevealAround(IslandNode center)
         {

@@ -274,7 +274,7 @@ namespace Pixel.EditorTools
                 var s = new TextureImporterSettings();
                 imp.ReadTextureSettings(s);
                 s.spriteAlignment = (int)(bottom ? SpriteAlignment.BottomCenter : SpriteAlignment.Center);
-                if (file == "bandeira")   // bloco do estaleiro: 48 px de largura, o mastro (colunas 12-19) fica no centro da célula
+                if (file == "bandeira" || file.StartsWith("flamula"))   // bloco do estaleiro: 48 px de largura, o mastro (colunas 12-19) fica no centro da célula
                 {
                     s.spriteAlignment = (int)SpriteAlignment.Custom;
                     s.spritePivot = new Vector2(16f / 48f, 0.5f);

@@ -481,13 +481,38 @@ namespace Pixel.EditorTools
             AudioManager.SfxClip S(Sfx id, string file, float vol) => new AudioManager.SfxClip { id = id, clip = Clip("Sfx/" + file), volume = vol };
             audio.effects = new[]
             {
-                S(Sfx.Coin, "sfx_coin", 0.5f), S(Sfx.Build, "sfx_build", 0.7f), S(Sfx.Cannon, "sfx_cannon", 0.7f),
-                S(Sfx.Boom, "sfx_boom", 0.7f), S(Sfx.Splash, "sfx_splash", 0.5f), S(Sfx.Swing, "sfx_swing", 0.4f),
+                S(Sfx.Coin, "sfx_coin", 0.5f), S(Sfx.Build, "sfx_build", 0.7f), S(Sfx.Cannon, "mar_tiro", 0.6f),
+                S(Sfx.Boom, "mar_explosao", 0.6f), S(Sfx.Splash, "mar_respingo", 0.45f), S(Sfx.Swing, "sfx_swing", 0.4f),
                 S(Sfx.Hit, "sfx_hit", 0.5f), S(Sfx.Chest, "sfx_chest", 0.7f), S(Sfx.Quest, "sfx_quest", 0.8f),
                 S(Sfx.Click, "sfx_click", 0.4f),
+                // Sons do mar (Ninja Adventure, CC0): substituem tiro, explosão e respingo antigos
+                S(Sfx.Wood, "mar_madeira", 0.55f), S(Sfx.Hurt, "mar_ferido", 0.5f), S(Sfx.Gull, "mar_gaivota", 0.35f), S(Sfx.Thunder, "mar_trovao", 0.8f),
             };
-            audio.villageMusic = Clip("Music/music_village");
-            audio.seaMusic = Clip("Music/music_sea");
+            // Músicas (OpenGameArt; créditos em Assets/Audio/Music/CREDITOS.txt). Longas: tocam por streaming.
+            AudioClip Music(string file)
+            {
+                string path = $"Assets/Audio/Music/{file}";
+                if (AssetImporter.GetAtPath(path) is AudioImporter ai)
+                {
+                    var st = ai.defaultSampleSettings;
+                    if (st.loadType != AudioClipLoadType.Streaming)
+                    {
+                        st.loadType = AudioClipLoadType.Streaming;
+                        st.compressionFormat = AudioCompressionFormat.Vorbis;
+                        st.quality = 0.6f;
+                        ai.defaultSampleSettings = st;
+                        ai.SaveAndReimport();
+                    }
+                }
+                return AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+            }
+            audio.villageMusic = Music("musica_vila.mp3");
+            audio.seaMusic = Music("musica_mar.ogg");
+            audio.seaMusic2 = Music("musica_mar2.ogg");
+            audio.battleMusic = Music("musica_combate.mp3");
+            audio.seaAmbience = Clip("Ambiente/mar_ondas");
+            audio.rainAmbience = Clip("Ambiente/chuva");
+            audio.stormAmbience = Clip("Ambiente/tempestade");
 
             var expeditions = village.AddComponent<ExpeditionManager>();
             expeditions.dungeons = data.dungeons;

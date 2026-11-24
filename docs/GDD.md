@@ -168,6 +168,7 @@ O que é **nosso**: tema pirata em tudo, a vila é um **porto pirata** (não uma
 
 ### 6.6 Mar e mapa-múndi
 - Mapa com ilhas geradas (semente), névoa de guerra, rotas; a vila é a "base".
+- Como no Pixel Piracy (24/11/2026): ilhas desconhecidas perto de onde você já esteve aparecem como "?" e dá para navegar até elas para descobrir; cada ilha mostra o nível de perigo, e passar o mouse mostra tipo, perigo e distância.
 - Viagem gasta dias → consome comida e rum **por trecho de viagem** (dá para planejar antes de zarpar, sem micro-gestão); clima (sol, chuva, tempestade) e dia/noite.
 - **Encontros**: navios mercantes (saque fácil), Marinha (perigoso), piratas rivais, eventos (náufrago, garrafa com mapa, kraken…).
 - **Ilhas**: portos amigáveis (lojas, taverna), ilhas selvagens (coleta), fortes (combate), **masmorras** (cavernas, naufrágios, templos).
@@ -175,6 +176,8 @@ O que é **nosso**: tema pirata em tudo, a vila é um **porto pirata** (não uma
 ### 6.7 Combate
 Dois modos, para agradar os dois estilos:
 1. **Combate ativo**: tempo real, sempre na **visão lateral**: navio contra navio, abordagem e invasão de ilhas e fortes (a tripulação desembarca na praia e luta). O jogador controla o **capitão** diretamente; a tripulação segue ordens por grupo (Abordadores atacam, Artilheiros nos canhões, Marujos reparam). Navio vs navio: troca de tiros → abordagem.
+   - **Combate por ordens (decidido em 24/11/2026, como no Pixel Piracy):** o navio inimigo para longe, um de cada lado, e nada acontece do seu lado até você mandar: **Atirar / Cessar fogo** (canhões), **Abordar** (libera com o casco deles em 60%; ganchos prendem os cascos e a tripulação atravessa **balançando nas cordas** presas no mastro, enquanto uma prancha fica para o capitão) e **Fugir** (ou **Seguir viagem**, se ninguém atirou ainda). Piratas abrem fogo sozinhos depois de alguns segundos e abordam você com cordas; mercantes só revidam depois do seu primeiro tiro.
+   - **Controle direto (24/11/2026):** clicar num inimigo faz o capitão ir até ele (na corda, se estiver no outro navio) e atacar. **Pausa tática (P):** o jogo para e você arrasta a espada de cada tripulante até um inimigo (atacar) ou um lugar (ir), com uma linha em arco mostrando a ordem; também dá para arrastar o tripulante sem pausar. **Barra de comandos** (canto de baixo): Mover e Atacar (arrastar, para a tripulação inteira), Interagir, Reunir e Cavar (clique), cada um com a explicação no mouse; painel do personagem selecionado com vida, fome e moral. **Tesouro enterrado:** nas ilhas do mapa do tesouro, o baú fica embaixo de um X na areia e precisa ser cavado. **Tela de decisão:** quando um navio aparece (ou acontece um evento no mar), a tela escurece e o capitão escolhe — enfrentar ou fugir (com a chance em %), resgatar o náufrago, contornar a tempestade... **Depois da rendição:** Capturar o navio (vira o seu; o antigo é vendido), Saquear (com todos a bordo: carga com chance de cada mercadoria, e o navio deles explode) ou Deixar ir.
 2. **Expedições automáticas** (estilo Creator Chronicles): monta "presets" de grupo (até 4–5 tripulantes + poções) e envia para uma masmorra/saque **sem o capitão**; combate automático mostrado numa faixa na tela, enquanto você cuida da vila. Volta com saque, XP — ou feridos. Sempre com **log de batalha** explicando o resultado.
 3. **Derrota pesada** pode fazer um tripulante **desertar** (pode ser reencontrado depois em alguma ilha) — no modo Lendário, pode morrer.
 
@@ -205,7 +208,8 @@ Derrotar os **5 Capitães Lendários** que dominam os mares — cada um em uma r
 - Paleta quente e tropical (mar turquesa, areia, madeira, pôr-do-sol), com noite azul-roxa.
 - Efeitos: reflexo na água, ondas, chuva, ciclo dia/noite, luz de lampiões à noite.
 - Interface: madeira + pergaminho + corda (tema pirata).
-- Música: shanty/folk instrumental; sons de ondas, gaivotas, canhões.
+- Música: shanty/folk instrumental, **orquestrada, nada de 8-bit** (decidido em 24/11/2026): vila, duas do mar que se alternam a cada viagem e uma de combate, com troca suave entre elas; sons de ondas, gaivotas, canhões, chuva e trovões.
+- **Céu do mar (24/11/2026):** muda aos poucos com o relógio do dia — amanhecer, dia azul, tarde dourada, pôr do sol, anoitecer e noite com lua e estrelas; o sol e a lua cruzam o céu. **Clima:** chuva (~25% dos trechos) e tempestade (~10%, e no evento "tempestade"), com céu e nuvens cinza, luz mais fraca, relâmpagos e trovões.
 
 ### Câmera / perspectiva — **DECIDIDO (23/11/2026): "a vila de cima, a aventura de lado"**
 | Onde | Câmera | Por quê |

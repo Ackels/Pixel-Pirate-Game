@@ -19,6 +19,25 @@ namespace Pixel.Combat
         public float homeX;
         [Tooltip("Sem navio (ilha): área que este lutador defende e linha d'água.")]
         public float regionMin = -9999f, regionMax = 9999f, waterlineY = -9999f;
+        [Tooltip("Vida a bordo (CrewLife) está mexendo no boneco (subindo escada, dormindo): a IA não anda.")]
+        public bool externalControl;
+        /// <summary>Tem alguém pra brigar agora (aí a vida a bordo para).</summary>
+        public bool HasTarget => target != null && !target.IsDown;
+        /// <summary>Chegou (na horizontal) no lugar para onde está indo.</summary>
+        public bool AtHome => Mathf.Abs(transform.position.x - homeX) <= 0.6f;
+
+        // ---------- Ordens do jogador (arrastar a espada do tripulante, como no Pixel Piracy) ----------
+        /// <summary>Atacar este inimigo, onde ele estiver.</summary>
+        public Combatant orderTarget;
+        /// <summary>Ir até um lugar (e ficar lá brigando com quem aparecer).</summary>
+        public bool moveOrder;
+        public Vector2 orderPoint;
+        public bool HasOrder => (orderTarget != null && !orderTarget.IsDown) || moveOrder;
+
+        public void OrderAttack(Combatant t) { orderTarget = t; moveOrder = false; target = t; crossCheck = 0f; }
+        public void OrderMove(Vector2 p) { orderTarget = null; moveOrder = true; orderPoint = p; target = null; crossCheck = 0f; }
+        public void ClearOrders() { orderTarget = null; moveOrder = false; }
+        float crossCheck;
 
         Combatant me;
         Rigidbody2D body;
@@ -46,24 +65,49 @@ namespace Pixel.Combat
 
         void Update()
         {
-            if (me.IsDown) return;
+            if (me.IsDown || externalControl) return;
+            if (orderTarget != null && orderTarget.IsDown) orderTarget = null;
+
+            // Ordem para o outro navio: atravessa na corda (se a abordagem já começou ou pode começar agora)
+            crossCheck -= Time.deltaTime;
+            if (HasOrder && crossCheck <= 0f)
+            {
+                crossCheck = 0.3f;
+                Vector2 dest = orderTarget != null ? (Vector2)orderTarget.transform.position : orderPoint;
+                var dir = EncounterDirector.Instance;
+                if (dir != null && dir.NeedsCrossing(transform.position, dest))
+                {
+                    if (!dir.TryCross(this, dest)) ClearOrders();
+                    moveX = 0f;
+                    return;
+                }
+            }
+
             think -= Time.deltaTime;
-            if (think <= 0f || target == null || target.IsDown)
+            if (orderTarget != null) target = orderTarget;
+            else if (think <= 0f || target == null || target.IsDown)
             {
                 think = 0.25f;
-                target = PickTarget();
+                target = moveOrder ? null : PickTarget();
             }
 
             bool grounded = Grounded();
             moveX = 0f;
-            if (target != null)
+            if (moveOrder)
+            {
+                // Indo para o lugar mandado; chegando, fica lá (vira o "canto" dele)
+                float dx = orderPoint.x - transform.position.x;
+                if (Mathf.Abs(dx) > 0.3f) { moveX = Mathf.Sign(dx); me.FacingRight = moveX > 0; }
+                else { moveOrder = false; homeX = orderPoint.x; }
+            }
+            else if (target != null)
             {
                 Vector2 d = target.transform.position - transform.position;
                 me.FacingRight = d.x >= 0;
                 if (Mathf.Abs(d.x) <= me.attackRange * 0.85f && Mathf.Abs(d.y) < 1.2f) me.TryAttack();
                 else moveX = Mathf.Sign(d.x);
             }
-            else if (Mathf.Abs(transform.position.x - homeX) > 0.6f)
+            else if (Mathf.Abs(transform.position.x - homeX) > 0.25f)
             {
                 // Sem ninguém pra brigar: volta pro seu canto no próprio navio
                 moveX = Mathf.Sign(homeX - transform.position.x);
@@ -93,7 +137,7 @@ namespace Pixel.Combat
 
         void FixedUpdate()
         {
-            if (me.IsDown) return;
+            if (me.IsDown || externalControl) return;
             body.linearVelocity = new Vector2(moveX * moveSpeed, body.linearVelocity.y);
         }
 

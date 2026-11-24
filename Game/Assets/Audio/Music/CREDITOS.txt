@@ -1,0 +1,13 @@
+Músicas do jogo (OpenGameArt.org)
+
+- musica_vila.mp3: "Pirate's Orchestra" — Dizzy Crow — CC0
+  https://opengameart.org/content/pirates-orchestra-208
+- musica_mar.ogg: "A sailor's chant" — Thimras — CC0
+  https://opengameart.org/content/a-sailors-chant
+- musica_mar2.ogg: "Pirate Ship Theme Loop" — beardalaxy — CC0
+  https://opengameart.org/node/165338
+- musica_combate.mp3: "Blackmoor Tides (Epic Pirate Battle Theme)" — Matthew Pablo (www.matthewpablo.com) — CC-BY 3.0
+  https://opengameart.org/content/blackmoor-tides-epic-pirate-battle-theme
+  (CC-BY: o crédito ao autor precisa aparecer no jogo — está nos Créditos do menu.)
+
+Sons de efeitos do mar: Ninja Adventure (Pixel-boy & AAA) — CC0.

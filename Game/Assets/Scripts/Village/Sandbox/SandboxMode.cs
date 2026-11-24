@@ -46,7 +46,7 @@ namespace Pixel.Village
         /// <summary>Aplica a velocidade escolhida (menus pausados ficam pausados).</summary>
         public static void ApplySpeed()
         {
-            if (!Active || GameMenu.IsOpen) return;
+            if (!Active || GameMenu.IsOpen || Pixel.Ship.CrewCommander.Paused || Pixel.Ship.SeaDialog.IsOpen) return;
             if (!Mathf.Approximately(Time.timeScale, Speed)) Time.timeScale = Speed;
         }
     }

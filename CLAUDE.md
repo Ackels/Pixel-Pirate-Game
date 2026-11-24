@@ -49,8 +49,8 @@
 - **Fase 4 (concluída em 23/11/2026): combate, em `Assets/Scripts/Combat/`**
   - `EncounterDirector` (no objeto "Mar") é uma máquina de estados: None → Approaching → Engaged → Closing → Boarding → Victory, Sinking, Fled ou Defeat.
   - O 1º encontro acontece 12 s depois de zarpar e é sempre um mercante; depois os encontros vêm a cada ~35 s. A chance de pirata cresce com a distância.
-  - Vida dos inimigos: mercante = blocos × 0,45 (5 nós); pirata = blocos × 0,35 (7,5 nós). Pirata aborda sozinho quando o seu casco cai abaixo de 50% ou depois de 25 s.
-  - Canhões disparam sozinhos a cada ~3 s, com bala em arco (`Cannonball`). Acerto: jogador 70%, inimigo 60%.
+  - Vida dos inimigos: mercante = blocos × 0,45 (5 nós); pirata = blocos × 0,35 (7,5 nós). Pirata aborda sozinho (com cordas) quando o seu casco cai abaixo de 50% ou depois de 45 s.
+  - Canhões disparam a cada ~3 s (os seus só com a ordem "Atirar"; veja "Combate por ordens"), com bala em arco (`Cannonball`). Acerto: jogador 70%, inimigo 60%.
   - Abordagem: a prancha é um EdgeCollider2D ligando `ShipView.EdgeDeck`. A tripulação inimiga anda junto com o navio enquanto ele se move (senão cai no mar).
   - `Combatant` (vida, golpe à frente, barra, nocaute) + `CombatAI` (defesa ou ataque, pula quando trava) + `LayeredFigure` (boneco em camadas na lateral). Lutadores ignoram colisão entre si.
   - Capitão: 100 de vida, dano 16–24; ataca com F, J ou clique.
@@ -110,7 +110,7 @@
   - `UI/ChronicleUI`: painel da missão atual à esquerda (clicável) e janela com todas (tecla J).
   - Save: `chronicle` (índice) + `stats`.
   - `Village/Audio/AudioManager` (objeto "Audio", na cena da vila): música da vila e do mar (troca em GoToSea/ReturnToVillage) e `AudioManager.Play(Sfx.X)`.
-    - Os sons são WAVs gerados por script (chiptune original) em `Assets/Audio`.
+    - Efeitos de interface: WAVs gerados por script em `Assets/Audio`. Músicas orquestradas em `Assets/Audio/Music` (veja "Músicas").
     - Botão Som liga/desliga na pausa (PlayerPrefs `pixel_sound_on`).
     - O AudioListener fica no objeto Audio.
   - `Village/DayNightLight`: na luz global da vila e do mar. Muda cor e intensidade pelo `CrewManager.DayProgress`; no mar também tinge o céu (fundo da câmera).
@@ -190,7 +190,54 @@
   - `ShipEditor`: R/rodinha gira, M liga o espelho (eixo no meio do navio atual, linha azul), segurar e arrastar coloca/remove vários. No estaleiro a câmera afasta (Pixel Perfect desligado, tamanho 11, um bloco para baixo) e o "Concluir" fica na barra de peças (`SeaHUD.BuildShipyard`).
   - Arte em `tools/arte/navio_export.py` (cascos em 3 cores × 4 formas, 16 peças por vela × 3 estilos, piso, escada, paredes, enfeites). Peças e atributos em `CreateShipBlocks` / `ConfigureShipBlocks` (VillageSceneBuilder.Sea.cs); os 6 blocos antigos mantêm o nome do asset.
   - Navios inimigos usam rampas no casco; o pirata tem casco escuro e velas pretas.
+  - `ShipView.SpawnPoint` (onde o capitão nasce e o "cantinho" `homeX` da tripulação): escolhe o convés principal = a linha de chão com mais células abertas para o céu (empate: a mais alta). Nunca o topo de parede lateral ou de mastro, de onde a tripulação não volta.
+  - Abordagem x canhões (24/11/2026): `EncounterDirector.CanBoard` só com o casco inimigo ≤ 60% (`BoardHullFraction`); sem canhão no navio, libera após 12 s de combate. O botão "Abordar" aparece apagado com a meta (`BoardHint`). Cada acerto de canhão tem 30% de chance de derrubar um tripulante inimigo.
+  - Rendição: a prancha só é recolhida quando capitão e tripulação voltaram para o próprio navio (`AllAboard`); depois de 7 s quem ficou é trazido de volta (`BringEveryoneBack`). Só então o navio inimigo vai embora.
+  - Mapa-múndi: `WorldMap.Spread` afasta ilhas coladas (distância com o vertical contando em dobro, por causa do nome largo; mínimo 18 milhas). Só muda posições, saves seguem valendo. Medido em 300 sementes: menor distância 17,3.
+  - Encontros: o relógio sorteado em `ScheduleLeg` corre desde a partida; o navio inimigo só aparece com o mar livre (`!islands.Present`). Antes ele parava enquanto a ilha anterior sumia e, com navio rápido (trechos curtos), o encontro nunca chegava.
   - **Cuidado no montador:** ao abrir a cena do Mar o Unity descarrega da memória os assets recém-carregados (ficam "null" no C#). Para referências usadas depois, carregue de novo pelo caminho (como o `raftSlope`).
+- **Efeitos e sons do mar (24/11/2026):** quadros em `tools/arte/fx_export.py` (Treasure Hunters + Ninja Adventure): explosão, clarão do canhão, respingo, fumaça, lascas, rachaduras (`Fx/dano_*`), canhão recuando (`Navio/canhao_tiro_*`), bandeira tremulando (`Navio/flamula_*` para o bloco; `bandeira_pirata_*`/`bandeira_mercante_*` nos inimigos). Velas com 3 quadros de vento (`vela_<estilo>_<m>_b1/_b2`; `connectSprites` tem 48 = 16 peças × 3 quadros).
+  - `Fx.Play` (animação que some), `Fx.Splinters` (lascas com gravidade) e `SpriteAnim`. `Cannonball`: clarão + fumaça na boca, bala girando com rastro, explosão + lascas no acerto, respingo animado no erro.
+  - `ShipView`: anima velas (vento em ondas pelo navio) e blocos com `animFrames` (bandeira); `PlayCannonFire` (recuo); `AddDamageDecal`/`ClearDamage` (rachaduras até consertar; ao voltar ao mar avariado elas reaparecem); `damageLevel` > 0,35 solta fumaça das rachaduras.
+  - Combate: 25% dos tiros miram em alguém no convés; a explosão fere (10–16) e empurra quem estiver a até 1,15 bloco (`EncounterDirector.HurtAround`), dos dois lados. Navio afundando solta explosões e lascas.
+  - Sons do mar (Ninja Adventure, CC0) em `Assets/Audio/Sfx/mar_*.wav` e `Ambiente/mar_ondas.wav`: tiro, explosão, madeira, respingo, ferido, gaivota; ondas em loop no mar (`AudioManager.seaAmbience`). `AudioManager.PlayVaried` varia o tom a cada som. Escolhidos pela duração, sem ouvir: trocar se algum não combinar.
+- **Músicas (24/11/2026):** OpenGameArt, créditos em `Assets/Audio/Music/CREDITOS.txt`: vila `musica_vila.mp3`, mar `musica_mar.ogg` + `musica_mar2.ogg` (alternam a cada viagem), combate `musica_combate.mp3` ("Blackmoor Tides", Matthew Pablo, **CC-BY 3.0: o crédito precisa aparecer no jogo**, está na linha de créditos do menu inicial em `GameMenu`). Importadas como Streaming/Vorbis pelo montador (`Music()`).
+  - `AudioManager`: duas fontes de música com troca suave de 1,5 s (`CrossFade`); `PlayBattle(true/false)` chamado pelo `EncounterDirector` (inimigo aparece / encontro acaba).
+- **Céu e clima do mar (24/11/2026), em `Ship/SeaSky.cs`** (objeto "Ceu e Clima" na cena do Mar):
+  - Degradê sem luz (ordem -100) da cor do horizonte (fundo da câmera) até a cor da hora (`Zenith`), sol e lua (-97) cruzando o céu em arco e sumindo atrás da faixa do horizonte (-95, topo em `waterline + 3.5`), estrelas piscando à noite (-98). Sprites em `Art/Mar/Ceu/sol|lua|estrela|gota` (desenhados em `fx_export.py`).
+  - `DayNightLight` tem chaves de amanhecer, manhã, meio-dia, tarde dourada, pôr do sol, anoitecer e noite (mais escura, intensidade 0,5). O fundo da câmera = `skyColor × cor × intensidade`, a mesma conta da luz nos sprites, para casar com a faixa do horizonte.
+  - Clima (`Weather`: Clear, Rain, Storm): `SeaController.SetCourse` sorteia por trecho (10% tempestade, 25% chuva) e começa em algum ponto da viagem (`BeginWeather`); o evento "tempestade" também liga. `SeaSky.Gloom` (0–1) acinzenta céu, nuvens (`clouds`) e luz (−30%). Chuva = 160 riscos reaproveitados (ordem 26); tempestade tem relâmpago (clarão branco, ordem 60) e trovão (`Sfx.Thunder` = `mar_trovao.wav`, tom 0,5).
+  - Sons de chuva/tempestade em loop (`Ambiente/chuva.wav`, `tempestade.wav`, Ninja Adventure) via `AudioManager.SetWeatherSound`; param ao voltar para a vila.
+- **Combate por ordens (24/11/2026, como no Pixel Piracy):** o inimigo para a `holdGap` blocos, um navio de cada lado, e **nada acontece do seu lado sem ordem**.
+  - Botões no `SeaHUD`: "Atirar!/Cessar fogo" (`EncounterDirector.ToggleFire`, só com canhão), "Abordar" (mesma regra de 60%), "Fugir" ou "Seguir viagem" (`Hostile` falso: sempre sai). A barra some quando não há botões (`buttonsBuilt`).
+  - `PlayerFiring` liga os seus canhões; `Hostile` liga os do inimigo. Pirata fica hostil sozinho após 4 s; mercante só depois do seu primeiro tiro.
+  - Abordagem sem encostar os navios (`StartBoarding(byEnemy)`): prancha longa + 3 cordas de gancho (`RopeSwing.MakeRope`/`Sag`), e quem aborda atravessa **balançando** (`Combat/RopeSwing.cs`: corpo cinemático, arco Bézier, corda até `ropeAnchor` = topo do mastro de quem ataca, `ShipView.MastTop`). Na vitória a tripulação volta balançando. O estado `Closing` não é mais usado.
+- **Ordens no combate (24/11/2026, como no Pixel Piracy):**
+  - **Clique num inimigo** (`SideCaptainController.AutoTarget`): o capitão anda até ele, pula degraus, atravessa na corda se estiver no outro navio e golpeia até derrubá-lo. A/D, pular ou escada cancelam. Clique no vazio continua sendo golpe; F/J sempre golpeiam.
+  - **Pausa tática (P ou botão "Pausa tática")**, em `Ship/CrewCommander.cs` (criado pelo `SeaHUD`): `Time.timeScale = 0`, aviso no topo, espada em cima de cada tripulante e as linhas das ordens em andamento. Volta para a velocidade do Sandbox ao continuar; `SandboxMode.ApplySpeed` respeita a pausa. Sai sozinha ao atracar/editar.
+  - **Arrastar uma ordem**: da espada (na pausa) ou do próprio tripulante (a qualquer hora) até um inimigo = atacar (`CombatAI.OrderAttack`, linha vermelha) ou até um lugar = ir para lá e ficar (`OrderMove`, linha amarela; fora dos navios/ilha, para na beirada do seu navio). Linhas em arco: `Combat/Orders.cs`.
+  - Atravessar: `EncounterDirector.NeedsCrossing` (um navio → o outro) e `TryCross` (balança na corda; durante `Engaged`, tenta `Board()` e respeita a regra dos 60%, senão avisa e cancela a ordem). `ShipView.DeckNear(x)` dá o ponto de pouso.
+  - Ordens são canceladas na vitória, no fim do encontro e ao sair da ilha (`SeaController.ClearCrewOrders`). Com ordem, a vida a bordo (`CrewLife`) não mexe no tripulante.
+- **Barra de comandos e painel do selecionado (24/11/2026, como no Pixel Piracy)**, também em `CrewCommander`:
+  - Barra no canto de baixo à direita (y=54, acima do selo do Sandbox), ícones 50×50 com a explicação no mouse: **Mover** (arrastar: a tripulação inteira vai para o lugar, espalhada por `Spread`), **Atacar** (arrastar até um inimigo: todos atacam), **Interagir** (clique = E, `SeaController.InteractNearby`), **Reunir** (clique: todos para perto do capitão), **Cavar** (clique ou G, `SeaController.Dig`; só em terra, ícone apagado no mar).
+  - Ícones novos em `Resources/UI`: `icone_mover` (seta desenhada), `icone_mao` (Interact do Ninja), `icone_pa` (Shovel), `icone_bandeira` (FlagRed), gerados no fim de `ui_export.py`.
+  - Painel no canto de baixo à esquerda: rosto, nome, nível e ofício, barras de Vida, Fome (`CrewLife.Hunger`) e Moral. Clique curto num tripulante (ou no capitão) seleciona; o padrão é o capitão.
+  - **Tesouro enterrado:** o baú do X das ilhas de tesouro fica escondido (`IslandBuilder.Bury`) com um X vermelho na areia (sprite gerado em código, `XSprite`). Cavar a até 0,9 bloco do X (`TryDig`) faz o baú aparecer; o HUD avisa "Tem um X aqui!". Não precisa de pá (ainda não há equipamento).
+- **Tela de decisão e rendição (24/11/2026, como no Pixel Piracy):**
+  - `Ship/SeaDialog.cs` (criado pelo `SeaHUD`): escurece a tela, para o jogo (`timeScale 0`, que o `CrewCommander` e o Sandbox respeitam) e mostra a pergunta com opções (`SeaDialog.Ask`). Sem a tela, escolhe a primeira opção.
+  - Navio à vista (`EncounterDirector.AskOnSight`): pirata = "Enfrentar!" / "Fugir (N% de chance)" (`EscapeChance` = 50% + 12% por nó de diferença, entre 15% e 95%; falhou = combate); mercante = "Interceptar!" / "Deixar passar".
+  - Eventos do mar com escolha (`SeaController.SeaEvent`): náufrago (resgatar ou seguir; sem vaga, jogar comida = +2 de moral), garrafa (pescar ou ignorar), tempestade (atravessar = dano no casco, ou contornar = +40% de tempo com chuva).
+  - Rendição: a vitória dá só o ouro do cofre; o estado `Victory` espera o capitão (`Deciding`). Botões no `SeaHUD`: **Capturar o navio** (`Capture` com confirmação → `SeaController.AdoptShip`: `ShipLayout.ReplaceWith(inimigo, espelhado)`, o navio antigo é vendido pela metade do `value`, dano proporcional ao casco do inimigo; vale para o save porque o `Layout` é o `GameFlow.Ship`), **Saquear** (só com todos a bordo, `CanPlunder`: ouro + chance de rum/peixe/cana, e o navio explode e afunda) e **Deixar ir** (`LetGo`, o fluxo antigo de recolher a prancha e o inimigo ir embora).
+- **Mapa no estilo do Pixel Piracy (24/11/2026), em `MapPanel`:** ilhas não reveladas a até 64 milhas de uma ilha visitada aparecem como "?" (`Rumored`, ícone `unknownIcon`) e dá para navegar até elas ("Explorar!"; a viagem diz "uma ilha desconhecida"). Selo com o número do perigo no canto de cada ícone (verde/amarelo/vermelho), dica no mouse (tipo, perigo, milhas, tempo) e rota pontilhada até o destino escolhido.
+- **Vida a bordo (24/11/2026, inspirada no Pixel Piracy)**, em `Ship/ShipLife.cs` (gerente, no objeto do SeaController) e `Ship/CrewLife.cs` (um por tripulante embarcado, criado em `SeaController.AddFighter`). Só funciona atracado ou navegando, sem combate (`ShipLife.Calm`); com briga, a `CombatAI` assume.
+  - Peças com função (`ShipBlockDef.use`): **Caixa de comida** (`Comida`, nova), **Barril de rum** (`Barril`), **Rede** (`Cabine`).
+  - Fome 0–100 sobe no mar (~140 s até 100); acima de 60 vai comer na caixa (+1 moral). Sem caixa, com fome cheia reclama e perde 1 de moral a cada 25 s.
+  - Rum: chance de beber (Beberrão 30%, moral < 50 15%, senão 5%) gasta 1 rum do estoque, +4 de moral e fica bêbado 25 s (balança).
+  - Noite (`DayProgress >= 0.8`): dorme na rede (uma pessoa por rede; deitado com `body.rotation = -90`, "Zzz...").
+  - Sujeira de gaivota aparece no convés navegando (até 4); o Marujo limpa (se não houver Marujo, qualquer um). Com 2+ sujeiras, todos perdem 1 de moral a cada 40 s.
+  - Pescador pesca na beirada do convés navegando: 50% de +1 peixe no estoque.
+  - Passeio e escadas: anda até lugares do andar e troca de andar pela escada (`ShipLife.LadderBetween`; sobe com `CombatAI.externalControl` e ignora os pisos vazados enquanto sobe/desce).
+  - Falas em balão (`Combat/SpeechBubble.cs`, papel do pacote de UI): conforme o momento (atracado, noite, fome, bêbado, moral baixa) e os traços.
 - **Modo Sandbox (24/11/2026), em `Village/Sandbox/`:** botão "Sandbox (testes)" no menu inicial.
   - Começa com +10.000 ouro, +50 de cada item e 4 tripulantes de nível 3 (`SandboxMode.Begin`).
   - **Nunca salva:** `SavingEnabled = false`, e `SaveSystem.Save` recusa enquanto `SandboxMode.Active`. O menu inicial chama `SandboxMode.Reset`.

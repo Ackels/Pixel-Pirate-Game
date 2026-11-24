@@ -7,6 +7,9 @@ namespace Pixel.Ship
     /// <summary>Forma do bloco. Rampa e curvo têm 4 orientações; meio bloco tem 2 (embaixo / em cima).</summary>
     public enum BlockShape { Full, Slope, Round, Half }
 
+    /// <summary>Para que a tripulação usa a peça na vida a bordo.</summary>
+    public enum BlockUse { None, Food, Rum, Bed }
+
     /// <summary>Aba do estaleiro onde o bloco aparece.</summary>
     public enum BlockCategory { Casco, Estrutura, Velas, Armas, Enfeites }
 
@@ -34,10 +37,15 @@ namespace Pixel.Ship
         public Sprite[] connectSprites;
         [Tooltip("Vela: pedaço que liga a vela ao mastro vizinho (4 peças: 1 = vela igual em cima, 2 = embaixo).")]
         public Sprite[] tabSprites;
+        [Tooltip("Animação contínua (ex.: bandeira tremulando). Para velas, connectSprites tem 16 peças por quadro de vento.")]
+        public Sprite[] animFrames;
+        public float animFps = 10f;
         public ConnectMode connect;
         public BlockRole role;
         public BlockShape shape;
         public BlockCategory category;
+        [Tooltip("Vida a bordo: caixa de comida, barril de rum, rede de dormir.")]
+        public BlockUse use;
         [Tooltip("Blocos da mesma família são o mesmo formato em cores diferentes (o estaleiro mostra um botão e as cores).")]
         public string family;
         public Color swatch = Color.white;

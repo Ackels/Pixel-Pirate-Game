@@ -20,10 +20,13 @@ MonoBehaviour:
   spriteSingle: {fileID: 0}
   connectSprites: []
   tabSprites: []
+  animFrames: []
+  animFps: 10
   connect: 0
   role: 0
   shape: 2
   category: 0
+  use: 0
   family: casco_curvo
   swatch: {r: 0.7058824, g: 0.29803923, b: 0.25882354, a: 1}
   cost: 12

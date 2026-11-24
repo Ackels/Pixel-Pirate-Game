@@ -132,6 +132,29 @@ namespace Pixel.Ship
             if (notify) Changed?.Invoke();
         }
 
+        /// <summary>
+        /// Troca o navio inteiro pelo desenho de outro (navio capturado). mirror = vira de lado (os inimigos
+        /// são desenhados com a proa para a esquerda). O resultado fica centralizado na grade.
+        /// </summary>
+        public void ReplaceWith(ShipLayout other, bool mirror)
+        {
+            if (other == null || other.blocks.Count == 0) return;
+            int minX = int.MaxValue, maxX = int.MinValue;
+            foreach (var c in other.blocks.Keys) { minX = Mathf.Min(minX, c.x); maxX = Mathf.Max(maxX, c.x); }
+            int shift = (Width - (maxX - minX + 1)) / 2 - minX;
+            blocks.Clear();
+            rots.Clear();
+            foreach (var kv in other.blocks)
+            {
+                int x = mirror ? minX + maxX - kv.Key.x : kv.Key.x;
+                int r = other.Rot(kv.Key);
+                if (mirror && kv.Value != null) r = ShipShapes.Mirror(kv.Value.shape, r);
+                var nc = new Vector2Int(x + shift, kv.Key.y);
+                if (InBounds(nc)) Set(nc, kv.Value, r, false);
+            }
+            Changed?.Invoke();
+        }
+
         public ShipBlockDef Remove(Vector2Int c)
         {
             if (!blocks.TryGetValue(c, out var def)) return null;

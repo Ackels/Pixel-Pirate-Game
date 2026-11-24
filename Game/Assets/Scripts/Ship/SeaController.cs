@@ -56,7 +56,8 @@ namespace Pixel.Ship
         public WorldMap World => GameFlow.Instance != null ? GameFlow.Instance.World : (testWorld ??= WorldMap.Generate(1234));
 
         WorldMap testWorld;
-        float legSeconds, legElapsed, eventAt = -1f, defeatTimer = -1f;
+        float legSeconds, legElapsed, eventAt = -1f, defeatTimer = -1f, weatherAt = -1f;
+        Weather legWeather;
         int legShortage;
         int testGold = 500, testDamage;
         readonly System.Random rng = new System.Random();
@@ -82,6 +83,8 @@ namespace Pixel.Ship
             captain.Teleport(shipView.SpawnPoint());
             captain.FellOverboard += () => Say("Homem ao mar! O capitão voltou pro convés encharcado.");
             if (VillageManager.Instance != null) VillageManager.Instance.Changed += RaiseChanged;
+            if (GetComponent<ShipLife>() == null) gameObject.AddComponent<ShipLife>();   // vida a bordo
+            if (Damage > 0) shipView.ScatterDamage(Mathf.Clamp(Damage / 12, 1, 10));     // avarias da última viagem
             SpawnCrew();
             Location = World.Home;
             Changed?.Invoke();
@@ -110,6 +113,7 @@ namespace Pixel.Ship
             c.damage = m.CombatDamage;
             c.link = m;
             c.Downed += _ => m.injured = true;
+            c.gameObject.AddComponent<CrewLife>().member = m;
             CrewFighters.Add(c);
             return c;
         }
@@ -117,7 +121,7 @@ namespace Pixel.Ship
         void RaiseChanged() => Changed?.Invoke();
 
         // ---------- Modo Sandbox (testes) ----------
-        public void SandboxRepair() { Damage = 0; RaiseChanged(); }
+        public void SandboxRepair() { Damage = 0; shipView.ClearDamage(); RaiseChanged(); }
 
         public void SandboxRevealMap()
         {
@@ -157,6 +161,7 @@ namespace Pixel.Ship
 
         void Update()
         {
+            if (Stats.hp > 0) shipView.damageLevel = (float)Damage / Stats.hp;
             bool arriving = islands != null && islands.Root != null && !islands.Arrived;
             if (Mode == SeaMode.Sailing && !InCombat && !arriving)
             {
@@ -165,6 +170,7 @@ namespace Pixel.Ship
                 legElapsed += Time.deltaTime;
                 DistanceMiles += Stats.speedKnots * Time.deltaTime / secondsPerMileKnot;
                 if (eventAt > 0 && before < eventAt && legElapsed >= eventAt) SeaEvent();
+                if (weatherAt > 0 && before < weatherAt && legElapsed >= weatherAt) BeginWeather();
                 if (legElapsed >= legSeconds) Arrive();
             }
             else scroller.speed = arriving ? Stats.speedKnots * knotsToUnits * 0.4f : 0f;
@@ -176,6 +182,7 @@ namespace Pixel.Ship
                 NearbyInteractable = Interactable.Nearest(captain.transform.position);
                 if (NearbyInteractable != null && Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
                     NearbyInteractable.onUse?.Invoke();
+                if (Keyboard.current != null && Keyboard.current.gKey.wasPressedThisFrame && !CrewCommander.Paused) Dig();
             }
 
             // Capitão caído na ilha = derrota
@@ -242,6 +249,7 @@ namespace Pixel.Ship
             int cost = RepairCost;
             if (!Spend(cost)) { Say($"Ouro insuficiente para o conserto ({cost})."); return; }
             Damage = 0;
+            shipView.ClearDamage();
             Say("Casco consertado! Pronto para zarpar.");
             Changed?.Invoke();
         }
@@ -370,9 +378,13 @@ namespace Pixel.Ship
             legElapsed = 0f;
             eventAt = rng.NextDouble() < 0.4 ? legSeconds * (0.2f + (float)rng.NextDouble() * 0.6f) : -1f;
             EncounterDirector.Instance?.ScheduleLeg(legSeconds, to.Danger(World.Home.pos));
+            // Clima do trecho: ~25% chuva, ~10% tempestade (começa em algum ponto da viagem)
+            double w = rng.NextDouble();
+            legWeather = w < 0.10 ? Weather.Storm : w < 0.35 ? Weather.Rain : Weather.Clear;
+            weatherAt = legWeather != Weather.Clear ? legSeconds * (0.05f + (float)rng.NextDouble() * 0.4f) : -1f;
             Mode = SeaMode.Sailing;
             string food = legShortage > 0 ? $" Faltaram {legShortage} porções de peixe: a tripulação vai passar fome!" : $" Provisões: {need} peixe.";
-            Say($"Rumo a {to.name}! (~{legSeconds:0} s).{food}");
+            Say($"Rumo a {(to.revealed ? to.name : "uma ilha desconhecida")}! (~{legSeconds:0} s).{food}");
             Changed?.Invoke();
         }
 
@@ -389,6 +401,7 @@ namespace Pixel.Ship
                 if (rb) { rb.position = p; rb.linearVelocity = Vector2.zero; }
             }
             SetCrewCharge(false);
+            ClearCrewOrders();
             ReviveCrew();
             islands.Leave(towardsHome);
         }
@@ -438,6 +451,79 @@ namespace Pixel.Ship
             Changed?.Invoke();
         }
 
+        /// <summary>
+        /// Passa a navegar no navio capturado: o desenho dele vira o seu (o antigo é vendido pela metade do valor),
+        /// com o dano que ele tinha. Todo mundo vai para o convés novo.
+        /// </summary>
+        public void AdoptShip(ShipLayout captured, float damageFraction, out int soldFor)
+        {
+            soldFor = Stats.value / 2;
+            Layout.ReplaceWith(captured, true);
+            Stats = Layout.ComputeStats();
+            Damage = Mathf.Clamp(Mathf.RoundToInt(damageFraction * Stats.hp), 0, Mathf.Max(0, Stats.hp - 1));
+            shipView.ClearDamage();
+            if (Damage > 0) shipView.ScatterDamage(Mathf.Clamp(Damage / 12, 1, 10));
+            if (soldFor > 0) AddLoot(soldFor, new Dictionary<string, int>());
+            ClearCrewOrders();
+            captain.Teleport(shipView.SpawnPoint());
+            int i = 0;
+            foreach (var c in CrewFighters)
+            {
+                if (c == null) continue;
+                var p = shipView.SpawnPoint((i % 2 == 0 ? -1.2f : 1.2f) * (1 + i / 2)) + Vector2.up * 0.2f;
+                c.transform.position = p;
+                var rb = c.GetComponent<Rigidbody2D>();
+                if (rb) { rb.position = p; rb.linearVelocity = Vector2.zero; }
+                var ai = c.GetComponent<CombatAI>();
+                if (ai) { ai.homeX = p.x; ai.homeShip = shipView; }
+                i++;
+            }
+            Changed?.Invoke();
+        }
+
+        /// <summary>O capitão usa o que estiver perto (baú, comerciante) — o mesmo que apertar E.</summary>
+        public void InteractNearby()
+        {
+            var it = captain != null ? Interactable.Nearest(captain.transform.position) : null;
+            if (it != null) it.onUse?.Invoke();
+            else Say("Não tem nada por perto do capitão para usar (chegue perto de um baú ou do comerciante).");
+        }
+
+        bool digging;
+        /// <summary>Tem um X de tesouro perto do capitão (o HUD mostra "G: cavar").</summary>
+        public bool NearDigMark => Mode == SeaMode.Landed && islands != null && captain != null && islands.NearDigMark(captain.transform.position.x);
+
+        /// <summary>O capitão cava onde está. Em cima do X da ilha do tesouro, aparece o baú.</summary>
+        public void Dig()
+        {
+            if (digging) return;
+            if (Mode != SeaMode.Landed || islands == null || islands.Root == null) { Say("Só dá pra cavar em terra firme, numa ilha."); return; }
+            StartCoroutine(DigRoutine());
+        }
+
+        System.Collections.IEnumerator DigRoutine()
+        {
+            digging = true;
+            for (int i = 0; i < 3; i++)
+            {
+                Vector2 p = captain.transform.position;
+                Fx.Spawn(Fx.Puff, p + new Vector2(UnityEngine.Random.Range(-0.35f, 0.35f), 0.15f), 0.45f, 1.5f);
+                AudioManager.PlayVaried(Sfx.Build, 0.7f, 0.2f);
+                yield return new WaitForSeconds(0.4f);
+            }
+            digging = false;
+            if (islands.TryDig(captain.transform.position.x)) { Say("Você desenterrou o baú do TESOURO! (E para abrir)"); AudioManager.Play(Sfx.Quest); }
+            else Say(islands.HasBuriedTreasure ? "Só areia... o X está em outro lugar desta ilha." : "Só areia por aqui.");
+        }
+
+        /// <summary>Cancela as ordens dadas aos tripulantes (fim do combate, saída da ilha) e o alvo do capitão.</summary>
+        public void ClearCrewOrders()
+        {
+            foreach (var c in CrewFighters)
+                if (c != null) { var ai = c.GetComponent<CombatAI>(); if (ai) ai.ClearOrders(); }
+            if (captain != null) captain.ClearAutoTarget();
+        }
+
         void SetCrewCharge(bool on)
         {
             foreach (var c in CrewFighters)
@@ -448,9 +534,38 @@ namespace Pixel.Ship
         void SeaEvent()
         {
             double roll = rng.NextDouble();
-            if (roll < 0.34) Castaway();
-            else if (roll < 0.67) Bottle();
-            else Storm();
+            if (roll < 0.34)
+            {
+                int seats = Mathf.Max(0, Stats.MaxCrew - 1);
+                if (CrewFighters.Count < seats && CrewManager.Instance != null)
+                    SeaDialog.Ask("Náufrago à vista!", "Um marinheiro agarrado num barril acena desesperado para o navio.",
+                        new SeaDialog.Option("Resgatar (entra no bando)", Castaway),
+                        new SeaDialog.Option("Seguir viagem", () => Say("Deixamos o náufrago para trás...")));
+                else
+                    SeaDialog.Ask("Náufrago à vista!", "Um marinheiro agarrado num barril acena... mas não há vaga a bordo. (Construa redes!)",
+                        new SeaDialog.Option("Jogar água e biscoito (+2 de moral)", () =>
+                        {
+                            foreach (var c in CrewFighters) if (c != null && c.link is CrewMember cm) cm.morale = Mathf.Min(100, cm.morale + 2);
+                            Say("A tripulação gostou da boa ação (+2 de moral).");
+                        }),
+                        new SeaDialog.Option("Seguir viagem", () => Say("Deixamos o náufrago para trás...")));
+            }
+            else if (roll < 0.67)
+                SeaDialog.Ask("Uma garrafa boiando!", "Tem alguma coisa dentro dela...",
+                    new SeaDialog.Option("Pescar a garrafa", Bottle),
+                    new SeaDialog.Option("Ignorar", () => Say("A garrafa seguiu com a corrente.")));
+            else
+            {
+                int lo = Mathf.RoundToInt(Stats.hp * 0.08f), hi = Mathf.RoundToInt(Stats.hp * 0.18f);
+                SeaDialog.Ask("Tempestade à frente!", "Nuvens negras no caminho. Atravessar castiga o casco; contornar atrasa a viagem.",
+                    new SeaDialog.Option($"Atravessar (-{lo} a {hi} de casco)", Storm),
+                    new SeaDialog.Option("Contornar (+40% de tempo)", () =>
+                    {
+                        legSeconds *= 1.4f;
+                        SeaSky.Instance?.StartWeather(Weather.Rain, 25f);
+                        Say("Demos a volta na tempestade. A viagem vai demorar mais.");
+                    }));
+            }
         }
 
         void Castaway()
@@ -477,8 +592,18 @@ namespace Pixel.Ship
             Say($"Uma garrafa boiando com {gold} moedas de ouro dentro!");
         }
 
+        void BeginWeather()
+        {
+            var sky = SeaSky.Instance;
+            if (sky == null) return;
+            float secs = Mathf.Max(25f, legSeconds * (0.5f + (float)rng.NextDouble() * 0.4f));
+            sky.StartWeather(legWeather, secs);
+            Say(legWeather == Weather.Storm ? "O céu fechou... tempestade chegando!" : "Começou a chover.");
+        }
+
         void Storm()
         {
+            SeaSky.Instance?.StartWeather(Weather.Storm, 30f);
             int dmg = Mathf.Max(3, Mathf.RoundToInt(Stats.hp * (0.08f + (float)rng.NextDouble() * 0.1f)));
             DamageShip(dmg);
             Say($"Tempestade! Ondas gigantes castigam o casco (-{dmg} de vida).");
