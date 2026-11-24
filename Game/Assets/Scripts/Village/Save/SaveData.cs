@@ -59,13 +59,14 @@ namespace Pixel.Village
         public List<int> traits = new List<int>();
         public bool fed, paid;
         public Color skin, outfit, hair;
+        public string look;
 
         public static CrewSave From(CrewMember m)
         {
             var s = new CrewSave
             {
                 name = m.name, profession = (int)m.profession, level = m.level, xp = m.xp, morale = m.morale,
-                fed = m.fedToday, paid = m.paidToday, skin = m.skin, outfit = m.outfit, hair = m.hair,
+                fed = m.fedToday, paid = m.paidToday, skin = m.skin, outfit = m.outfit, hair = m.hair, look = m.look,
             };
             foreach (var t in m.traits) s.traits.Add((int)t);
             return s;
@@ -76,7 +77,7 @@ namespace Pixel.Village
             var m = new CrewMember
             {
                 name = name, profession = (Profession)profession, level = level, xp = xp, morale = morale,
-                fedToday = fed, paidToday = paid, skin = skin, outfit = outfit, hair = hair,
+                fedToday = fed, paidToday = paid, skin = skin, outfit = outfit, hair = hair, look = look,
             };
             foreach (var t in traits) m.traits.Add((Trait)t);
             return m;

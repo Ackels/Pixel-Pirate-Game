@@ -34,7 +34,31 @@ namespace Pixel.Village
         public int recruitsPerDay = 3;
 
         [Header("Visual")]
+        [Tooltip("Bonecos em camadas (ainda usados no mar até a arte nova chegar lá).")]
         public LayerSprites sprites;
+        [Tooltip("Visuais dos personagens (Ninja Adventure).")]
+        public CharacterLibrary looks;
+
+        /// <summary>O visual de um tripulante (escolhe um se ainda não tiver, ex.: save antigo).</summary>
+        public CharacterLook LookOf(CrewMember m)
+        {
+            if (looks == null || m == null) return null;
+            var l = looks.Find(m.look);
+            if (l == null) { l = looks.ForName(m.name); if (l != null) m.look = l.name; }
+            return l;
+        }
+
+        string PickLook()
+        {
+            if (looks == null || looks.crew == null || looks.crew.Length == 0) return null;
+            var used = new HashSet<string>();
+            foreach (var c in crew) if (c.look != null) used.Add(c.look);
+            foreach (var r in recruits) if (r.look != null) used.Add(r.look);
+            var free = new List<CharacterLook>();
+            foreach (var l in looks.crew) if (l != null && !used.Contains(l.name)) free.Add(l);
+            var pool = free.Count > 0 ? free : new List<CharacterLook>(looks.crew);
+            return pool[Random.Range(0, pool.Count)].name;
+        }
 
         public int Day { get; private set; } = 1;
         public float DayProgress => dayTimer / dayLength;
@@ -156,7 +180,7 @@ namespace Pixel.Village
             var go = new GameObject("Tripulante_" + m.name);
             go.transform.position = spawn;
             go.transform.SetParent(transform, true);
-            go.AddComponent<CrewAgent>().Init(m, sprites);
+            go.AddComponent<CrewAgent>().Init(m, LookOf(m));
             AssignAll();
         }
 
@@ -194,6 +218,7 @@ namespace Pixel.Village
                 outfit = Outfits[Random.Range(0, Outfits.Length)],
                 hair = Hairs[Random.Range(0, Hairs.Length)],
             };
+            m.look = PickLook();
             int traitCount = Random.value < 0.35f ? 2 : 1;
             var all = (Trait[])Enum.GetValues(typeof(Trait));
             while (m.traits.Count < traitCount)

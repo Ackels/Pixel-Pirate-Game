@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.BuildingDef
   displayName: Estaleiro
   description: "Libera a edi\xE7\xE3o do navio nas docas."
-  sprite: {fileID: 21300000, guid: 8321001c4c9212c4da830be3a6676ec5, type: 3}
+  sprite: {fileID: 21300000, guid: 8f53894aadfe3244eadccfa7afb67ae2, type: 3}
   icon: {fileID: 0}
   kind: 4
   footprint: {x: 3, y: 2}

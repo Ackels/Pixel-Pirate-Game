@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5001311aa27ffe40b6eabfa5825eeac, type: 3}
+  m_Name: Villager4
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.CharacterLook
+  down:
+  - {fileID: 1360905345, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  - {fileID: -1890306239, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  - {fileID: -1948860747, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  - {fileID: -104812661, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  up:
+  - {fileID: 1942670284, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  - {fileID: 537609892, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  - {fileID: -516725177, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  - {fileID: -1461220103, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  left:
+  - {fileID: 960750087, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  - {fileID: 2095508586, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  - {fileID: 529140779, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  - {fileID: 1934254035, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  right:
+  - {fileID: 1459391804, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  - {fileID: 1445575152, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  - {fileID: 1030544170, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  - {fileID: -54501396, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  attack:
+  - {fileID: -1875832575, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  - {fileID: -1306607859, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  - {fileID: -1673159839, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  - {fileID: -1800164797, guid: 59987e6a22113614d9ece3a4c189b17c, type: 3}
+  portrait: {fileID: 21300000, guid: 42dc9252c5bb21348bd062e096b8141d, type: 3}

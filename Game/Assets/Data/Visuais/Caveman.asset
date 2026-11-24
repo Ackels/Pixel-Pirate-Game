@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5001311aa27ffe40b6eabfa5825eeac, type: 3}
+  m_Name: Caveman
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.CharacterLook
+  down:
+  - {fileID: -851473190, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  - {fileID: 603425860, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  - {fileID: -523650516, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  - {fileID: -630352044, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  up:
+  - {fileID: -1466407943, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  - {fileID: -1022212158, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  - {fileID: 837376492, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  - {fileID: -1050303286, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  left:
+  - {fileID: -1290310347, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  - {fileID: 37625064, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  - {fileID: 736825601, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  - {fileID: -877046987, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  right:
+  - {fileID: 1067222140, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  - {fileID: -282143017, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  - {fileID: -1082507784, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  - {fileID: 394334974, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  attack:
+  - {fileID: 1876598815, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  - {fileID: -113457907, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  - {fileID: -725258742, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  - {fileID: 1352849050, guid: 66f70525c743a6a49b405e9cfa1b6e13, type: 3}
+  portrait: {fileID: 21300000, guid: cf9086294de6428478f23c28f539e39f, type: 3}

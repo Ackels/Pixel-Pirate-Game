@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5001311aa27ffe40b6eabfa5825eeac, type: 3}
+  m_Name: Monk
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.CharacterLook
+  down:
+  - {fileID: 574684075, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  - {fileID: -1890136670, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  - {fileID: 1001827966, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  - {fileID: 1426877595, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  up:
+  - {fileID: 1043075080, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  - {fileID: 351673792, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  - {fileID: -1194700965, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  - {fileID: 2126890422, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  left:
+  - {fileID: -1899544292, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  - {fileID: 1833708990, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  - {fileID: -1606795514, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  - {fileID: -471360057, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  right:
+  - {fileID: -1416392976, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  - {fileID: -1812948850, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  - {fileID: -763495322, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  - {fileID: 13822178, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  attack:
+  - {fileID: 1695160344, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  - {fileID: -1495755880, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  - {fileID: 1870350832, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  - {fileID: -1398748492, guid: a3870448b9006ff428507fb3fb0d9118, type: 3}
+  portrait: {fileID: 21300000, guid: b79e256df55fbc2499b1bfb0a73b1fd8, type: 3}

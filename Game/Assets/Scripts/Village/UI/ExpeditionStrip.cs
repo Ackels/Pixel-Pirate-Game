@@ -149,13 +149,26 @@ namespace Pixel.Village
         {
             var em = ExpeditionManager.Instance;
             var cm = CrewManager.Instance;
+            var lib = cm.looks;
             if (f.member != null)
             {
-                Layered(body, cm.sprites.right, f.member.skin, f.member.outfit, f.member.hair, false);
+                var look = cm.LookOf(f.member);
+                if (look != null) Look(body, look.right[0]);
+                else Layered(body, cm.sprites.right, f.member.skin, f.member.outfit, f.member.hair, false);
                 return;
             }
             switch (f.enemyType)
             {
+                case EnemyType.Pirata when lib != null && lib.enemyPirate != null:
+                    Look(body, lib.enemyPirate.left[0]);
+                    break;
+                case EnemyType.CapitaoLendario when lib != null && lib.legendCaptain != null:
+                    Look(body, lib.legendCaptain.left[0]);
+                    body.localScale = new Vector3(1.35f, 1.35f, 1);
+                    break;
+                case EnemyType.Esqueleto when lib != null && lib.skeleton != null:
+                    Look(body, lib.skeleton.left[0]);
+                    break;
                 case EnemyType.Pirata:
                     Layered(body, cm.sprites.left, new Color32(232, 178, 128, 255), new Color32(40, 40, 45, 255), new Color32(160, 30, 30, 255), false);
                     break;
@@ -172,6 +185,9 @@ namespace Pixel.Village
                     break;
             }
         }
+
+        /// <summary>Boneco do Ninja Adventure (16x16) desenhado em dobro.</summary>
+        void Look(RectTransform body, Sprite s) => Img(body, s, Color.white).rectTransform.sizeDelta = new Vector2(32, 32);
 
         void Layered(RectTransform body, CrewManager.DirSprites set, Color skin, Color outfit, Color hair, bool flip)
         {

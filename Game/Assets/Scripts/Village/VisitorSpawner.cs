@@ -9,6 +9,8 @@ namespace Pixel.Village
         public int maxVisitors = 6;
         public Vector2 spawnPoint = new Vector2(31.5f, 1f);
         public Sprite[] down, up, left, right;
+        [Tooltip("Visuais possíveis (se vazio, usa os quadros acima com cores variadas).")]
+        public CharacterLook[] looks;
 
         static readonly Color[] Tints =
         {
@@ -34,11 +36,16 @@ namespace Pixel.Village
             go.transform.SetParent(transform, false);
             go.transform.position = spawnPoint;
             var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = up != null && up.Length > 0 ? up[0] : null;
             sr.spriteSortPoint = SpriteSortPoint.Pivot;
-            sr.color = Tints[Random.Range(0, Tints.Length)];
             var v = go.AddComponent<Visitor>();
-            v.down = down; v.up = up; v.left = left; v.right = right;
+            var look = looks != null && looks.Length > 0 ? looks[Random.Range(0, looks.Length)] : null;
+            if (look != null) { v.down = look.down; v.up = look.up; v.left = look.left; v.right = look.right; }
+            else
+            {
+                v.down = down; v.up = up; v.left = left; v.right = right;
+                sr.color = Tints[Random.Range(0, Tints.Length)];
+            }
+            sr.sprite = v.up != null && v.up.Length > 0 ? v.up[0] : null;
             v.speed = Random.Range(2.2f, 3f);
             v.Init(market, spawnPoint);
         }

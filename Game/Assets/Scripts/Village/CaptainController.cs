@@ -14,7 +14,7 @@ namespace Pixel.Village
         [Tooltip("Velocidade em unidades por segundo (1 unidade = 16 px).")]
         public float moveSpeed = 4.5f;
 
-        [Header("Animação (3 quadros por direção: parado, passo A, passo B)")]
+        [Header("Animação (quadro 0 = parado; todos os quadros se alternam ao andar)")]
         public Sprite[] down;
         public Sprite[] up;
         public Sprite[] left;
@@ -70,8 +70,7 @@ namespace Pixel.Village
                     currentSet = input.y < 0 ? down : up;
 
                 animTimer += Time.deltaTime * framesPerSecond;
-                int frame = 1 + (int)animTimer % 2; // alterna entre os quadros 1 e 2
-                SetFrame(frame);
+                SetFrame(currentSet != null && currentSet.Length > 0 ? (int)animTimer % currentSet.Length : 0);
             }
             else
             {

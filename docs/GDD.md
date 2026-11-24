@@ -188,7 +188,13 @@ Derrotar os **5 Capitães Lendários** que dominam os mares — cada um em uma r
 ## 7. Visual e áudio
 
 - **Pixel art**. Resolução de referência **640×360** (escala perfeita para 1080p ×3 e 4K ×6).
-- Personagens ~16×24 px, blocos/tiles de 16×16 px.
+- Personagens 16×16 px (estilo "chibi" do Ninja Adventure), tiles de 16×16 px na vila.
+- **Arte (decidido em 23/11/2026): packs CC0 do itch.io**, todos de uso comercial livre e sem crédito obrigatório:
+  - **Ninja Adventure** (Pixel-boy): vila de cima e **todos os personagens** (capitão, tripulantes, visitantes, esqueletos).
+  - **Treasure Hunters** (Pixel Frog): cenário do mar e das ilhas (blocos de 32 px), baús, inimigos-bicho (caranguejo, estrela-do-mar).
+  - **Pirate Bomb** (Pixel Frog): reserva. Os piratas dele são grandes demais para a tripulação; talvez sirvam como chefões.
+  - Peças que faltam (coqueiro da vila, blocos de casco do navio) são montadas ou desenhadas no mesmo estilo e com a paleta dos packs.
+- **Mesmo personagem nos dois mundos:** cada tripulante tem um **visual** (um personagem do Ninja Adventure), guardado no save. Na vila ele aparece de cima; no mar, usa os quadros de perfil (esquerda/direita) do mesmo personagem. No mar, os personagens aparecem com o pixel 2× maior que o do cenário — aceito pelo usuário em troca de serem os mesmos.
 - Paleta quente e tropical (mar turquesa, areia, madeira, pôr-do-sol), com noite azul-roxa.
 - Efeitos: reflexo na água, ondas, chuva, ciclo dia/noite, luz de lampiões à noite.
 - Interface: madeira + pergaminho + corda (tema pirata).
@@ -207,7 +213,7 @@ Na prática, são **dois mundos**: a **vila** (gestão, de cima) e a **aventura*
 
 **Regras para a mistura funcionar:**
 - **Mesmos personagens nas duas visões.** Cada tripulante tem sprites de 4 direções (para cima) e de perfil (para o lado). O perfil top-down "de lado" deve ser reaproveitado na visão lateral sempre que der.
-- **Mesma paleta de cores e mesmo tamanho de pixel** (16 px) em tudo, para parecer um jogo só.
+- **Mesma paleta de cores** em tudo. O mar usa blocos de 32 px (Treasure Hunters) com os personagens de 16 px desenhados em dobro.
 - **Uma única transição:** ao embarcar nas docas da vila, a tela corta para a visão lateral do navio. Ao voltar para casa e atracar, ela volta para a visão de cima. Dentro da aventura não há mais cortes: navio, mar e ilhas são contínuos.
 
 **Custo:** são dois conjuntos de cenário e dois sistemas de movimento (de cima e lateral). Como as ilhas também são laterais, todo o combate fica num lugar só, a visão lateral. A vila não precisa de combate no MVP. O MVP começa pela **vila de cima** (Fases 0–2), e depois vem a aventura lateral (Fases 3+).
@@ -256,7 +262,7 @@ Depois: mais construções, facções, ataques à vila, chefes, modo Lendário, 
 
 1. ~~Perspectiva~~ → **decidido: só a vila de cima; navio, mar e ilhas de lado** (seção 7).
 2. Nome do jogo.
-3. Arte: placeholders + pack pronto no início, ou artista desde já?
+3. ~~Arte~~ → **decidido: packs CC0 (Ninja Adventure + Treasure Hunters)**, com peças complementares no mesmo estilo (seção 7).
 4. Tom: mais cômico (como Pixel Piracy) ou mais aventura séria?
 
 ---

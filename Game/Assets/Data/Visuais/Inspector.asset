@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5001311aa27ffe40b6eabfa5825eeac, type: 3}
+  m_Name: Inspector
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.CharacterLook
+  down:
+  - {fileID: -2067758606, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  - {fileID: -1585079127, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  - {fileID: -370490220, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  - {fileID: -1969822409, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  up:
+  - {fileID: 343415767, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  - {fileID: -358001541, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  - {fileID: -627839844, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  - {fileID: 1578056697, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  left:
+  - {fileID: 1959842661, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  - {fileID: -2046383693, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  - {fileID: 1693443480, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  - {fileID: -1373762339, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  right:
+  - {fileID: 2073067849, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  - {fileID: 638363572, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  - {fileID: 972149756, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  - {fileID: -78282730, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  attack:
+  - {fileID: -255343349, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  - {fileID: -2132688527, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  - {fileID: 1464211676, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  - {fileID: 2008514431, guid: f2d33297fb365c748bd5381b9beff520, type: 3}
+  portrait: {fileID: 21300000, guid: 5161a8278f7a08b419e6b716e1fae331, type: 3}

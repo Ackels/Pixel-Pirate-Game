@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.BuildingDef
   displayName: Casa
   description: Moradia para 2 tripulantes. Sem casa, a moral cai.
-  sprite: {fileID: 21300000, guid: d458482d051385f4b938647c019f57f9, type: 3}
+  sprite: {fileID: 21300000, guid: 8a179dd2d7fb06145b2f49b3ff183b9e, type: 3}
   icon: {fileID: 0}
   kind: 0
   footprint: {x: 3, y: 2}

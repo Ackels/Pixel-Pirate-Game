@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.BuildingDef
   displayName: "Quadro de Expedi\xE7\xF5es"
   description: "Mande grupos de at\xE9 4 tripulantes para masmorras. Combate autom\xE1tico!"
-  sprite: {fileID: 21300000, guid: e8214ea3850e8564c8e547222593075b, type: 3}
+  sprite: {fileID: 21300000, guid: 32cc2af905c614c45b79e0b170cb1406, type: 3}
   icon: {fileID: 0}
   kind: 5
   footprint: {x: 2, y: 1}

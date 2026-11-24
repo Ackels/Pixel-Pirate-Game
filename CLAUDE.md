@@ -127,5 +127,15 @@
   - Só salva com o capitão na vila (`CanSaveNow`); no mar não salva.
   - Autosave (`GameFlow.AutoSave`): fim do dia (`CrewManager.DayEnded`), volta do mar e ao fechar o jogo. Só depois que o jogador escolhe Continuar ou Novo jogo (`SavingEnabled`), para não sobrescrever o save com um jogo vazio.
   - `UI/GameMenu`: menu inicial (Continuar com resumo do save / Novo jogo com confirmação / Sair) e pausa no Esc (Continuar / Salvar agora / Sair para o menu, que salva e recarrega a cena). Usa `Time.timeScale = 0`; o HUD ignora a entrada enquanto `GameMenu.IsOpen`.
+- **Arte nova (23/11/2026):** packs CC0 baixados do itch.io em `ArteBaixada/` (fora do git, no `.gitignore`): Ninja Adventure, Treasure Hunters e Pirate Bomb.
+  - Os scripts em `tools/arte/` (Python puro, sem Pillow; rodar com `python -P`) recortam o que o jogo usa para `Game/Assets/Art/Ninja` (`ninja_export.py`) e `Game/Assets/Art/ArtTest` (testes).
+  - `Art/Ninja/Auto/<conjunto>_<máscara>.png`: peças de borda automáticas (água, areia, caminho), uma por máscara de vizinhos (bits 1=N 2=NE 4=L 8=SE 16=S 32=SO 64=O 128=NO; canto só conta com os dois lados). Máscaras que faltam são geradas espelhando outras. O construtor escolhe a peça pela máscara (`Mask` + `AutoTile` em `VillageSceneBuilder.Art.cs`), com a mais parecida como reserva.
+  - A areia sobre a grama é o conjunto "neve" (`TilesetFloorB`) recolorido; o coqueiro é a copa e o tronco do Treasure Hunters recoloridos com a paleta das árvores do Ninja Adventure.
+  - **Visuais de personagem:** `CharacterLook` (4 quadros de caminhada por direção, ataque e retrato) e o catálogo `CharacterLibrary` (`Assets/Data/Visuais/Catalogo.asset`): capitão = Noble; tripulação, visitantes, esqueleto, pirata inimigo (FighterRed) e Capitão Lendário (Sultan).
+    - As folhas `SpriteSheet.png` são fatiadas em quadros 16×16 chamados `Nome_coluna_linha`: colunas = baixo, cima, esquerda, direita; linhas 0–3 = caminhada; linha 4 = ataque.
+    - `CrewMember.look` guarda o nome do visual (vai no save); saves antigos sem visual ganham um pelo nome (`CharacterLibrary.ForName`). As cores (`skin/outfit/hair`) continuam só para o boneco em camadas do mar, até a arte nova chegar lá.
+  - Os sprites dos prédios são reaplicados a cada montagem (`ApplyBuildingArt`); os tamanhos de terreno (footprint) não mudaram.
+  - Cenas de teste da arte (sem lógica): `ArtTest_Village` e `ArtTest_Sea`, geradas por **Pixel > Montar cenas de teste de arte** (`ArtTestBuilder`).
+  - **Próximos passos da arte:** mar e ilhas (Treasure Hunters + personagens do Ninja de perfil), ícones da interface e masmorras.
 - Repositório: https://github.com/Ackels/Pixel-Pirate-Game (privado, branch `main`). O `gh` CLI não está instalado; o push usa o gerenciador de credenciais do git.
 - Outro projeto do usuário, PirateRPG (`C:\Users\jhona\Projetos\PirateRPG`), é **separado**. Não misturar.

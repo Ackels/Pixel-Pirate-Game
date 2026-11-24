@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.BuildingDef
   displayName: Cabana de Pesca
   description: "Pescador traz +1 Peixe a cada 8 s. Precisa ficar na beira d'\xE1gua."
-  sprite: {fileID: 21300000, guid: f972a345776fe1e479b36c46a74daeeb, type: 3}
+  sprite: {fileID: 21300000, guid: 455f569c4f005174d8d07ad299052b68, type: 3}
   icon: {fileID: 0}
   kind: 1
   footprint: {x: 2, y: 2}

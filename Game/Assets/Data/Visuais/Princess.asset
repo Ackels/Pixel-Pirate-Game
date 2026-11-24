@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5001311aa27ffe40b6eabfa5825eeac, type: 3}
+  m_Name: Princess
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.CharacterLook
+  down:
+  - {fileID: -1085123042, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  - {fileID: -688591395, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  - {fileID: 1267301162, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  - {fileID: -1417024319, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  up:
+  - {fileID: 948737243, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  - {fileID: 250268666, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  - {fileID: -1683671831, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  - {fileID: -1228134269, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  left:
+  - {fileID: 1410120848, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  - {fileID: -1584961172, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  - {fileID: -1940136007, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  - {fileID: -942189800, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  right:
+  - {fileID: -400237705, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  - {fileID: 1610320997, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  - {fileID: 646532047, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  - {fileID: 1983387661, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  attack:
+  - {fileID: -558430561, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  - {fileID: -131351900, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  - {fileID: -664558185, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  - {fileID: -922395691, guid: aeb51cc8d4b029242a1c9e450678e6a9, type: 3}
+  portrait: {fileID: 21300000, guid: 6c6fd1f0dba277744864926c13f10dbd, type: 3}

@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5001311aa27ffe40b6eabfa5825eeac, type: 3}
+  m_Name: Cavegirl
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.CharacterLook
+  down:
+  - {fileID: -334991858, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  - {fileID: 592845089, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  - {fileID: 1468520686, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  - {fileID: -591260836, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  up:
+  - {fileID: 23403133, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  - {fileID: 1268562001, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  - {fileID: -118481476, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  - {fileID: 1176026475, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  left:
+  - {fileID: -276768059, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  - {fileID: 1071675691, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  - {fileID: -73087250, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  - {fileID: 312312248, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  right:
+  - {fileID: 1171138990, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  - {fileID: 213880646, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  - {fileID: -649013187, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  - {fileID: 1028367870, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  attack:
+  - {fileID: 1874254326, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  - {fileID: 52959282, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  - {fileID: 776907426, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  - {fileID: -308971462, guid: 6cbcd3109f25b1649b131c5bc2a7f250, type: 3}
+  portrait: {fileID: 21300000, guid: c931e4f2e1a415f4780fff7439df5e8c, type: 3}

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.BuildingDef
   displayName: Taverna
   description: Onde se contratam piratas. Novos recrutas a cada dia.
-  sprite: {fileID: 21300000, guid: 14c717d9e7de51e4bb3ab89d89a79978, type: 3}
+  sprite: {fileID: 21300000, guid: 72b46df96d4a7a04a9811be79f3c8fb2, type: 3}
   icon: {fileID: 0}
   kind: 3
   footprint: {x: 3, y: 2}

@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5001311aa27ffe40b6eabfa5825eeac, type: 3}
+  m_Name: OldMan
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.CharacterLook
+  down:
+  - {fileID: 1779583367, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  - {fileID: 256731975, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  - {fileID: -1315612474, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  - {fileID: 445890407, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  up:
+  - {fileID: -286302174, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  - {fileID: -1732886668, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  - {fileID: 416099591, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  - {fileID: -256504440, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  left:
+  - {fileID: -147792456, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  - {fileID: 1359369325, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  - {fileID: -1869092808, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  - {fileID: -1166969976, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  right:
+  - {fileID: 826480315, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  - {fileID: -1187761198, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  - {fileID: 1910837428, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  - {fileID: -1094461033, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  attack:
+  - {fileID: -1338999682, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  - {fileID: -622178105, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  - {fileID: -1642128262, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  - {fileID: -11513062, guid: 5a1f723f4085dc44f93874594fb059c0, type: 3}
+  portrait: {fileID: 21300000, guid: c8e33bb633e88d34bbff11bfe4387c8e, type: 3}

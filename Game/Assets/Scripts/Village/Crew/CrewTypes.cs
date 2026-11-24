@@ -67,6 +67,8 @@ namespace Pixel.Village
         public bool fedToday = true;
         public bool paidToday = true;
         public Color skin, outfit, hair;
+        /// <summary>Nome do visual (CharacterLook) — o mesmo personagem na vila e no mar.</summary>
+        public string look;
 
         public Building home;
         public Building workplace;

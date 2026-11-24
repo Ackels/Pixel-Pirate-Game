@@ -1,11 +1,9 @@
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace Pixel.Village
 {
     /// <summary>
-    /// O boneco de um tripulante andando pela vila. Montado em camadas
-    /// (pele, roupa, cabelo coloridos + base) para cada pirata ter um visual diferente.
+    /// O boneco de um tripulante andando pela vila, com o visual (CharacterLook) dele.
     /// Vai até o local de trabalho; sem trabalho, fica perto de casa ou da praça.
     /// </summary>
     public class CrewAgent : MonoBehaviour
@@ -16,35 +14,22 @@ namespace Pixel.Village
         /// <summary>Chegou no trabalho e está produzindo.</summary>
         public bool AtWork { get; private set; }
 
-        SpriteRenderer skin, outfit, hair, baseLayer;
-        CrewManager.LayerSprites sprites;
+        SpriteRenderer sr;
+        CharacterLook look;
         Vector2 wanderTarget;
         float wanderTimer, anim;
         bool leaving;
         Vector2 exitPoint;
 
-        public void Init(CrewMember m, CrewManager.LayerSprites layerSprites)
+        public void Init(CrewMember m, CharacterLook characterLook)
         {
             member = m;
-            sprites = layerSprites;
+            look = characterLook;
             m.agent = this;
-            gameObject.AddComponent<SortingGroup>();
-            skin = Layer("Pele", 0, m.skin);
-            outfit = Layer("Roupa", 1, m.outfit);
-            hair = Layer("Cabelo", 2, m.hair);
-            baseLayer = Layer("Base", 3, Color.white);
+            sr = gameObject.AddComponent<SpriteRenderer>();
+            sr.spriteSortPoint = SpriteSortPoint.Pivot;
             wanderTarget = transform.position;
-            SetFrame(sprites.down, 0);
-        }
-
-        SpriteRenderer Layer(string n, int order, Color c)
-        {
-            var go = new GameObject(n);
-            go.transform.SetParent(transform, false);
-            var sr = go.AddComponent<SpriteRenderer>();
-            sr.sortingOrder = order;
-            sr.color = c;
-            return sr;
+            if (look != null) sr.sprite = look.Idle(Vector2.down);
         }
 
         /// <summary>Sai da vila andando até as docas e some.</summary>
@@ -71,15 +56,15 @@ namespace Pixel.Village
                 transform.position = target;
                 if (leaving) { Destroy(gameObject); return; }
                 AtWork = member.workplace != null;
-                SetFrame(AtWork ? sprites.up : sprites.down, 0);
+                if (look != null) sr.sprite = look.Idle(AtWork ? Vector2.up : Vector2.down);
+                anim = 0f;
                 return;
             }
 
             AtWork = false;
             transform.position = pos + delta.normalized * step;
-            var set = Mathf.Abs(delta.x) > Mathf.Abs(delta.y) ? (delta.x < 0 ? sprites.left : sprites.right) : (delta.y < 0 ? sprites.down : sprites.up);
             anim += Time.deltaTime * 7f;
-            SetFrame(set, 1 + (int)anim % 2);
+            if (look != null) sr.sprite = CharacterLook.Frame(look.Walk(delta), anim);
         }
 
         Vector2 WorkSpot()
@@ -100,15 +85,6 @@ namespace Pixel.Village
                 wanderTarget = center + Random.insideUnitCircle * 2.5f;
             }
             return wanderTarget;
-        }
-
-        void SetFrame(CrewManager.DirSprites set, int frame)
-        {
-            if (set == null) return;
-            skin.sprite = set.skin[frame];
-            outfit.sprite = set.outfit[frame];
-            hair.sprite = set.hair[frame];
-            baseLayer.sprite = set.baseLayer[frame];
         }
     }
 }

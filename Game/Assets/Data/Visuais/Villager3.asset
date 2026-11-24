@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5001311aa27ffe40b6eabfa5825eeac, type: 3}
+  m_Name: Villager3
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.CharacterLook
+  down:
+  - {fileID: 1817998387, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  - {fileID: 284137425, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  - {fileID: -1419517043, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  - {fileID: 1670770096, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  up:
+  - {fileID: 364339714, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  - {fileID: -1748126308, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  - {fileID: 1147084479, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  - {fileID: -13957355, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  left:
+  - {fileID: -488346456, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  - {fileID: -1398456124, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  - {fileID: 884694369, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  - {fileID: 612413203, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  right:
+  - {fileID: -647921030, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  - {fileID: 195054280, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  - {fileID: 1324312652, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  - {fileID: -374698743, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  attack:
+  - {fileID: 50651988, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  - {fileID: -1867173661, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  - {fileID: -1160459047, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  - {fileID: 748779067, guid: c5211d497939c4f4f93df546beaaa50c, type: 3}
+  portrait: {fileID: 21300000, guid: 8f39b2b01f751504eb60ae67d35b6ebb, type: 3}

@@ -30,6 +30,7 @@ namespace Pixel.EditorTools
         {
             ConfigureProjectForPixelArt();
             ImportSprites();
+            ImportNinjaArt();
             BuildVillageScene();
             Debug.Log("[Pixel] Cena da vila montada: " + ScenePath);
         }
@@ -278,19 +279,20 @@ namespace Pixel.EditorTools
         static void BuildVillageScene()
         {
             var data = CreateData();
+            ApplyBuildingArt(data.buildings);
+            var looks = CreateLibrary();
             BuildSeaScene(data.shipBlocks);
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var rng = new System.Random(42);
 
-            var grass = new[] { GetTile("tile_grass_0"), GetTile("tile_grass_1"), GetTile("tile_grass_2") };
-            var sand = GetTile("tile_sand");
-            var water = GetTile("tile_water");
-            var path = GetTile("tile_path");
-            var dock = GetTile("tile_dock");
-            AssetDatabase.SaveAssets();
+            var grass = new[] { NinjaTileAsset("Tiles/grass_0"), NinjaTileAsset("Tiles/grass_1"), NinjaTileAsset("Tiles/grass_2"),
+                                NinjaTileAsset("Tiles/grass_3"), NinjaTileAsset("Tiles/grass_4") };
+            var sandDetail = new[] { NinjaTileAsset("Tiles/sand_detail_0"), NinjaTileAsset("Tiles/sand_detail_1") };
+            var dock = NinjaTileAsset("Tiles/dock");
 
             var grid = new GameObject("Grid", typeof(Grid));
-            Tilemap groundMap = CreateTilemap(grid.transform, "Chao", -20);
+            Tilemap groundMap = CreateTilemap(grid.transform, "Chao", -22);
+            Tilemap sandMap = CreateTilemap(grid.transform, "Areia", -21);
             Tilemap waterMap = CreateTilemap(grid.transform, "Agua", -21);
             Tilemap detailMap = CreateTilemap(grid.transform, "Caminhos_Docas", -19);
 
@@ -303,6 +305,16 @@ namespace Pixel.EditorTools
             bool IsWater(int x, int y) => y < 6 || (x < 5 && y < 26) || (x < 9 && y < 10);
             bool IsSand(int x, int y) => !IsWater(x, y) && (IsWater(x, y - 2) || IsWater(x - 2, y) || IsWater(x - 2, y - 2));
             bool IsDock(int x, int y) => x >= 30 && x <= 32 && y >= 0 && y < 9;
+            // Fora do mapa conta como o vizinho de dentro (sem bordas estranhas nas pontas).
+            int Cx(int x) => Mathf.Clamp(x, 0, MapW - 1);
+            int Cy(int y) => Mathf.Clamp(y, 0, MapH - 1);
+            bool WaterR(int x, int y) => IsWater(Cx(x), Cy(y));
+            bool SandR(int x, int y) => IsWater(Cx(x), Cy(y)) || IsSand(Cx(x), Cy(y));
+
+            var pathCells = new HashSet<Vector2Int>();
+            for (int y = 8; y < 32; y++) for (int x = 30; x <= 32; x++) pathCells.Add(new Vector2Int(x, y));
+            for (int x = 10; x < 58; x++) for (int y = 19; y <= 20; y++) pathCells.Add(new Vector2Int(x, y));
+            bool PathR(int x, int y) => pathCells.Contains(new Vector2Int(x, y));
 
             for (int x = 0; x < MapW; x++)
             for (int y = 0; y < MapH; y++)
@@ -310,25 +322,31 @@ namespace Pixel.EditorTools
                 var cell = new Vector3Int(x, y, 0);
                 if (IsWater(x, y))
                 {
-                    if (IsDock(x, y)) { detailMap.SetTile(cell, dock); groundMap.SetTile(cell, water); }
-                    else waterMap.SetTile(cell, water);
+                    var w = AutoTile("water", Mask(WaterR, x, y));
+                    if (IsDock(x, y)) { groundMap.SetTile(cell, w); detailMap.SetTile(cell, dock); }
+                    else waterMap.SetTile(cell, w);
+                    continue;
                 }
-                else if (IsSand(x, y)) groundMap.SetTile(cell, sand);
-                else groundMap.SetTile(cell, grass[rng.Next(100) < 70 ? 0 : rng.Next(1, 3)]);
+                groundMap.SetTile(cell, grass[rng.Next(100) < 75 ? 0 : rng.Next(1, grass.Length)]);
+                if (IsSand(x, y))
+                {
+                    int m = Mask(SandR, x, y);
+                    sandMap.SetTile(cell, m == 255 && rng.Next(100) < 12 ? sandDetail[rng.Next(sandDetail.Length)] : AutoTile("sand", m));
+                }
             }
-
-            var pathCells = new HashSet<Vector2Int>();
-            for (int y = 6; y < 32; y++) for (int x = 30; x <= 32; x++) pathCells.Add(new Vector2Int(x, y));
-            for (int x = 10; x < 58; x++) for (int y = 19; y <= 20; y++) pathCells.Add(new Vector2Int(x, y));
-            foreach (var c in pathCells) detailMap.SetTile((Vector3Int)c, path);
+            foreach (var c in pathCells) detailMap.SetTile((Vector3Int)c, AutoTile("path", Mask(PathR, c.x, c.y)));
+            AssetDatabase.SaveAssets();
 
             // Objetos do cenário
             var objects = new GameObject("Cenario").transform;
             foreach (var p in new[] { new Vector2(28.5f, 9.2f), new Vector2(28.5f, 10.4f), new Vector2(34.5f, 9.4f) })
-                CreateProp(objects, "Barril", LoadSprite("obj_barrel"), p, new Vector2(0.6f, 0.4f), new Vector2(0, 0.25f));
+                CreateProp(objects, "Barril", Ninja("Props/barril"), p, new Vector2(0.6f, 0.4f), new Vector2(0, 0.25f));
+            CreateProp(objects, "Caixa", Ninja("Props/caixa"), new Vector2(34.5f, 10.5f), new Vector2(0.8f, 0.4f), new Vector2(0, 0.25f));
 
             // Coqueiros: mais nas bordas, uma clareira no meio para construir.
-            var palm = LoadSprite("obj_palm");
+            var palm = Ninja("Props/coqueiro");
+            var trees = new[] { Ninja("Props/arvore_0"), Ninja("Props/arvore_1"), Ninja("Props/arvore_2") };
+            var small = new[] { Ninja("Props/moita_0"), Ninja("Props/moita_1"), Ninja("Props/flor_0"), Ninja("Props/flor_1") };
             int placed = 0;
             for (int tries = 0; tries < 3000 && placed < 50; tries++)
             {
@@ -341,8 +359,26 @@ namespace Pixel.EditorTools
                 if (nearPath) continue;
                 bool clearing = x > 11 && x < 55 && y > 8 && y < 31;
                 if (clearing && rng.Next(100) < 85) continue;
-                CreateProp(objects, "Coqueiro", palm, new Vector2(x + 0.5f, y), new Vector2(0.4f, 0.3f), new Vector2(0, 0.15f));
+                // Coqueiros perto da praia; árvores redondas no interior.
+                bool beach = IsSand(x, y) || IsSand(x, y - 1) || IsSand(x - 1, y) || y < 12;
+                if (beach || rng.Next(100) < 35)
+                    CreateProp(objects, "Coqueiro", palm, new Vector2(x + 0.5f, y), new Vector2(0.4f, 0.3f), new Vector2(0, 0.15f));
+                else
+                    CreateProp(objects, "Arvore", trees[rng.Next(trees.Length)], new Vector2(x + 1f, y), new Vector2(1.2f, 0.4f), new Vector2(0, 0.2f));
                 placed++;
+            }
+
+            // Moitas e flores soltas (sem colisão)
+            for (int i = 0; i < 70; i++)
+            {
+                int x = rng.Next(1, MapW - 1), y = rng.Next(1, MapH - 1);
+                if (IsWater(x, y) || IsSand(x, y) || PathR(x, y)) continue;
+                var go = new GameObject("Planta");
+                go.transform.SetParent(objects, false);
+                go.transform.position = new Vector2(x + 0.5f, y);
+                var psr = go.AddComponent<SpriteRenderer>();
+                psr.sprite = small[rng.Next(small.Length)];
+                psr.spriteSortPoint = SpriteSortPoint.Pivot;
             }
 
             var bounds = new GameObject("LimitesDoMapa").transform;
@@ -364,13 +400,13 @@ namespace Pixel.EditorTools
             feet.size = new Vector2(0.6f, 0.3f);
             feet.offset = new Vector2(0, 0.15f);
             var sr = captain.AddComponent<SpriteRenderer>();
-            sr.sprite = LoadSprite("Captain/captain_down_0");
+            sr.sprite = looks.captain.down[0];
             sr.spriteSortPoint = SpriteSortPoint.Pivot;
             var ctrl = captain.AddComponent<CaptainController>();
-            ctrl.down = Frames("Captain", "captain", "down");
-            ctrl.up = Frames("Captain", "captain", "up");
-            ctrl.left = Frames("Captain", "captain", "left");
-            ctrl.right = Frames("Captain", "captain", "right");
+            ctrl.down = looks.captain.down;
+            ctrl.up = looks.captain.up;
+            ctrl.left = looks.captain.left;
+            ctrl.right = looks.captain.right;
 
             // Câmera pixel perfect
             var camGo = new GameObject("Main Camera");
@@ -422,6 +458,7 @@ namespace Pixel.EditorTools
             spawner.up = Frames("Visitor", "visitor", "up");
             spawner.left = Frames("Visitor", "visitor", "left");
             spawner.right = Frames("Visitor", "visitor", "right");
+            spawner.looks = looks.visitors;
 
             var crewManager = village.AddComponent<CrewManager>();
             crewManager.food = data.food;
@@ -432,6 +469,7 @@ namespace Pixel.EditorTools
             {
                 down = CrewDir("down"), up = CrewDir("up"), left = CrewDir("left"), right = CrewDir("right"),
             };
+            crewManager.looks = looks;
 
             village.AddComponent<ChronicleManager>();
 

@@ -70,9 +70,9 @@ namespace Pixel.Village
         void Animate(Vector2 dir)
         {
             Sprite[] set = Mathf.Abs(dir.x) > Mathf.Abs(dir.y) ? (dir.x < 0 ? left : right) : (dir.y < 0 ? down : up);
-            if (set == null || set.Length < 3 || sr == null) return;
+            if (set == null || set.Length == 0 || sr == null) return;
             anim += Time.deltaTime * 7f;
-            sr.sprite = set[1 + (int)anim % 2];
+            sr.sprite = CharacterLook.Frame(set, anim);
         }
     }
 }

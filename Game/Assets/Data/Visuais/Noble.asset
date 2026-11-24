@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5001311aa27ffe40b6eabfa5825eeac, type: 3}
+  m_Name: Noble
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.CharacterLook
+  down:
+  - {fileID: 1783433406, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  - {fileID: -1811159241, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  - {fileID: -298407404, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  - {fileID: 493190913, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  up:
+  - {fileID: 217486194, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  - {fileID: -220274456, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  - {fileID: -521476957, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  - {fileID: 478050870, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  left:
+  - {fileID: -1031493953, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  - {fileID: -955766805, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  - {fileID: -675743543, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  - {fileID: 2124915589, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  right:
+  - {fileID: -1308865732, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  - {fileID: 1166261332, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  - {fileID: -2027388122, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  - {fileID: -222687835, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  attack:
+  - {fileID: -378144732, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  - {fileID: 438850128, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  - {fileID: 465090609, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  - {fileID: -462992724, guid: 121bbfcc1c397e14db61193b622a8e64, type: 3}
+  portrait: {fileID: 21300000, guid: 2783eb66b261008468bdbaa2a12d6787, type: 3}

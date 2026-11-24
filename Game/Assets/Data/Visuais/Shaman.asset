@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5001311aa27ffe40b6eabfa5825eeac, type: 3}
+  m_Name: Shaman
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.CharacterLook
+  down:
+  - {fileID: -1914799981, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  - {fileID: 1156537484, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  - {fileID: -1505681305, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  - {fileID: 447999999, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  up:
+  - {fileID: 657264938, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  - {fileID: 624211705, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  - {fileID: 1371161356, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  - {fileID: 1356919761, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  left:
+  - {fileID: 430030253, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  - {fileID: 394365852, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  - {fileID: -329525666, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  - {fileID: -1055733475, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  right:
+  - {fileID: 1131811763, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  - {fileID: -64921820, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  - {fileID: 1781514035, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  - {fileID: 620790567, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  attack:
+  - {fileID: -1880247284, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  - {fileID: -564941903, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  - {fileID: 249254594, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  - {fileID: -1188427322, guid: bd899874edbd4474497847cec0664b36, type: 3}
+  portrait: {fileID: 21300000, guid: a570ebda6765d0c428e38223f5cd51fe, type: 3}
