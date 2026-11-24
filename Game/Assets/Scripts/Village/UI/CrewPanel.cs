@@ -7,7 +7,6 @@ namespace Pixel.Village
     public class CrewPanel : MonoBehaviour
     {
         RectTransform list;
-        Text summary;
         float refreshTimer;
 
         public static CrewPanel Create(Transform canvas)
@@ -24,10 +23,9 @@ namespace Pixel.Village
 
             panel.list = UIKit.Rect("Lista", content);
             UIKit.Vertical(panel.list.gameObject, 0, 4);
-            UIKit.Size(panel.list, height: 340, flexWidth: 1);
+            UIKit.Size(panel.list, height: 380, flexWidth: 1);
 
-            panel.summary = UIKit.Text(content, "", 15, TextAnchor.MiddleLeft, UIKit.MutedText);
-            UIKit.Size(panel.summary, height: 30);
+            UIKit.Info(win, Summary);
 
             win.gameObject.SetActive(false);
             return panel;
@@ -43,6 +41,7 @@ namespace Pixel.Village
             {
                 var t = UIKit.Text(row, cells[i], 15, TextAnchor.MiddleLeft);
                 UIKit.Size(t, width: Columns[i], height: 26);
+                UIKit.Fit(t, 9);   // texto longo encolhe em vez de invadir a linha de baixo
             }
             return row;
         }
@@ -71,11 +70,9 @@ namespace Pixel.Village
             var cm = CrewManager.Instance;
             if (cm == null || list == null) return;
             UIKit.Clear(list);
-            int wages = 0;
             foreach (var c in cm.Crew)
             {
                 var member = c;
-                wages += c.Wage;
                 string work = c.onExpedition ? UIKit.Colored("Em expedição", new Color(0.75f, 0.65f, 1f))
                     : c.atSea ? UIKit.Colored("No mar", new Color(0.55f, 0.85f, 1f))
                     : c.workplace != null ? c.workplace.def.displayName : UIKit.Colored("Sem trabalho (vai pro mar)", UIKit.MutedText);
@@ -89,9 +86,16 @@ namespace Pixel.Village
             }
             if (cm.Crew.Count == 0)
                 UIKit.Size(UIKit.Text(list, "Ninguém no bando. Contrate na Taverna!", 16, TextAnchor.MiddleCenter, UIKit.MutedText), height: 40);
+        }
 
-            summary.text = $"{cm.Crew.Count} tripulantes · Salários: {wages} ouro/dia · Camas livres: {cm.FreeBeds}. " +
-                           "Moral baixa = trabalho lento. Abaixo de 15, o tripulante abandona o bando.";
+        static string Summary()
+        {
+            var cm = CrewManager.Instance;
+            if (cm == null) return "";
+            int wages = 0;
+            foreach (var c in cm.Crew) wages += c.Wage;
+            return $"{cm.Crew.Count} tripulantes · salários: {wages} ouro por dia · camas livres: {cm.FreeBeds}\n\n" +
+                   "Moral baixa = trabalho mais lento. Abaixo de 15, o tripulante abandona o bando.";
         }
     }
 }

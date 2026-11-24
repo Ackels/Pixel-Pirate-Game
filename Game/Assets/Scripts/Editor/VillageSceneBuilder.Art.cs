@@ -22,6 +22,16 @@ namespace Pixel.EditorTools
         // ---------- Importação ----------
         static void ImportNinjaArt()
         {
+            // Fonte da interface (Pixelify Sans Bold). Suavizada: a interface é redimensionada pela tela,
+            // e a renderização "sem suavização" deforma as letras em tamanhos quebrados.
+            const string fontPath = "Assets/Resources/Fonts/PixelifySans-Bold.ttf";
+            if (AssetImporter.GetAtPath(fontPath) is TrueTypeFontImporter fi)
+            {
+                fi.fontRenderingMode = FontRenderingMode.Smooth;
+                fi.fontTextureCase = FontTextureCase.Dynamic;
+                fi.SaveAndReimport();
+            }
+
             foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { NinjaDir }))
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);

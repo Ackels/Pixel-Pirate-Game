@@ -8,8 +8,9 @@ using UnityEngine.UI;
 namespace Pixel.Village
 {
     /// <summary>
-    /// Interface da vila, montada por código: dia, ouro e estoque (topo), barra de construção (baixo),
-    /// registro de eventos, janelas (Taverna, Tripulação, info do prédio) e textos flutuantes.
+    /// Interface da vila, montada por código, no estilo de madeira pirata:
+    /// recursos (topo esquerdo), dia e ajuda (topo direito), barra de ícones embaixo
+    /// (Construir, Tripulação, Expedições, Crônicas, Menu) e o menu de construções que abre pelo martelo.
     /// </summary>
     public class VillageHUD : MonoBehaviour
     {
@@ -29,11 +30,26 @@ namespace Pixel.Village
         public void Toast(string msg) { toast = msg; toastTimer = 2.5f; }
         public Font UIFont => UIKit.Font;
 
+        const float DockY = 12, DockHeight = 76;
+        static readonly string[] Categories = { "Moradia", "Produção", "Serviços" };
+        static int CategoryOf(BuildingDef d) => d.kind switch
+        {
+            BuildingKind.House or BuildingKind.Tavern => 0,
+            BuildingKind.Producer => 1,
+            _ => 2,
+        };
+
         Text dayText, goldText, crewText, hintText;
         Image dayBar;
+        RectTransform hintPanel, buildTray, helpPanel, dockPanel;
+        EventLog eventLog;
+        bool trayOpen;
         readonly List<(ItemDef item, Text text)> itemTexts = new List<(ItemDef, Text)>();
-        readonly List<(BuildingDef def, Button button, Image bg)> buildButtons = new List<(BuildingDef, Button, Image)>();
-        Image demolishBg;
+        readonly List<(BuildingDef def, Button button, Image bg, Text cost)> buildButtons = new List<(BuildingDef, Button, Image, Text)>();
+        readonly List<Image> tabs = new List<Image>();
+        int category;
+        Image demolishBg, buildDock, crewDock, expDock, chronDock;
+        RectTransform expBadge;
         BuildingInfoPanel infoPanel;
         TavernPanel tavernPanel;
         CrewPanel crewPanel;
@@ -45,6 +61,8 @@ namespace Pixel.Village
 
         void Awake() => Instance = this;
         void OnDestroy() { if (Instance == this) Instance = null; }
+
+        public bool BuildMenuOpen => trayOpen;
 
         void Start()
         {
@@ -68,64 +86,104 @@ namespace Pixel.Village
             FloatingRoot = UIKit.Rect("TextosFlutuantes", root);
             UIKit.Stretch(FloatingRoot);
 
-            // --- Topo esquerdo: dia + recursos ---
-            var top = UIKit.Panel("Recursos", root, new Vector2(0, 1), new Vector2(0, 1), new Vector2(12, -12), new Vector2(280, 0));
-            UIKit.Vertical(top.gameObject, 10, 4);
-            top.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            // --- Topo esquerdo: recursos em uma linha (ícone + número; o nome aparece ao passar o mouse) ---
+            var top = UIKit.Panel("Recursos", root, new Vector2(0, 1), new Vector2(0, 1), new Vector2(12, -12), new Vector2(0, 50));
+            var topLayout = UIKit.Horizontal(top.gameObject, 12, 16);
+            topLayout.padding = new RectOffset(14, 14, 6, 6);
+            top.gameObject.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            dayText = UIKit.Text(top, "", 19, TextAnchor.MiddleLeft, UIKit.GoldColor);
-            UIKit.Size(dayText, height: 24);
-            var barBg = UIKit.Rect("BarraDoDia", top);
+            goldText = Resource(top, goldIcon, UIKit.GoldColor, () => "Ouro\nPaga construções, salários e contratações.");
+            foreach (var item in vm.items)
+            {
+                if (item == null) continue;
+                var it = item;
+                itemTexts.Add((item, Resource(top, item.icon, item.textColor, () => $"{it.displayName}: {VillageManager.Instance.GetStock(it)} no estoque")));
+            }
+            crewText = Resource(top, crewIcon, UIKit.TextColor, () =>
+            {
+                var c = CrewManager.Instance;
+                return c == null ? "Tripulação" : $"Tripulação: {c.Crew.Count}\nCamas: {VillageManager.Instance.HousingCapacity} ({c.FreeBeds} livres)\nTecla C abre a lista.";
+            });
+
+            // --- Topo direito: dia + botão de ajuda ---
+            var day = UIKit.Panel("Dia", root, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-12, -12), new Vector2(150, 50));
+            UIKit.Vertical(day.gameObject, 8, 2).padding = new RectOffset(14, 14, 6, 8);
+            dayText = UIKit.Text(day, "", 17, TextAnchor.MiddleCenter, UIKit.GoldColor);
+            UIKit.Size(dayText, height: 22);
+            var barBg = UIKit.Rect("BarraDoDia", day);
             barBg.gameObject.AddComponent<Image>().color = new Color(0, 0, 0, 0.5f);
             UIKit.Size(barBg, height: 6);
             var bar = UIKit.Rect("Preenchimento", barBg);
             UIKit.Stretch(bar);
             dayBar = bar.gameObject.AddComponent<Image>();
             dayBar.color = UIKit.GoldColor;
+            UIKit.Tip(day, () => CrewManager.Instance == null ? null
+                : $"Dia {CrewManager.Instance.Day}\nNo fim do dia cada tripulante come 1 peixe e recebe o salário.");
 
-            goldText = ResourceRow(top, goldIcon, UIKit.GoldColor);
-            foreach (var item in vm.items)
-                if (item != null) itemTexts.Add((item, ResourceRow(top, item.icon, item.textColor)));
-            crewText = ResourceRow(top, crewIcon, UIKit.TextColor);
+            var (helpBtn, _, _) = UIKit.Button(root, "?", ToggleHelp, 20);
+            var hrt = (RectTransform)helpBtn.transform;
+            hrt.anchorMin = hrt.anchorMax = hrt.pivot = new Vector2(1, 1);
+            hrt.sizeDelta = new Vector2(44, 50);
+            hrt.anchoredPosition = new Vector2(-12 - 150 - 12, -12);
+            UIKit.Tip(helpBtn, "Ajuda: teclas e comandos");
 
-            // --- Topo direito: ajuda ---
-            var help = UIKit.Panel("Ajuda", root, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-12, -12), new Vector2(340, 110));
-            var helpText = UIKit.Text(help,
-                "WASD / setas: andar\nBarra de baixo: construir (Shift = vários)\nClique num prédio: ver detalhes\nC: tripulação · X: expedições · J: crônicas", 15, TextAnchor.MiddleLeft);
-            UIKit.Stretch(helpText.rectTransform, 10);
+            helpPanel = UIKit.Panel("Ajuda", root, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-12, -74), new Vector2(400, 150));
+            var helpText = UIKit.Text(helpPanel,
+                "WASD / setas: andar com o capitão\n" +
+                "Martelo (B): construir · Shift: vários · botão direito: cancelar\n" +
+                "Clique num prédio: ver detalhes\n" +
+                "C: tripulação · X: expedições · J: crônicas\n" +
+                "Esc: menu (salvar, sair)", 14, TextAnchor.MiddleLeft);
+            UIKit.Stretch(helpText.rectTransform, 14);
+            UIKit.Fit(helpText, 10);
+            helpPanel.gameObject.SetActive(false);
 
-            // --- Baixo: barra de construção ---
-            var barPanel = UIKit.Panel("BarraDeConstrucao", root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 12), new Vector2(0, 84));
-            var barLayout = UIKit.Horizontal(barPanel.gameObject, 8, 8);
-            barLayout.childAlignment = TextAnchor.MiddleCenter;
-            barPanel.gameObject.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            // --- Registro de eventos (embaixo à esquerda) ---
+            eventLog = EventLog.Create(root);
+            foreach (var g in eventLog.GetComponentsInChildren<Graphic>(true)) g.raycastTarget = false;   // não atrapalha cliques no mapa
 
-            foreach (var def in vm.buildable)
+            // --- Embaixo: barra de ícones ---
+            var dock = dockPanel = UIKit.Panel("Barra", root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, DockY), new Vector2(0, DockHeight));
+            var dl = UIKit.Horizontal(dock.gameObject, 10, 8);
+            dl.childAlignment = TextAnchor.MiddleCenter;
+            dock.gameObject.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            buildDock = DockButton(dock, UIKit.Skin.Icon("martelo"), "B", "Construir (B)", ToggleBuildMenu);
+            crewDock = DockButton(dock, crewIcon, "C", "Tripulação (C)", ToggleCrew);
+            expDock = DockButton(dock, UIKit.Skin.Icon("pergaminho"), "X", "Expedições (X)\nPrecisa do Quadro de Expedições.", ToggleExpeditions);
+            UIKit.Tip(expDock, () =>
             {
-                if (def == null) continue;
-                var d = def;
-                var (btn, bg) = IconButton(barPanel, def.icon != null ? def.icon : def.sprite, $"{def.displayName}\n{def.cost} ouro", () =>
-                {
-                    CloseWindows();
-                    if (buildMode.Selected == d) buildMode.Cancel(); else buildMode.Select(d);
-                });
-                buildButtons.Add((def, btn, bg));
-            }
-            var (_, dbg) = IconButton(barPanel, null, "Demolir", () =>
-            {
-                CloseWindows();
-                if (buildMode.Demolishing) buildMode.Cancel(); else buildMode.StartDemolish();
+                var em = ExpeditionManager.Instance;
+                int n = em != null ? em.Reports.Count : 0;
+                return n > 0 ? $"Expedições (X)\n{n} prêmio(s) esperando para coletar!" : "Expedições (X)\nPrecisa do Quadro de Expedições.";
             });
-            demolishBg = dbg;
-            IconButton(barPanel, crewIcon, "Tripulação\n[C]", ToggleCrew);
+            // Selo "!" quando alguma expedição voltou e o prêmio ainda não foi coletado
+            expBadge = UIKit.Rect("Aviso", expDock.transform);
+            expBadge.anchorMin = expBadge.anchorMax = expBadge.pivot = new Vector2(1, 1);
+            expBadge.anchoredPosition = new Vector2(6, 6);
+            expBadge.sizeDelta = new Vector2(22, 22);
+            var badgeImg = expBadge.gameObject.AddComponent<Image>();
+            UIKit.UseSkin(badgeImg, UIKit.Skin.Button, Image.Type.Sliced);
+            badgeImg.color = new Color(1f, 0.42f, 0.3f);   // laranja-avermelhado: destaca até com o botão verde
+            badgeImg.raycastTarget = false;
+            var bang = UIKit.Text(expBadge, "!", 16, TextAnchor.MiddleCenter, Color.white);
+            UIKit.Stretch(bang.rectTransform);
+            bang.rectTransform.offsetMin = new Vector2(0, 3);
+            bang.gameObject.AddComponent<Shadow>().effectDistance = new Vector2(1, -1);
+            expBadge.gameObject.SetActive(false);
+            chronDock = DockButton(dock, UIKit.Skin.Icon("livro"), "J", "Crônicas (J): as missões do bando", ToggleChronicles);
+            DockButton(dock, UIKit.Skin.Icon("menu"), "Esc", "Menu (Esc): salvar, som, sair", () => { CloseWindows(); CloseBuildMenu(); menu.OpenPause(); });
 
-            // --- Dica do modo construção ---
-            var hintPanel = UIKit.Panel("Dica", root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 104), new Vector2(760, 34));
+            // --- Menu de construções (abre pelo martelo) ---
+            BuildBuildMenu(root, vm);
+
+            // --- Dica do modo construção / avisos ---
+            hintPanel = UIKit.Panel("Dica", root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, DockY + DockHeight + 14), new Vector2(760, 36));
             hintText = UIKit.Text(hintPanel, "", 16, TextAnchor.MiddleCenter);
-            UIKit.Stretch(hintText.rectTransform, 6);
+            foreach (var g in hintPanel.GetComponentsInChildren<Graphic>(true)) g.raycastTarget = false;
+            UIKit.Stretch(hintText.rectTransform, 8);
+            UIKit.Fit(hintText, 11);
 
-            // --- Registro e janelas ---
-            EventLog.Create(root);
+            // --- Janelas ---
             tavernPanel = TavernPanel.Create(root);
             crewPanel = CrewPanel.Create(root);
             expeditionPanel = ExpeditionPanel.Create(root);
@@ -142,14 +200,121 @@ namespace Pixel.Village
             Refresh();
         }
 
+        void BuildBuildMenu(RectTransform root, VillageManager vm)
+        {
+            buildTray = UIKit.Panel("Construcoes", root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, DockY + DockHeight + 14), new Vector2(0, 0));
+            var tl = UIKit.Vertical(buildTray.gameObject, 14, 10);
+            tl.childForceExpandWidth = false;
+            tl.childAlignment = TextAnchor.UpperCenter;
+            var fit = buildTray.gameObject.AddComponent<ContentSizeFitter>();
+            fit.horizontalFit = fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            // Abas das categorias + Demolir
+            var tabRow = UIKit.Rect("Abas", buildTray);
+            UIKit.Horizontal(tabRow.gameObject, 0, 6);
+            for (int i = 0; i < Categories.Length; i++)
+            {
+                int c = i;
+                var (tb, _, tbg) = UIKit.Button(tabRow, Categories[i], () => { category = c; Refresh(); }, 15);
+                UIKit.Size(tb, 112, 36);
+                tabs.Add(tbg);
+            }
+            var gap = UIKit.Rect("Espaco", tabRow);
+            UIKit.Size(gap, 18, 10);
+            var (db, dlabel, dbg) = UIKit.Button(tabRow, "Demolir", () =>
+            {
+                CloseWindows();
+                if (buildMode.Demolishing) buildMode.Cancel(); else buildMode.StartDemolish();
+            }, 15);
+            UIKit.Size(db, 120, 36);
+            var bomb = UIKit.Skin.Icon("bomba");
+            if (bomb != null)
+            {
+                var ic = UIKit.Rect("Icone", db.transform);
+                ic.anchorMin = ic.anchorMax = ic.pivot = new Vector2(0, 0.5f);
+                ic.anchoredPosition = new Vector2(8, 2);
+                ic.sizeDelta = new Vector2(24, 24);
+                var im = ic.gameObject.AddComponent<Image>();
+                im.sprite = bomb; im.preserveAspect = true; im.raycastTarget = false;
+                dlabel.rectTransform.offsetMin = new Vector2(30, 8);
+            }
+            UIKit.Tip(db, "Demolir: clique num prédio para derrubar (devolve metade do custo).");
+            demolishBg = dbg;
+
+            // Cartões das construções (os de outras categorias ficam escondidos)
+            var grid = UIKit.Rect("Cartoes", buildTray);
+            UIKit.Horizontal(grid.gameObject, 0, 8);
+            foreach (var def in vm.buildable)
+            {
+                if (def == null) continue;
+                var d = def;
+                var rt = UIKit.Rect("Cartao", grid);
+                var (btn, bg) = UIKit.ButtonBase(rt);
+                btn.onClick.AddListener(() =>
+                {
+                    CloseWindows();
+                    if (buildMode.Selected == d) buildMode.Cancel(); else buildMode.Select(d);
+                });
+                UIKit.Size(rt, 112, 104, flexWidth: 0);
+                var v = UIKit.Vertical(rt.gameObject, 6, 0);
+                v.padding = new RectOffset(6, 6, 6, 10);
+                v.childAlignment = TextAnchor.UpperCenter;
+
+                var iconRt = UIKit.Rect("Icone", rt);
+                var img = iconRt.gameObject.AddComponent<Image>();
+                img.sprite = def.icon != null ? def.icon : def.sprite;
+                img.preserveAspect = true;
+                img.raycastTarget = false;
+                UIKit.Size(iconRt, height: 42);
+                var name = UIKit.Text(rt, def.displayName, 14, TextAnchor.MiddleCenter, UIKit.ButtonText);
+                UIKit.Size(name, height: 22);
+                UIKit.Fit(name, 10);
+                var cost = UIKit.Text(rt, "", 14, TextAnchor.MiddleCenter, UIKit.ButtonText);
+                UIKit.Size(cost, height: 18);
+
+                UIKit.Tip(rt, () =>
+                {
+                    string s = $"{d.displayName} · {d.cost} ouro\n{d.description}\nTamanho: {d.footprint.x}x{d.footprint.y}";
+                    if (VillageManager.Instance.Gold < d.cost) s += "\n" + UIKit.Colored("Falta ouro!", new Color(1f, 0.5f, 0.45f));
+                    return s;
+                });
+                buildButtons.Add((def, btn, bg, cost));
+            }
+            buildTray.gameObject.SetActive(false);
+        }
+
         void Update()
         {
             if (hintText == null) return;
             toastTimer -= Time.unscaledDeltaTime;
             string hint = !string.IsNullOrEmpty(buildMode.Hint) ? buildMode.Hint
                 : toastTimer > 0 ? toast : Prompt;
-            hintText.transform.parent.gameObject.SetActive(!string.IsNullOrEmpty(hint));
-            hintText.text = hint;
+            hintPanel.gameObject.SetActive(!string.IsNullOrEmpty(hint));
+            hintText.text = buildMode.Active && !string.IsNullOrEmpty(buildMode.Hint)
+                ? hint + UIKit.Colored("   ·   botão direito: cancelar", UIKit.MutedText) : hint;
+
+            // Posicionando um prédio: o que fica embaixo some, para dar para construir perto da praia.
+            // Ao colocar (ou cancelar) o menu de construções volta sozinho.
+            bool placing = buildMode.Active;
+            if (buildTray.gameObject.activeSelf != (trayOpen && !placing)) buildTray.gameObject.SetActive(trayOpen && !placing);
+            if (dockPanel.gameObject.activeSelf == placing) dockPanel.gameObject.SetActive(!placing);
+            if (eventLog.gameObject.activeSelf == placing) eventLog.gameObject.SetActive(!placing);
+            if (placing)
+            {
+                // Dica no topo, sem cobrir a parte de baixo do mapa
+                hintPanel.anchorMin = hintPanel.anchorMax = hintPanel.pivot = new Vector2(0.5f, 1);
+                hintPanel.sizeDelta = new Vector2(520, 36);
+                hintPanel.anchoredPosition = new Vector2(0, -12);
+            }
+            else
+            {
+                // A dica fica logo acima do que estiver aberto embaixo (barra ou menu de construções)
+                float y = DockY + DockHeight + 14;
+                if (buildTray.gameObject.activeSelf) y += buildTray.rect.height + 14;
+                hintPanel.anchorMin = hintPanel.anchorMax = hintPanel.pivot = new Vector2(0.5f, 0);
+                hintPanel.sizeDelta = new Vector2(760, 36);
+                hintPanel.anchoredPosition = new Vector2(0, y);
+            }
 
             var cm = CrewManager.Instance;
             if (cm != null)
@@ -158,7 +323,23 @@ namespace Pixel.Village
                 ((RectTransform)dayBar.transform).anchorMax = new Vector2(cm.DayProgress, 1);
             }
 
+            // Botões da barra ficam verdes enquanto a janela deles está aberta
+            Mark(buildDock, BuildMenuOpen || buildMode.Active);
+            Mark(crewDock, crewPanel.gameObject.activeSelf);
+            Mark(expDock, expeditionPanel.IsOpen);
+            var exm = ExpeditionManager.Instance;
+            bool pending = exm != null && exm.Reports.Count > 0;
+            if (expBadge.gameObject.activeSelf != pending) expBadge.gameObject.SetActive(pending);
+            if (pending) expBadge.localScale = Vector3.one * (1f + 0.12f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 3f)));
+            Mark(chronDock, chronicles.WindowOpen);
+
             HandleInput();
+        }
+
+        static void Mark(Image bg, bool on)
+        {
+            var want = on ? UIKit.Skin.ButtonOn : UIKit.Skin.Button;
+            if (bg != null && want != null && bg.sprite != want) UIKit.SetSelected(bg, on);
         }
 
         void HandleInput()
@@ -167,14 +348,16 @@ namespace Pixel.Village
             var mouse = Mouse.current;
             if (buildMode.Active || buildMode.LastActionFrame == Time.frameCount || GameMenu.IsOpen) return;
 
+            if (kb != null && kb.bKey.wasPressedThisFrame) ToggleBuildMenu();
             if (kb != null && kb.cKey.wasPressedThisFrame) ToggleCrew();
             if (kb != null && kb.xKey.wasPressedThisFrame) ToggleExpeditions();
-            if (kb != null && kb.jKey.wasPressedThisFrame) { bool o = chronicles.WindowOpen; CloseWindows(); if (!o) chronicles.ToggleWindow(); }
+            if (kb != null && kb.jKey.wasPressedThisFrame) ToggleChronicles();
             if (kb != null && kb.escapeKey.wasPressedThisFrame && sandbox != null && sandbox.IsOpen) { sandbox.Hide(); return; }
             if (kb != null && kb.escapeKey.wasPressedThisFrame)
             {
-                bool anyOpen = tavernPanel.gameObject.activeSelf || crewPanel.gameObject.activeSelf || infoPanel.gameObject.activeSelf || expeditionPanel.IsOpen || chronicles.WindowOpen;
-                if (anyOpen) CloseWindows();
+                bool anyOpen = tavernPanel.gameObject.activeSelf || crewPanel.gameObject.activeSelf || infoPanel.gameObject.activeSelf
+                               || expeditionPanel.IsOpen || chronicles.WindowOpen || BuildMenuOpen || helpPanel.gameObject.activeSelf;
+                if (anyOpen) { CloseWindows(); CloseBuildMenu(); helpPanel.gameObject.SetActive(false); }
                 else menu.OpenPause();
             }
 
@@ -189,10 +372,30 @@ namespace Pixel.Village
             }
         }
 
+        void ToggleBuildMenu()
+        {
+            if (BuildMenuOpen) { CloseBuildMenu(); return; }
+            CloseWindows();
+            trayOpen = true;
+            buildTray.gameObject.SetActive(true);
+            buildTray.SetAsLastSibling();
+            Refresh();
+        }
+
+        void CloseBuildMenu()
+        {
+            if (buildMode.Active) buildMode.Cancel();
+            trayOpen = false;
+            buildTray.gameObject.SetActive(false);
+        }
+
+        void ToggleHelp() => helpPanel.gameObject.SetActive(!helpPanel.gameObject.activeSelf);
+
         void ToggleCrew()
         {
             bool open = crewPanel.gameObject.activeSelf;
             CloseWindows();
+            CloseBuildMenu();
             if (!open) crewPanel.Show();
         }
 
@@ -200,9 +403,18 @@ namespace Pixel.Village
         {
             bool open = expeditionPanel.IsOpen;
             CloseWindows();
+            CloseBuildMenu();
             if (open) return;
-            if (ExpeditionManager.Instance == null || !ExpeditionManager.Instance.HasBoard) { Toast("Construa o Quadro de Expedições para mandar grupos às masmorras."); return; }
+            if (ExpeditionManager.Instance == null || (!ExpeditionManager.Instance.HasBoard && ExpeditionManager.Instance.Reports.Count == 0)) { Toast("Construa o Quadro de Expedições (em Serviços) para mandar grupos às masmorras."); return; }
             expeditionPanel.Show();
+        }
+
+        void ToggleChronicles()
+        {
+            bool open = chronicles.WindowOpen;
+            CloseWindows();
+            CloseBuildMenu();
+            if (!open) chronicles.ToggleWindow();
         }
 
         void CloseWindows()
@@ -219,62 +431,68 @@ namespace Pixel.Village
             var vm = VillageManager.Instance;
             if (vm == null || goldText == null) return;
             var cm = CrewManager.Instance;
-            goldText.text = $"Ouro: {vm.Gold}";
-            foreach (var (item, text) in itemTexts) text.text = $"{item.displayName}: {vm.GetStock(item)}";
-            if (cm != null) crewText.text = $"Tripulação: {cm.Crew.Count} · camas: {vm.HousingCapacity}";
-            foreach (var (def, btn, bg) in buildButtons)
+            goldText.text = vm.Gold.ToString();
+            foreach (var (item, text) in itemTexts) text.text = vm.GetStock(item).ToString();
+            if (cm != null) crewText.text = $"{cm.Crew.Count}/{vm.HousingCapacity}";
+
+            // Se o prédio escolhido é de outra aba, mostra a aba dele
+            if (buildMode.Selected != null) category = CategoryOf(buildMode.Selected);
+            for (int i = 0; i < tabs.Count; i++) UIKit.SetSelected(tabs[i], i == category);
+            foreach (var (def, btn, bg, cost) in buildButtons)
             {
-                bg.color = buildMode.Selected == def ? UIKit.ButtonSelected : UIKit.ButtonColor;
-                btn.interactable = vm.Gold >= def.cost || buildMode.Selected == def;
+                btn.gameObject.SetActive(CategoryOf(def) == category);
+                UIKit.SetSelected(bg, buildMode.Selected == def);
+                bool afford = vm.Gold >= def.cost;
+                btn.interactable = afford || buildMode.Selected == def;
+                cost.text = afford ? $"{def.cost} ouro" : UIKit.Colored($"{def.cost} ouro", new Color(0.65f, 0.12f, 0.1f));
             }
-            demolishBg.color = buildMode.Demolishing ? UIKit.ButtonSelected : UIKit.ButtonColor;
+            UIKit.SetSelected(demolishBg, buildMode.Demolishing);
         }
 
-        Text ResourceRow(Transform parent, Sprite icon, Color color)
+        Text Resource(Transform parent, Sprite icon, Color color, System.Func<string> tip)
         {
-            var row = UIKit.Rect("Linha", parent);
-            UIKit.Horizontal(row.gameObject, 0, 6);
-            UIKit.Size(row, height: 26);
+            var row = UIKit.Rect("Recurso", parent);
+            UIKit.Horizontal(row.gameObject, 0, 5).childAlignment = TextAnchor.MiddleLeft;
+            var hit = row.gameObject.AddComponent<Image>();
+            hit.color = Color.clear;                 // só para o mouse "enxergar" o recurso e mostrar a dica
             var iconRt = UIKit.Rect("Icone", row);
             var img = iconRt.gameObject.AddComponent<Image>();
             img.sprite = icon;
             img.enabled = icon != null;
             img.preserveAspect = true;
-            UIKit.Size(iconRt, 24, 24);
+            img.raycastTarget = false;
+            UIKit.Size(iconRt, 26, 26);
             var t = UIKit.Text(row, "", 18, TextAnchor.MiddleLeft, color);
-            UIKit.Size(t, 230, 26);
+            t.horizontalOverflow = HorizontalWrapMode.Overflow;
+            t.gameObject.AddComponent<Shadow>().effectDistance = new Vector2(1.5f, -1.5f);
+            UIKit.Tip(row, tip);
             return t;
         }
 
-        (Button, Image) IconButton(Transform parent, Sprite icon, string label, UnityEngine.Events.UnityAction onClick)
+        Image DockButton(Transform parent, Sprite icon, string key, string tip, UnityEngine.Events.UnityAction onClick)
         {
             var rt = UIKit.Rect("Botao", parent);
-            var bg = rt.gameObject.AddComponent<Image>();
-            bg.color = UIKit.ButtonColor;
-            var btn = rt.gameObject.AddComponent<Button>();
-            btn.targetGraphic = bg;
-            var colors = btn.colors;
-            colors.highlightedColor = new Color(1.25f, 1.2f, 1.1f);
-            colors.pressedColor = new Color(0.8f, 0.8f, 0.8f);
-            colors.disabledColor = new Color(0.5f, 0.5f, 0.5f, 0.8f);
-            btn.colors = colors;
+            var (btn, bg) = UIKit.ButtonBase(rt);
             btn.onClick.AddListener(onClick);
-            UIKit.Size(rt, icon != null ? 124 : 84, 68);
+            btn.onClick.AddListener(() => AudioManager.Play(Sfx.Click));
+            UIKit.Size(rt, 58, 58);
 
-            var layout = UIKit.Horizontal(rt.gameObject, 5, 5);
-            layout.childAlignment = TextAnchor.MiddleCenter;
-            if (icon != null)
-            {
-                var iconRt = UIKit.Rect("Icone", rt);
-                var img = iconRt.gameObject.AddComponent<Image>();
-                img.sprite = icon;
-                img.preserveAspect = true;
-                img.raycastTarget = false;
-                UIKit.Size(iconRt, 38, 38);
-            }
-            var t = UIKit.Text(rt, label, 15, TextAnchor.MiddleCenter);
-            UIKit.Size(t, flexWidth: 1);
-            return (btn, bg);
+            var iconRt = UIKit.Rect("Icone", rt);
+            iconRt.anchorMin = iconRt.anchorMax = iconRt.pivot = new Vector2(0.5f, 0.5f);
+            iconRt.anchoredPosition = new Vector2(0, 3);
+            iconRt.sizeDelta = new Vector2(32, 32);
+            var img = iconRt.gameObject.AddComponent<Image>();
+            img.sprite = icon;
+            img.preserveAspect = true;
+            img.raycastTarget = false;
+
+            // Tecla de atalho no canto
+            var k = UIKit.Text(rt, key, 10, TextAnchor.LowerRight, UIKit.ButtonText);
+            var krt = k.rectTransform;
+            krt.anchorMin = Vector2.zero; krt.anchorMax = Vector2.one;
+            krt.offsetMin = new Vector2(2, 7); krt.offsetMax = new Vector2(-5, -2);
+            UIKit.Tip(rt, tip);
+            return bg;
         }
     }
 }

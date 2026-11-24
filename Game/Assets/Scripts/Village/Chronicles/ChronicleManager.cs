@@ -75,7 +75,7 @@ namespace Pixel.Village
         void Build()
         {
             Add("Um teto para o bando", "Construa uma Casa.",
-                "Clique em Casa na barra de baixo e depois num lugar verde da vila.", 30, () => Has(BuildingKind.House));
+                "Clique no martelo (B), escolha Casa e depois um lugar verde da vila.", 30, () => Has(BuildingKind.House));
             Add("Plantar o futuro", "Construa uma Horta.",
                 "A Horta produz cana. O Agricultor vai trabalhar nela sozinho.", 30, () => HasNamed("Horta"));
             Add("Peixe na mesa", "Construa uma Cabana de Pesca.",

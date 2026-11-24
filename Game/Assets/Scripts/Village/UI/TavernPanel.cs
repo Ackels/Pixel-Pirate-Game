@@ -7,7 +7,6 @@ namespace Pixel.Village
     public class TavernPanel : MonoBehaviour
     {
         RectTransform cards;
-        Text footer;
 
         public static TavernPanel Create(Transform canvas)
         {
@@ -20,10 +19,15 @@ namespace Pixel.Village
             var h = UIKit.Horizontal(panel.cards.gameObject, 0, 10);
             h.childForceExpandWidth = true;
             h.childForceExpandHeight = true;
-            UIKit.Size(panel.cards, height: 250, flexWidth: 1);
+            UIKit.Size(panel.cards, height: 290, flexWidth: 1);
 
-            panel.footer = UIKit.Text(content, "", 15, TextAnchor.MiddleLeft, UIKit.MutedText);
-            UIKit.Size(panel.footer, height: 40);
+            UIKit.Info(win, () =>
+            {
+                var cm = CrewManager.Instance;
+                string nums = cm == null ? "" : $"Camas livres: {cm.FreeBeds} · Tripulação: {cm.Crew.Count}\n\n";
+                return nums + "Cada tripulante precisa de uma cama (Casa), 1 peixe e salário por dia. Rum deixa todo mundo mais feliz.\n" +
+                       "Novos recrutas chegam a cada dia.";
+            });
 
             win.gameObject.SetActive(false);
             return panel;
@@ -86,9 +90,6 @@ namespace Pixel.Village
                 btn.interactable = can;
                 UIKit.Size(btn, height: 36);
             }
-
-            footer.text = $"Camas livres: {cm.FreeBeds} · Tripulação: {cm.Crew.Count} · Ouro: {VillageManager.Instance.Gold}\n" +
-                          "Cada tripulante precisa de uma cama (Casa), 1 peixe e salário por dia. Rum deixa todo mundo mais feliz.";
         }
     }
 }

@@ -22,7 +22,26 @@ namespace Pixel.Village
         [Serializable]
         public class Preset { public List<string> members = new List<string>(); public int rum; }
 
+        /// <summary>Resultado de uma expedição que voltou. O prêmio espera o jogador clicar em Coletar.</summary>
+        [Serializable]
+        public class Report
+        {
+            public string dungeon;          // nome do asset (DungeonDef.name)
+            public bool victory;
+            public int stagesCleared, totalStages;
+            public int gold;
+            public string item;
+            public int itemAmount;
+            public int rumBack;
+            public int xp;
+            public List<string> members = new List<string>();
+            public List<string> fell = new List<string>();
+        }
+
         public List<Expedition> Active { get; } = new List<Expedition>();
+        /// <summary>Expedições que voltaram e ainda não tiveram o prêmio coletado.</summary>
+        public List<Report> Reports { get; } = new List<Report>();
+        public DungeonDef FindDungeon(string assetName) => Array.Find(dungeons, x => x != null && x.name == assetName);
         public Preset[] presets = { new Preset(), new Preset(), new Preset() };
         public event Action Changed;
 
@@ -108,15 +127,18 @@ namespace Pixel.Village
             int gold = e.victory
                 ? Random.Range(d.goldReward.x, d.goldReward.y + 1)
                 : Mathf.RoundToInt(Random.Range(d.goldReward.x, d.goldReward.y + 1) * 0.3f * e.stagesCleared / Mathf.Max(1, total));
-            vm.AddGold(gold);
-            string itemTxt = "";
+            // O prêmio fica guardado no relatório até o jogador coletar na janela de Expedições
+            int xp = e.stagesCleared * 3 + (e.victory ? 5 : 0);
+            var report = new Report
+            {
+                dungeon = d.name, victory = e.victory, stagesCleared = e.stagesCleared, totalStages = total,
+                gold = gold, rumBack = e.rum, xp = xp,
+            };
             if (e.victory && !string.IsNullOrEmpty(d.itemReward))
             {
-                int n = Random.Range(d.itemAmount.x, d.itemAmount.y + 1);
-                foreach (var it in vm.items)
-                    if (it != null && it.displayName == d.itemReward) { vm.AddStock(it, n); itemTxt = $", {n} {it.displayName}"; }
+                report.item = d.itemReward;
+                report.itemAmount = Random.Range(d.itemAmount.x, d.itemAmount.y + 1);
             }
-            if (e.rum > 0 && cm.rum != null) vm.AddStock(cm.rum, e.rum); // rum que sobrou volta
 
             int hurt = 0;
             var board = vm.FindNearest(BuildingKind.Expedition, Vector2.zero);
@@ -125,9 +147,10 @@ namespace Pixel.Village
                 var m = f.member;
                 m.onExpedition = false;
                 if (!cm.IsCrew(m)) continue;   // desertou enquanto estava fora
-                if (!f.Alive) { m.morale = Mathf.Max(0, m.morale - 15); hurt++; }
+                report.members.Add(m.name);
+                if (!f.Alive) { m.morale = Mathf.Max(0, m.morale - 15); hurt++; report.fell.Add(m.name); }
                 else if (e.victory) m.morale = Mathf.Min(100, m.morale + 5);
-                cm.AddXp(m, e.stagesCleared * 3 + (e.victory ? 5 : 0));
+                cm.AddXp(m, xp);
                 if (m.agent != null)
                 {
                     m.agent.transform.position = (board != null ? board.Door : cm.idleArea) + Random.insideUnitCircle * 0.8f;
@@ -135,22 +158,46 @@ namespace Pixel.Village
                 }
             }
             cm.AssignAll();
+            Reports.Add(report);
 
             bool firstClear = e.victory && cleared.Add(d.name);
             if (e.victory)
             {
-                cm.Report($"Expedição voltou de {d.displayName}: VITÓRIA! +{gold} ouro{itemTxt}.", new Color(0.55f, 0.95f, 0.5f));
+                cm.Report($"Expedição voltou de {d.displayName}: VITÓRIA! Colete o prêmio em Expedições (X).", new Color(0.55f, 0.95f, 0.5f));
                 int idx = Array.IndexOf(dungeons, d);
                 if (firstClear && d == dungeons[dungeons.Length - 1])
                     cm.Report("O CAPITÃO LENDÁRIO FOI DERROTADO! Seu bando é a lenda dos mares!", new Color(1f, 0.85f, 0.3f));
                 else if (firstClear && idx + 1 < dungeons.Length)
                     cm.Report($"Nova masmorra liberada: {dungeons[idx + 1].displayName}!", new Color(1f, 0.85f, 0.3f));
             }
-            else cm.Report($"Expedição em {d.displayName} fracassou no andar {e.stage + 1}. Trouxe {gold} ouro.", new Color(1f, 0.55f, 0.45f));
+            else cm.Report($"Expedição em {d.displayName} fracassou no andar {e.stage + 1}. Veja em Expedições (X).", new Color(1f, 0.55f, 0.45f));
             if (hurt > 0) cm.Report($"{hurt} expedicionário(s) voltaram feridos (-15 de moral).", new Color(1f, 0.65f, 0.4f));
-            VillageHUD.Instance?.Toast(e.victory ? $"Expedição vitoriosa! +{gold} ouro" : "A expedição voltou derrotada.");
+            VillageHUD.Instance?.Toast(e.victory ? "Expedição vitoriosa! Colete o prêmio em Expedições (X)." : "A expedição voltou derrotada. Veja em Expedições (X).");
             AudioManager.Play(e.victory ? Sfx.Chest : Sfx.Hit);
             Changed?.Invoke();
+        }
+
+        // ---------- Coletar ----------
+        public void Collect(Report r)
+        {
+            if (r == null || !Reports.Remove(r)) return;
+            var vm = VillageManager.Instance;
+            var cm = CrewManager.Instance;
+            vm.AddGold(r.gold);
+            if (r.itemAmount > 0)
+                foreach (var it in vm.items)
+                    if (it != null && (it.displayName == r.item || it.name == r.item)) { vm.AddStock(it, r.itemAmount); break; }
+            if (r.rumBack > 0 && cm.rum != null) vm.AddStock(cm.rum, r.rumBack);   // rum que sobrou volta
+            var d = FindDungeon(r.dungeon);
+            string extra = r.itemAmount > 0 ? $", {r.itemAmount} {r.item}" : "";
+            cm.Report($"Prêmio coletado ({(d != null ? d.displayName : r.dungeon)}): +{r.gold} ouro{extra}.", new Color(1f, 0.85f, 0.4f));
+            AudioManager.Play(Sfx.Chest);
+            Changed?.Invoke();
+        }
+
+        public void CollectAll()
+        {
+            foreach (var r in Reports.ToArray()) Collect(r);
         }
 
         // ---------- Salvar / carregar ----------
@@ -161,9 +208,11 @@ namespace Pixel.Village
             Changed?.Invoke();
         }
 
-        public void RestoreFromSave(List<string> clearedNames, Preset[] savedPresets)
+        public void RestoreFromSave(List<string> clearedNames, Preset[] savedPresets, List<Report> savedReports)
         {
             Active.Clear();
+            Reports.Clear();
+            if (savedReports != null) Reports.AddRange(savedReports);
             cleared.Clear();
             if (clearedNames != null) foreach (var n in clearedNames) cleared.Add(n);
             if (savedPresets != null)

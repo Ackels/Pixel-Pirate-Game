@@ -23,8 +23,7 @@ namespace Pixel.Village
             root.gameObject.AddComponent<Image>().color = new Color(0.05f, 0.08f, 0.12f, 0.82f);
             var menu = root.gameObject.AddComponent<GameMenu>();
 
-            menu.box = UIKit.Panel("Caixa", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(420, 0),
-                new Color(UIKit.PanelColor.r, UIKit.PanelColor.g, UIKit.PanelColor.b, 1f));
+            menu.box = UIKit.Panel("Caixa", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(420, 0));
             var v = UIKit.Vertical(menu.box.gameObject, 22, 10);
             v.childAlignment = TextAnchor.UpperCenter;
             menu.box.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
@@ -58,6 +57,7 @@ namespace Pixel.Village
             UIKit.Clear(box);
             title = UIKit.Text(box, t, 30, TextAnchor.MiddleCenter, UIKit.GoldColor);
             UIKit.Size(title, height: 44);
+            UIKit.Fit(title, 16);
             subtitle = UIKit.Text(box, sub, 15, TextAnchor.MiddleCenter, UIKit.MutedText);
             UIKit.Size(subtitle, height: 40);
         }

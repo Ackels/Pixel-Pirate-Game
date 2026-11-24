@@ -14,8 +14,7 @@ namespace Pixel.Village
 
         public static BuildingInfoPanel Create(Transform canvas, System.Action openTavern, System.Action openExpeditions)
         {
-            var root = UIKit.Panel("PainelPredio", canvas, new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-12, 30), new Vector2(330, 300),
-                new Color(UIKit.PanelColor.r, UIKit.PanelColor.g, UIKit.PanelColor.b, 1f));
+            var root = UIKit.Panel("PainelPredio", canvas, new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-12, 30), new Vector2(330, 300));
             var panel = root.gameObject.AddComponent<BuildingInfoPanel>();
             UIKit.Vertical(root.gameObject, 12, 8);
 

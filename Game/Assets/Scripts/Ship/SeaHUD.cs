@@ -17,8 +17,11 @@ namespace Pixel.Ship
         MapPanel map;
         RectTransform trade;
 
-        Text goldText, titleText, statsText, hintText, helpText;
-        RectTransform actionBar;
+        Text goldText, fishText, rumText, crewText, titleText, dayText, hintText, helpText, shipLine;
+        Image dayBar, legBar, hullBar, captainBar;
+        Text hullText, captainText;
+        GameObject captainRow, legRow;
+        RectTransform actionBar, helpPanel;
         SeaMode builtFor = (SeaMode)(-1);
         EncounterState builtEncounter = (EncounterState)(-1);
         Text enemyText;
@@ -43,36 +46,77 @@ namespace Pixel.Ship
 
             SandboxPanel.Create(root, true, m => { sea.Say(m); return true; });
 
-            var top = UIKit.Panel("Topo", root, new Vector2(0, 1), new Vector2(0, 1), new Vector2(12, -12), new Vector2(260, 64));
-            goldText = UIKit.Text(top, "", 18, TextAnchor.MiddleLeft, UIKit.GoldColor);
-            UIKit.Stretch(goldText.rectTransform, 10);
+            // --- Topo esquerdo: recursos (igual à vila; o nome aparece ao passar o mouse) ---
+            var vhud = VillageHUD.Instance;
+            var cm = CrewManager.Instance;
+            var top = UIKit.Panel("Recursos", root, new Vector2(0, 1), new Vector2(0, 1), new Vector2(12, -12), new Vector2(0, 50));
+            UIKit.Horizontal(top.gameObject, 12, 16).padding = new RectOffset(14, 14, 6, 6);
+            top.gameObject.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            goldText = Resource(top, vhud != null ? vhud.goldIcon : null, UIKit.GoldColor, () => "Ouro\nO mesmo cofre da vila.");
+            if (cm != null && cm.food != null)
+                fishText = Resource(top, cm.food.icon, cm.food.textColor, () => $"{cm.food.displayName}: provisões da viagem (saem do estoque da vila).");
+            if (cm != null && cm.rum != null)
+                rumText = Resource(top, cm.rum.icon, cm.rum.textColor, () => $"{cm.rum.displayName} no estoque da vila. Venda nos portos!");
+            crewText = Resource(top, vhud != null ? vhud.crewIcon : null, UIKit.TextColor,
+                () => $"A bordo: você + {sea.CrewFighters.Count} tripulante(s)\nVagas no navio: {Mathf.Max(0, sea.Stats.MaxCrew - 1)}");
 
-            var titlePanel = UIKit.Panel("Titulo", root, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(420, 40));
-            titleText = UIKit.Text(titlePanel, "", 22, TextAnchor.MiddleCenter, UIKit.GoldColor);
-            UIKit.Stretch(titleText.rectTransform, 6);
+            // --- Logo abaixo: o navio (casco e capitão em barras; o resto na dica) ---
+            var ship = UIKit.Panel("Navio", root, new Vector2(0, 1), new Vector2(0, 1), new Vector2(12, -76), new Vector2(250, 0));
+            var sv = UIKit.Vertical(ship.gameObject, 0, 4);
+            sv.padding = new RectOffset(12, 12, 8, 10);
+            ship.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            (hullBar, hullText) = Bar(ship, "Casco", out _);
+            (captainBar, captainText) = Bar(ship, "Capitão", out captainRow);
+            shipLine = UIKit.Text(ship, "", 13, TextAnchor.MiddleLeft, UIKit.MutedText);
+            UIKit.Size(shipLine, height: 18);
+            UIKit.Tip(ship, ShipDetails);
 
-            var enemy = UIKit.Panel("Inimigo", root, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -58), new Vector2(420, 54),
+            // --- Topo direito: dia + ajuda ---
+            var day = UIKit.Panel("Dia", root, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-12, -12), new Vector2(150, 50));
+            UIKit.Vertical(day.gameObject, 8, 2).padding = new RectOffset(14, 14, 6, 8);
+            dayText = UIKit.Text(day, "", 17, TextAnchor.MiddleCenter, UIKit.GoldColor);
+            UIKit.Size(dayText, height: 22);
+            dayBar = BarFill(day, UIKit.GoldColor);
+            UIKit.Tip(day, () => "O dia continua correndo na vila enquanto você navega.");
+
+            var (helpBtn, _, _) = UIKit.Button(root, "?", () => helpPanel.gameObject.SetActive(!helpPanel.gameObject.activeSelf), 20);
+            var hrt = (RectTransform)helpBtn.transform;
+            hrt.anchorMin = hrt.anchorMax = hrt.pivot = new Vector2(1, 1);
+            hrt.sizeDelta = new Vector2(44, 50);
+            hrt.anchoredPosition = new Vector2(-12 - 150 - 12, -12);
+            UIKit.Tip(helpBtn, "Ajuda: teclas e comandos");
+            helpPanel = UIKit.Panel("Ajuda", root, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-12, -74), new Vector2(330, 0));
+            UIKit.Vertical(helpPanel.gameObject, 14, 0);
+            helpPanel.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            helpText = UIKit.Text(helpPanel, "", 14, TextAnchor.UpperLeft);
+            helpPanel.gameObject.SetActive(false);
+
+            // --- Centro do topo: onde estou / para onde vou (com a barra da viagem) ---
+            var titlePanel = UIKit.Panel("Titulo", root, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(380, 0));
+            var tv = UIKit.Vertical(titlePanel.gameObject, 0, 3);
+            tv.padding = new RectOffset(14, 14, 6, 8);
+            titlePanel.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            titleText = UIKit.Text(titlePanel, "", 20, TextAnchor.MiddleCenter, UIKit.GoldColor);
+            UIKit.Size(titleText, height: 26);
+            UIKit.Fit(titleText, 12);
+            legBar = BarFill(titlePanel, new Color(0.55f, 0.85f, 1f));
+            legRow = legBar.transform.parent.gameObject;
+
+            var enemy = UIKit.Panel("Inimigo", root, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -70), new Vector2(380, 54),
                 new Color(0.35f, 0.1f, 0.08f, 0.9f));
             enemyText = UIKit.Text(enemy, "", 16, TextAnchor.MiddleCenter);
             UIKit.Stretch(enemyText.rectTransform, 6);
 
-            var stats = UIKit.Panel("Atributos", root, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-12, -12), new Vector2(260, 230));
-            statsText = UIKit.Text(stats, "", 16, TextAnchor.UpperLeft);
-            UIKit.Stretch(statsText.rectTransform, 10);
-
-            var help = UIKit.Panel("Ajuda", root, new Vector2(0, 1), new Vector2(0, 1), new Vector2(12, -84), new Vector2(260, 52),
-                new Color(0.12f, 0.08f, 0.05f, 0.75f));
-            helpText = UIKit.Text(help, "", 14, TextAnchor.MiddleLeft, UIKit.MutedText);
-            UIKit.Stretch(helpText.rectTransform, 8);
-
+            // --- Embaixo: ações ---
             actionBar = UIKit.Panel("Acoes", root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 12), new Vector2(0, 84));
             var layout = UIKit.Horizontal(actionBar.gameObject, 8, 8);
             layout.childAlignment = TextAnchor.MiddleCenter;
             actionBar.gameObject.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            var hintPanel = UIKit.Panel("Dica", root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 104), new Vector2(760, 34));
+            var hintPanel = UIKit.Panel("Dica", root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 110), new Vector2(760, 36));
             hintText = UIKit.Text(hintPanel, "", 16, TextAnchor.MiddleCenter);
-            UIKit.Stretch(hintText.rectTransform, 6);
+            UIKit.Stretch(hintText.rectTransform, 8);
+            UIKit.Fit(hintText, 11);
 
             // No estaleiro a barra só é refeita ao trocar de bloco (para não "engolir" cliques).
             sea.Changed += () => { if (sea.Mode != SeaMode.Editing) Refresh(); };
@@ -99,11 +143,13 @@ namespace Pixel.Ship
                 enemyText.text = UIKit.Colored(director.EnemyName, UIKit.GoldColor) + $"\nCasco: {director.EnemyHp}/{director.EnemyMaxHp}{crewInfo}";
             }
 
-            if (sea.Mode == SeaMode.Editing && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            var kb = Keyboard.current;
+            if (sea.Mode == SeaMode.Editing && kb != null && kb.escapeKey.wasPressedThisFrame)
             {
                 if (sea.editor.Selected != null) { sea.editor.Selected = null; Refresh(); }
                 else sea.StopEditing();
             }
+            else if (kb != null && kb.escapeKey.wasPressedThisFrame && helpPanel.gameObject.activeSelf) helpPanel.gameObject.SetActive(false);
 
             messageTimer -= Time.unscaledDeltaTime;
             string hint = messageTimer > 0 ? message
@@ -112,34 +158,104 @@ namespace Pixel.Ship
             hintText.transform.parent.gameObject.SetActive(!string.IsNullOrEmpty(hint));
             hintText.text = hint;
 
+            // Recursos e dia
             var cm = CrewManager.Instance;
-            goldText.text = $"Ouro: {sea.Gold}" + (cm != null ? $"\nDia {cm.Day} na vila" : "");
-            UpdateStats();
+            var vm = VillageManager.Instance;
+            goldText.text = sea.Gold.ToString();
+            if (fishText != null && vm != null) fishText.text = vm.GetStock(cm.food).ToString();
+            if (rumText != null && vm != null) rumText.text = vm.GetStock(cm.rum).ToString();
+            crewText.text = $"{1 + sea.CrewFighters.Count}/{Mathf.Max(1, sea.Stats.MaxCrew)}";
+            if (cm != null)
+            {
+                dayText.text = $"Dia {cm.Day}";
+                ((RectTransform)dayBar.transform).anchorMax = new Vector2(cm.DayProgress, 1);
+            }
+
+            // Viagem
+            bool sailing = sea.Mode == SeaMode.Sailing && sea.Destination != null;
+            legRow.SetActive(sailing);
+            if (sailing) ((RectTransform)legBar.transform).anchorMax = new Vector2(sea.LegProgress, 1);
+
+            UpdateShip();
         }
 
-        void UpdateStats()
+        void UpdateShip()
         {
             var s = sea.Stats;
+            SetBar(hullBar, hullText, sea.ShipHp, s.hp);
             var cap = sea.captainCombatant;
-            string speed = s.speedKnots > 0 ? $"{s.speedKnots:0.0} nós" : UIKit.Colored("parado (sem velas)", new Color(1f, 0.5f, 0.45f));
-            statsText.text =
-                UIKit.Colored("Navio", UIKit.GoldColor) + "\n" +
-                $"Casco: {Hp(sea.ShipHp, s.hp)}\n" +
-                (cap != null ? $"Capitão: {Hp(cap.hp, cap.maxHp)}\n" : "") +
-                $"A bordo: {sea.CrewFighters.Count} de {Mathf.Max(0, s.MaxCrew - 1)} vagas\n" +
-                $"Velocidade: {speed}\n" +
-                $"Tripulação máx.: {s.MaxCrew}\n" +
-                $"Canhões: {s.cannons}\n" +
-                $"Blocos: {s.blocks} · Valor: {s.value} ouro" +
-                (sea.Mode == SeaMode.Sailing && sea.Destination != null
-                    ? $"\n\nRumo: {sea.Destination.name}\nViagem: {sea.LegProgress * 100f:0}%" : "") +
-                (sea.Mode == SeaMode.Landed && sea.Location != null ? $"\n\nEm: {sea.Location.name}" : "");
+            captainRow.SetActive(cap != null);
+            if (cap != null) SetBar(captainBar, captainText, cap.hp, cap.maxHp);
+            shipLine.text = s.speedKnots > 0 ? $"{s.speedKnots:0.0} nós · {s.cannons} canhões"
+                : UIKit.Colored("Parado: o navio não tem velas", new Color(1f, 0.5f, 0.45f));
         }
 
-        static string Hp(int cur, int max)
+        string ShipDetails()
         {
-            var c = cur > max * 0.6f ? new Color(0.55f, 0.95f, 0.5f) : cur > max * 0.3f ? new Color(1f, 0.85f, 0.35f) : new Color(1f, 0.45f, 0.4f);
-            return UIKit.Colored($"{cur}/{max}", c);
+            var s = sea.Stats;
+            string speed = s.speedKnots > 0 ? $"{s.speedKnots:0.0} nós" : "parado (sem velas)";
+            return $"Navio\nCasco: {sea.ShipHp}/{s.hp}\nVelocidade: {speed}\nCanhões: {s.cannons}\n" +
+                   $"Tripulação máx.: {s.MaxCrew} (você + {Mathf.Max(0, s.MaxCrew - 1)})\nBlocos: {s.blocks} · Valor: {s.value} ouro";
+        }
+
+        static void SetBar(Image fill, Text label, int cur, int max)
+        {
+            float f = max > 0 ? Mathf.Clamp01((float)cur / max) : 0f;
+            ((RectTransform)fill.transform).anchorMax = new Vector2(f, 1);
+            fill.color = f > 0.6f ? new Color(0.45f, 0.85f, 0.4f) : f > 0.3f ? new Color(1f, 0.8f, 0.3f) : new Color(1f, 0.4f, 0.35f);
+            label.text = $"{cur}/{max}";
+        }
+
+        /// <summary>Linha "Nome [barra] 70/70".</summary>
+        (Image, Text) Bar(Transform parent, string name, out GameObject row)
+        {
+            var r = UIKit.Rect(name, parent);
+            row = r.gameObject;
+            UIKit.Horizontal(r.gameObject, 0, 6).childAlignment = TextAnchor.MiddleLeft;
+            UIKit.Size(r, height: 18);
+            var n = UIKit.Text(r, name, 13, TextAnchor.MiddleLeft);
+            UIKit.Size(n, 58, 18);
+            var bg = UIKit.Rect("Fundo", r);
+            bg.gameObject.AddComponent<Image>().color = new Color(0, 0, 0, 0.55f);
+            UIKit.Size(bg, 96, 10);
+            var fill = UIKit.Rect("Preenchimento", bg);
+            UIKit.Stretch(fill);
+            var img = fill.gameObject.AddComponent<Image>();
+            var t = UIKit.Text(r, "", 13, TextAnchor.MiddleLeft);
+            UIKit.Size(t, 60, 18);
+            return (img, t);
+        }
+
+        /// <summary>Barra fina que ocupa a largura do painel (dia, viagem).</summary>
+        static Image BarFill(Transform parent, Color color)
+        {
+            var bg = UIKit.Rect("Barra", parent);
+            bg.gameObject.AddComponent<Image>().color = new Color(0, 0, 0, 0.5f);
+            UIKit.Size(bg, height: 6);
+            var fill = UIKit.Rect("Preenchimento", bg);
+            UIKit.Stretch(fill);
+            var img = fill.gameObject.AddComponent<Image>();
+            img.color = color;
+            return img;
+        }
+
+        Text Resource(Transform parent, Sprite icon, Color color, System.Func<string> tip)
+        {
+            var row = UIKit.Rect("Recurso", parent);
+            UIKit.Horizontal(row.gameObject, 0, 5).childAlignment = TextAnchor.MiddleLeft;
+            row.gameObject.AddComponent<Image>().color = Color.clear;   // para a dica do mouse
+            var iconRt = UIKit.Rect("Icone", row);
+            var img = iconRt.gameObject.AddComponent<Image>();
+            img.sprite = icon;
+            img.enabled = icon != null;
+            img.preserveAspect = true;
+            img.raycastTarget = false;
+            UIKit.Size(iconRt, 26, 26);
+            var t = UIKit.Text(row, "", 18, TextAnchor.MiddleLeft, color);
+            t.horizontalOverflow = HorizontalWrapMode.Overflow;
+            t.gameObject.AddComponent<Shadow>().effectDistance = new Vector2(1.5f, -1.5f);
+            UIKit.Tip(row, tip);
+            return t;
         }
 
         void Refresh()
@@ -203,8 +319,7 @@ namespace Pixel.Ship
             win = w;
             trade = w;
             UIKit.Vertical(content.gameObject, 4, 8);
-            var t = UIKit.Text(content, "Peixe para a viagem e bom preço no seu rum.\n(As compras vão direto pro estoque da vila.)", 15, TextAnchor.UpperLeft, UIKit.MutedText);
-            UIKit.Size(t, height: 44);
+            UIKit.Info(w, () => "Peixe para a viagem e bom preço no seu rum.\nAs compras vão direto para o estoque da vila.");
             void Btn(string label, UnityEngine.Events.UnityAction a)
             {
                 var (b, _, _) = UIKit.Button(content, label, a, 16);
@@ -226,10 +341,8 @@ namespace Pixel.Ship
         void PaletteButton(ShipBlockDef def, bool selected, UnityEngine.Events.UnityAction onClick)
         {
             var rt = UIKit.Rect("Bloco", actionBar);
-            var bg = rt.gameObject.AddComponent<Image>();
-            bg.color = selected ? UIKit.ButtonSelected : UIKit.ButtonColor;
-            var btn = rt.gameObject.AddComponent<Button>();
-            btn.targetGraphic = bg;
+            var (btn, bg) = UIKit.ButtonBase(rt);
+            UIKit.SetSelected(bg, selected);
             btn.onClick.AddListener(onClick);
             UIKit.Size(rt, 118, 64);
             var l = UIKit.Horizontal(rt.gameObject, 5, 4);
@@ -240,7 +353,7 @@ namespace Pixel.Ship
             img.preserveAspect = true;
             img.raycastTarget = false;
             UIKit.Size(iconRt, 36, 36);
-            var t = UIKit.Text(rt, $"{def.displayName}\n{def.cost} ouro", 14, TextAnchor.MiddleCenter);
+            var t = UIKit.Text(rt, $"{def.displayName}\n{def.cost} ouro", 14, TextAnchor.MiddleCenter, UIKit.ButtonText);
             UIKit.Size(t, flexWidth: 1);
         }
     }

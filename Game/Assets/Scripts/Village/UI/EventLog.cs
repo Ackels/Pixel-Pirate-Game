@@ -7,16 +7,18 @@ namespace Pixel.Village
     /// <summary>Registro no canto inferior esquerdo com as últimas notícias da vila.</summary>
     public class EventLog : MonoBehaviour
     {
-        const int MaxLines = 6;
+        const int MaxLines = 5;
         Text text;
 
         public static EventLog Create(Transform canvas)
         {
-            var root = UIKit.Panel("Registro", canvas, new Vector2(0, 0), new Vector2(0, 0), new Vector2(12, 150), new Vector2(430, 136),
-                new Color(0.12f, 0.08f, 0.05f, 0.75f));
+            var root = UIKit.Panel("Registro", canvas, new Vector2(0, 0), new Vector2(0, 0), new Vector2(12, 12), new Vector2(420, 128),
+                new Color(0.1f, 0.06f, 0.04f, 0.6f));
+            Destroy(root.Find("Moldura").gameObject);   // o registro fica discreto, sem moldura
             var log = root.gameObject.AddComponent<EventLog>();
             log.text = UIKit.Text(root, "", 14, TextAnchor.LowerLeft);
             UIKit.Stretch(log.text.rectTransform, 8);
+            UIKit.Fit(log.text, 11);   // muitas linhas longas: a letra encolhe um pouco em vez de vazar do painel
             return log;
         }
 

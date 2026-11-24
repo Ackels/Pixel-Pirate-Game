@@ -64,6 +64,7 @@ namespace Pixel.Village
             {
                 d.dungeonsCleared.AddRange(em.ClearedNames);
                 d.presets.AddRange(em.presets);
+                d.expeditionReports.AddRange(em.Reports);
             }
             if (ChronicleManager.Instance != null) d.chronicle = ChronicleManager.Instance.Current;
             d.stats = GameStats.Export();
@@ -122,7 +123,7 @@ namespace Pixel.Village
             var log = new List<(string, Color)>();
             foreach (var l in d.log) log.Add((l.msg, l.color));
             cm.RestoreFromSave(members, recruits, d.day, d.dayTimer, log);
-            ExpeditionManager.Instance?.RestoreFromSave(d.dungeonsCleared, d.presets?.ToArray());
+            ExpeditionManager.Instance?.RestoreFromSave(d.dungeonsCleared, d.presets?.ToArray(), d.expeditionReports);
             GameStats.Import(d.stats);
             ChronicleManager.Instance?.RestoreFromSave(d.chronicle);
 

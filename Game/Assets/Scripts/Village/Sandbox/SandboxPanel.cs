@@ -29,7 +29,7 @@ namespace Pixel.Village
             p.showMessage = message;
 
             // Selo no canto: lembra que é Sandbox e como abrir o painel
-            p.badge = UIKit.Panel("SeloSandbox", holder, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-12, atSea ? 12 : 104), new Vector2(190, 30),
+            p.badge = UIKit.Panel("SeloSandbox", holder, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-12, 12), new Vector2(190, 30),
                 new Color(0.55f, 0.15f, 0.55f, 0.92f));
             var bb = p.badge.gameObject.AddComponent<Button>();
             bb.targetGraphic = p.badge.GetComponent<Image>();

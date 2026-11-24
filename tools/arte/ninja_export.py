@@ -94,7 +94,7 @@ save('Buildings', 'mercado', t(HO, 16, 0, 3, 3))
 save('Buildings', 'estaleiro', t(HO, 25, 14, 4, 5))
 save('Buildings', 'horta', t(EL, 13, 5, 2, 2))
 save('Buildings', 'cabana_pesca', t(CA, 4, 0, 3, 3))
-save('Buildings', 'quadro', t(CA, 7, 5, 2, 2))
+save('Buildings', 'quadro', t(CA, 6, 5, 2, 2))   # poste com lanterna + estandarte (a coluna 8 já é o pano vizinho)
 
 # ---------- Decoração ----------
 NA = TS + 'TilesetNature.png'

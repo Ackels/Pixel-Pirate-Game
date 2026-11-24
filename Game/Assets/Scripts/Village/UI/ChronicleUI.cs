@@ -10,7 +10,8 @@ namespace Pixel.Village
     public class ChronicleUI : MonoBehaviour
     {
         RectTransform tracker, window, list;
-        Text trackerText;
+        Text trackerTitle, trackerGoal, trackerReward;
+        GameObject rewardRow;
         float refresh;
 
         public static ChronicleUI Create(Transform canvas)
@@ -20,13 +21,35 @@ namespace Pixel.Village
             var ui = holder.gameObject.AddComponent<ChronicleUI>();
 
             // Painel da missão atual (clicável)
-            ui.tracker = UIKit.Panel("MissaoAtual", holder, new Vector2(0, 1), new Vector2(0, 1), new Vector2(12, -236), new Vector2(280, 96),
-                new Color(0.28f, 0.2f, 0.08f, 0.92f));
+            // Só o essencial: nome, objetivo com progresso e recompensa. A dica de como fazer fica no mouse.
+            ui.tracker = UIKit.Panel("MissaoAtual", holder, new Vector2(0, 1), new Vector2(0, 1), new Vector2(12, -76), new Vector2(270, 0));
+            var v = UIKit.Vertical(ui.tracker.gameObject, 0, 2);
+            v.padding = new RectOffset(12, 12, 8, 10);
+            ui.tracker.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             var btn = ui.tracker.gameObject.AddComponent<Button>();
             btn.targetGraphic = ui.tracker.GetComponent<Image>();
             btn.onClick.AddListener(ui.ToggleWindow);
-            ui.trackerText = UIKit.Text(ui.tracker, "", 13, TextAnchor.UpperLeft);
-            UIKit.Stretch(ui.trackerText.rectTransform, 8);
+            ui.trackerTitle = UIKit.Text(ui.tracker, "", 15, TextAnchor.MiddleLeft, UIKit.GoldColor);
+            ui.trackerGoal = UIKit.Text(ui.tracker, "", 13, TextAnchor.UpperLeft);
+            var row = UIKit.Rect("Recompensa", ui.tracker);
+            ui.rewardRow = row.gameObject;
+            UIKit.Horizontal(row.gameObject, 0, 4);
+            var coin = UIKit.Rect("Moeda", row);
+            var ci = coin.gameObject.AddComponent<Image>();
+            ci.sprite = VillageHUD.Instance != null ? VillageHUD.Instance.goldIcon : null;
+            ci.enabled = ci.sprite != null;
+            ci.preserveAspect = true;
+            ci.raycastTarget = false;
+            UIKit.Size(coin, 18, 18);
+            ui.trackerReward = UIKit.Text(row, "", 13, TextAnchor.MiddleLeft, UIKit.GoldColor);
+            UIKit.Size(ui.trackerReward, 200, 18);
+            UIKit.Tip(ui.tracker, () =>
+            {
+                var cm = ChronicleManager.Instance;
+                var a = cm != null ? cm.Active : null;
+                string how = a != null ? $"{a.hint}\n\n" : "";
+                return how + "Clique (ou J) para ver todas as crônicas.";
+            });
 
             // Janela com todas as crônicas
             var (win, content) = UIKit.Window("JanelaCronicas", holder, "Crônicas do Bando", new Vector2(640, 520), () => ui.window.gameObject.SetActive(false));
@@ -57,15 +80,17 @@ namespace Pixel.Village
 
             var c = cm.Active;
             if (c == null)
-                trackerText.text = UIKit.Colored("Crônicas concluídas!", UIKit.GoldColor) + "\nVocê é a lenda dos mares.\n" + UIKit.Colored("(J: ver crônicas)", UIKit.MutedText);
+            {
+                trackerTitle.text = "Crônicas concluídas!";
+                trackerGoal.text = "Você é a lenda dos mares.";
+                rewardRow.SetActive(false);
+            }
             else
             {
-                string prog = c.progress != null ? $" ({c.progress()})" : "";
-                trackerText.text =
-                    UIKit.Colored($"Crônica {cm.Current + 1}/{cm.Chronicles.Count}: {c.title}", UIKit.GoldColor) + "\n" +
-                    c.goal + prog + "\n" +
-                    UIKit.Colored($"{c.hint}", UIKit.MutedText) + "\n" +
-                    UIKit.Colored($"Recompensa: {c.reward} ouro · J: ver todas", new Color(1f, 0.85f, 0.4f));
+                trackerTitle.text = $"{c.title} {UIKit.Colored($"{cm.Current + 1}/{cm.Chronicles.Count}", UIKit.MutedText)}";
+                trackerGoal.text = c.progress != null ? $"{c.goal} {UIKit.Colored($"({c.progress()})", UIKit.GoldColor)}" : c.goal;
+                trackerReward.text = c.reward.ToString();
+                rewardRow.SetActive(true);
             }
             if (window.gameObject.activeSelf) RebuildList();
         }

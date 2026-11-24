@@ -28,7 +28,7 @@ namespace Pixel.Village
             var holder = UIKit.Rect("FaixaDaExpedicao", canvas);
             UIKit.Stretch(holder);
             var strip = holder.gameObject.AddComponent<ExpeditionStrip>();
-            var rt = UIKit.Panel("Painel", holder, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0, -10), new Vector2(Width, Height));
+            var rt = UIKit.Panel("Painel", holder, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0, -76), new Vector2(Width, Height));
             strip.root = rt;
             strip.background = rt.GetComponent<Image>();
             var btn = rt.gameObject.AddComponent<Button>();
