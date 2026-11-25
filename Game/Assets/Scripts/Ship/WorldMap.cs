@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Pixel.Ship
 {
-    public enum IslandType { Home, Port, Wild, PirateCamp }
+    public enum IslandType { Home, Port, Wild, PirateCamp, Fortress }
 
     /// <summary>Uma ilha do mapa-múndi.</summary>
     public class IslandNode
@@ -28,6 +28,7 @@ namespace Pixel.Ship
             IslandType.Port => "Porto amigo",
             IslandType.Wild => "Ilha selvagem",
             IslandType.PirateCamp => "Acampamento pirata",
+            IslandType.Fortress => "Fortaleza do Capitão Lendário",
             _ => "?",
         };
     }
@@ -83,8 +84,35 @@ namespace Pixel.Ship
                 map.Islands[2].pos = map.Home.pos + new Vector2(20f, 10f);
             }
             map.Spread();
+            map.AddFortress(seed);
             map.RevealAround(map.Home);
             return map;
+        }
+
+        /// <summary>Nome da fortaleza do primeiro Capitão Lendário (o Corvo Rubro).</summary>
+        public const string FortressName = "Fortaleza do Corvo";
+        public IslandNode Fortress => Islands.Find(i => i.type == IslandType.Fortress);
+
+        /// <summary>
+        /// A fortaleza do Capitão Lendário: bem no leste, no lugar mais longe das outras ilhas. Entra depois de
+        /// tudo (com sorteio próprio), então as ilhas que já existiam continuam iguais nos saves antigos.
+        /// </summary>
+        void AddFortress(int seed)
+        {
+            var rng = new System.Random(seed ^ 0x5F0A7);
+            Vector2 best = new Vector2(Width - 6f, Height / 2f);
+            float bestGap = -1f;
+            for (float x = Width - 18f; x <= Width - 9f; x += 1.5f)       // longe da borda: o nome cabe no papel
+                for (float y = 13f; y <= Height - 12f; y += 1.5f)
+                {
+                    var p = new Vector2(x, y);
+                    float gap = float.MaxValue;
+                    foreach (var i in Islands)
+                        gap = Mathf.Min(gap, new Vector2(i.pos.x - p.x, (i.pos.y - p.y) * 2f).magnitude);
+                    gap += (float)rng.NextDouble() * 0.5f;   // desempate sorteado
+                    if (gap > bestGap) { bestGap = gap; best = p; }
+                }
+            Islands.Add(new IslandNode { id = Islands.Count, name = FortressName, type = IslandType.Fortress, pos = best, seed = rng.Next() });
         }
 
         /// <summary>

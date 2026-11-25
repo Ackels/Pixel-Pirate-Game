@@ -159,7 +159,7 @@ namespace Pixel.EditorTools
             {
                 { "Casa", "casa" }, { "Taverna", "taverna" }, { "Horta", "horta" }, { "CabanaDePesca", "cabana_pesca" },
                 { "Destilaria", "destilaria" }, { "Mercado", "mercado" }, { "Estaleiro", "estaleiro" },
-                { "QuadroDeExpedicoes", "quadro" },
+                { "QuadroDeExpedicoes", "quadro" }, { "Forja", "forja" },
             };
             foreach (var d in defs)
             {

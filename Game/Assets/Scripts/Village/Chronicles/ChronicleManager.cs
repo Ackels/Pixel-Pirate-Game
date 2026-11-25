@@ -109,6 +109,9 @@ namespace Pixel.Village
                 "Tecla X: monte um grupo de até 4 e leve rum como curativo.", 100, () => Cleared(0));
             Add("A lenda dos mares", "Derrote o Capitão Lendário no Covil.",
                 "Conclua as masmorras em ordem. Tripulantes de nível 4 e bastante rum!", 500, () => Cleared(3));
+            Add("O Corvo Rubro", "Derrote o Capitão Lendário na Fortaleza do Corvo.",
+                "A fortaleza aparece no mapa depois de 3 vitórias no mar (ou explorando o leste). Leve o bando bem equipado: canhões na praia, guardas e um chefe que derruba todo mundo em volta!",
+                800, () => GameStats.Get(GameStats.Legends) >= 1);
         }
 
         void Update()

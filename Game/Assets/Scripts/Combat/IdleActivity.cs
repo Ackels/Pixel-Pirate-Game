@@ -16,6 +16,8 @@ namespace Pixel.Combat
         public bool facingRight;
         public Sprite prop;
         public float wakeRadius = 5f;
+        [Tooltip("Sono pesado: o grito dos outros não acorda (só chegar bem perto, apanhar ou WakeUp).")]
+        public bool deepSleep;
 
         Combatant me;
         CombatAI ai;
@@ -110,9 +112,12 @@ namespace Pixel.Combat
         void WakeAround()
         {
             foreach (var other in FindObjectsByType<IdleActivity>())
-                if (other != null && !other.friendly && !other.awake && Vector2.Distance(other.transform.position, transform.position) < 7f)
+                if (other != null && !other.friendly && !other.awake && (!other.deepSleep || other == this) && Vector2.Distance(other.transform.position, transform.position) < 7f)
                     other.Wake(other == this);
         }
+
+        /// <summary>Acorda agora (ex.: o chefe quando todos os guardas caem).</summary>
+        public void WakeUp() { if (!awake && enabled) Wake(true); }
 
         void Wake(bool shout)
         {

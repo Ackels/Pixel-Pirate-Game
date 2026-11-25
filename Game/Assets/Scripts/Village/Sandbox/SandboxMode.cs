@@ -34,6 +34,7 @@ namespace Pixel.Village
             }
             var cm = CrewManager.Instance;
             if (cm != null) for (int i = 0; i < 4; i++) cm.SandboxAddCrew(3);
+            Armory.Instance?.SandboxGiveAll();
         }
 
         public static float NextSpeed()

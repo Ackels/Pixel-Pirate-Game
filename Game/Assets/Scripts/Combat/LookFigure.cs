@@ -9,6 +9,25 @@ namespace Pixel.Combat
     /// </summary>
     public class LookFigure : MonoBehaviour, IPose
     {
+        /// <summary>
+        /// Tamanho dos personagens na visão lateral (1 = um bloco de altura). Só o desenho cresce:
+        /// o colisor é encolhido na mesma proporção, então pular, escadas e cordas continuam iguais.
+        /// </summary>
+        public const float SideScale = 1.5f;
+
+        /// <summary>Aumenta o boneco (desenho e tudo que vai preso nele) sem mudar o tamanho do colisor.</summary>
+        public static void ApplySideScale(GameObject go)
+        {
+            go.transform.localScale = Vector3.one * SideScale;
+            foreach (var col in go.GetComponents<Collider2D>())
+            {
+                col.offset /= SideScale;
+                if (col is CapsuleCollider2D cap) cap.size /= SideScale;
+                else if (col is BoxCollider2D box) box.size /= SideScale;
+                else if (col is CircleCollider2D circle) circle.radius /= SideScale;
+            }
+        }
+
         CharacterLook look;
         SpriteRenderer sr;
         Combatant combatant;
@@ -18,6 +37,7 @@ namespace Pixel.Combat
         public void Init(CharacterLook l, int order)
         {
             look = l;
+            ApplySideScale(gameObject);
             sr = gameObject.AddComponent<SpriteRenderer>();
             sr.sortingOrder = order;
             combatant = GetComponent<Combatant>();

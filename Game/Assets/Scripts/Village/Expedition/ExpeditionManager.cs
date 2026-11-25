@@ -32,6 +32,7 @@ namespace Pixel.Village
             public int gold;
             public string item;
             public int itemAmount;
+            public string gear;             // peça de equipamento achada (nome do asset), se houver
             public int rumBack;
             public int xp;
             public List<string> members = new List<string>();
@@ -95,7 +96,7 @@ namespace Pixel.Village
                 e.party.Add(new ExpeditionFighter
                 {
                     name = m.name, member = m, hp = m.CombatHp, maxHp = m.CombatHp,
-                    dmgMin = dmg.x, dmgMax = dmg.y, interval = 1f, timer = Random.Range(0.2f, 1f),
+                    dmgMin = dmg.x, dmgMax = dmg.y, interval = m.gear.CooldownFactor, timer = Random.Range(0.2f, 1f),
                 });
             }
             Active.Add(e);
@@ -138,6 +139,11 @@ namespace Pixel.Village
             {
                 report.item = d.itemReward;
                 report.itemAmount = Random.Range(d.itemAmount.x, d.itemAmount.y + 1);
+            }
+            if (e.victory && Armory.Instance != null && Random.value < 0.6f)
+            {
+                var g = Armory.Instance.Roll(d.recommendedLevel);
+                if (g != null) report.gear = g.name;
             }
 
             int hurt = 0;
@@ -190,6 +196,8 @@ namespace Pixel.Village
             if (r.rumBack > 0 && cm.rum != null) vm.AddStock(cm.rum, r.rumBack);   // rum que sobrou volta
             var d = FindDungeon(r.dungeon);
             string extra = r.itemAmount > 0 ? $", {r.itemAmount} {r.item}" : "";
+            var gear = Armory.Instance != null ? Armory.Instance.Find(r.gear) : null;
+            if (gear != null) { Armory.Instance.Add(gear); extra += $" e {gear.displayName} ({GearDef.RarityName(gear.rarity)})"; }
             cm.Report($"Prêmio coletado ({(d != null ? d.displayName : r.dungeon)}): +{r.gold} ouro{extra}.", new Color(1f, 0.85f, 0.4f));
             AudioManager.Play(Sfx.Chest);
             Changed?.Invoke();

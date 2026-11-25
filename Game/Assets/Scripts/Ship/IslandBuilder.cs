@@ -130,6 +130,7 @@ namespace Pixel.Ship
             var free = new List<int>();
             for (int i = 6; i < Columns - 1; i++) free.Add(i);
             int danger = node.Danger(GameFlowHome());
+            islandDanger = danger;
             // Colunas das construções ficam sem coqueiro da frente nem baú solto
             bool hasArt = house != null && house.back != null;
             foreach (var (a, b) in occupied) free.RemoveAll(c => c >= a - 1 && c <= b);
@@ -150,7 +151,7 @@ namespace Pixel.Ship
                 {
                     int col = Mathf.Clamp((int)x, 5, Columns - 1);
                     var sr = Sprite(backPalms[rng.Next(backPalms.Length)], new Vector2(x, Top(col).y + (float)rng.NextDouble() * 0.3f), -50);
-                    sr.transform.localScale = Vector3.one * (0.9f + (float)rng.NextDouble() * 0.25f);
+                    sr.transform.localScale = Vector3.one * (0.9f + (float)rng.NextDouble() * 0.25f) * SceneryScale;
                     sr.flipX = rng.Next(2) == 0;
                 }
             if (grassDecor != null)
@@ -162,6 +163,7 @@ namespace Pixel.Ship
                 case IslandType.Wild: WildIsland(danger, free); break;
                 case IslandType.PirateCamp: CampIsland(danger, free); break;
                 case IslandType.Port: PortIsland(); break;
+                case IslandType.Fortress: FortressIsland(danger); return;   // sem baú esquecido nem X
             }
             // Às vezes a ilha esconde um baú esquecido a mais
             if (rng.NextDouble() < 0.2) Chest(Take(free), rng.Next(40, 91), Items(("Rum", 1, 3)));
@@ -219,6 +221,9 @@ namespace Pixel.Ship
                     if (Variant == 1) yield return (TavernCol, TavernCol + TavernW + 6);
                     if (Variant == 2) yield return (13, 24);
                     break;
+                case IslandType.Fortress:
+                    yield return (6, Columns);
+                    break;
                 case IslandType.Port:
                     if (Variant == 0 || Variant == 2) yield return (MarketCol, PortTavernCol + PortTavernW);
                     if (Variant == 1) yield return (MarketCol, MarketCol + MarketW + 4);
@@ -256,6 +261,7 @@ namespace Pixel.Ship
                 case 4:   // acampamento abandonado: tenda, fogueira apagada e baús esquecidos
                     if (tent != null) Decor(tent, 19, -25, 1f);
                     var fire = Sprite(campfire, Top(16), -24);
+                    fire.transform.localScale = Vector3.one * SceneryScale;
                     fire.color = new Color(0.45f, 0.42f, 0.42f);   // apagada
                     Chest(17, rng.Next(20, 41), Items(("Rum", 1, 3)));
                     Chest(21, rng.Next(20, 41), Items(("Peixe", 2, 5)));
@@ -481,11 +487,11 @@ namespace Pixel.Ship
             WallProp(house.axe, ax - 0.9f, af + 2.1f, -30, 1.2f);
             WallProp(house.lance, ax - 0.2f, af + 2.1f, -30, 1.2f);
             WallProp(house.shelf, ax + 1.4f, af + 2.0f, -30, 0.8f);
-            WallProp(house.bottleGreen, ax + 1.1f, af + 2.0f + 0.32f, -29, 0.6f);
-            WallProp(house.bottleRed, ax + 1.6f, af + 2.0f + 0.4f, -29, 0.6f);
-            FloorProp(house.barrelFront, ax + 2.0f, af, -28, 1f);
-            FloorProp(house.barrelFront, ax + 1.35f, af, -28, 1f);
-            FloorProp(house.barrelSide, ax + 1.7f, af + 0.62f, -28, 1f);
+            WallProp(house.bottleGreen, ax + 1.0f, af + 2.0f + 0.32f * PropScale, -29, 0.6f);
+            WallProp(house.bottleRed, ax + 1.75f, af + 2.0f + 0.4f * PropScale, -29, 0.6f);
+            FloorProp(house.barrelFront, ax + 2.2f, af, -28, 1f);
+            FloorProp(house.barrelFront, ax + 1.25f, af, -28, 1f);
+            FloorProp(house.barrelSide, ax + 1.72f, af + 0.62f * PropScale, -28, 1f);
             Chest(ArsenalCol + 1, boss ? rng.Next(150, 251) : rng.Next(50, 101), Items(("Rum", 3, 7)));
             Candle(ArsenalCol + 1.2f, af + 1.9f);
             if (boss && !Node.cleared)
@@ -519,11 +525,11 @@ namespace Pixel.Ship
             float mf = House(MarketCol, MarketW, "MERCADO");
             float mx = MarketCol + MarketW / 2f;
             WallProp(house.shelf, mx - 1.3f, mf + 2.0f, -30, 0.8f);
-            WallProp(house.fish, mx - 1.6f, mf + 2.0f + 0.3f, -29, 1f);
-            WallProp(house.meat, mx - 1.0f, mf + 2.0f + 0.3f, -29, 1f);
+            WallProp(house.fish, mx - 1.65f, mf + 2.0f + 0.3f * PropScale, -29, 1f);
+            WallProp(house.meat, mx - 0.95f, mf + 2.0f + 0.3f * PropScale, -29, 1f);
             WallProp(house.shelf, mx + 1.3f, mf + 2.0f, -30, 0.8f);
-            WallProp(house.bottleBlue, mx + 1.0f, mf + 2.0f + 0.36f, -29, 0.6f);
-            WallProp(house.shrimp, mx + 1.6f, mf + 2.0f + 0.3f, -29, 1f);
+            WallProp(house.bottleBlue, mx + 0.95f, mf + 2.0f + 0.36f * PropScale, -29, 0.6f);
+            WallProp(house.shrimp, mx + 1.65f, mf + 2.0f + 0.3f * PropScale, -29, 1f);
             FloorProp(house.barrel, mx + 2.3f, mf, -28, 0.6f);
             FloorProp(house.barrelFront, mx - 2.3f, mf, -28, 1f);
             Candle(MarketCol + 1.2f, mf + 1.9f);
@@ -557,7 +563,8 @@ namespace Pixel.Ship
             c.damage = new Vector2Int(11 + danger, 16 + danger);
             c.attackCooldown = 1.1f;
             c.FacingRight = false;
-            c.transform.localScale = Vector3.one * 1.2f;
+            c.transform.localScale *= 1.2f;   // chefe um pouco maior que os outros
+            c.figureHeight *= 1.2f;
             Guard(c);
             var act = c.gameObject.AddComponent<IdleActivity>();
             act.kind = IdleActivity.Kind.Drink;
@@ -568,9 +575,8 @@ namespace Pixel.Ship
         /// Uma construção de lado: parede do fundo, pilares, viga, telhado de telhas e a placa com o nome.
         /// Tudo fica atrás dos personagens (dá para entrar). Devolve a altura do chão.
         /// </summary>
-        float House(int col, int width, string title)
+        float House(int col, int width, string title, float H = 4f)
         {
-            const float H = 4f;
             float floor = beachTop + tops[col];
             float x0 = col, x1 = col + width;
             // Parede do fundo
@@ -592,26 +598,215 @@ namespace Pixel.Ship
             return floor;
         }
 
+        // ---------- Fortaleza do Capitão Lendário ----------
+        const int KeepCol = 15, KeepW = 13;
+        Combatant legend;
+        bool legendAnnounced, legendDown;
+
+        /// <summary>
+        /// Muralha baixa com dois canhões na praia (atiram no bando), guardas, e o salão do Capitão Lendário
+        /// com o trono e o baú trancado (só abre depois que ele cai).
+        /// </summary>
+        void FortressIsland(int danger)
+        {
+            danger = Mathf.Max(danger, 4);
+            legend = null;
+            legendDown = false;
+            legendAnnounced = Node.cleared;
+            float floor = beachTop + tops[KeepCol];
+
+            // Muralha baixa (atrás dos canhões) e torres nas pontas
+            var wall = Sprite(house.back, new Vector2((7f + KeepCol) / 2f, floor + 0.75f), -39);
+            wall.drawMode = SpriteDrawMode.Tiled;
+            wall.size = new Vector2(KeepCol - 7f, 1.5f);
+            foreach (float px in new[] { 6.5f, 10.5f })
+                for (int r = 0; r < 3; r++)
+                    Sprite(r == 0 ? house.pillarBase : r == 2 ? house.pillarTop : house.pillar, new Vector2(px, floor + r + 0.5f), -37);
+
+            // Salão: mais alto que as casas comuns
+            float kf = House(KeepCol, KeepW, "FORTALEZA DO CORVO", 5f);
+            float kx = KeepCol + KeepW / 2f;
+            WallProp(house.window, kx - 3.2f, kf + 3.2f, -32, 0.7f);
+            WallProp(house.window, kx + 3.2f, kf + 3.2f, -32, 0.7f);
+            WallProp(house.sword, kx - 1.2f, kf + 2.6f, -30, 1.2f);
+            WallProp(house.axe, kx - 0.4f, kf + 2.6f, -30, 1.2f);
+            WallProp(house.lance, kx + 0.4f, kf + 2.6f, -30, 1.2f);
+            WallProp(house.sword, kx + 1.2f, kf + 2.6f, -30, 1.2f);
+            var throne = FloorProp(house.chair, kx + 0.2f, kf, -31, 1.1f);
+            throne.flipX = true;
+            throne.color = new Color(0.85f, 0.55f, 0.55f);
+            FloorProp(house.skull, kx - 2.2f, kf, -28, 0.8f);
+            FloorProp(house.barrelFront, KeepCol + 1.6f, kf, -28, 1f);
+            FloorProp(house.barrel, KeepCol + 2.5f, kf, -28, 0.6f);
+            Candle(kx - 4.6f, kf + 2.2f);
+            Candle(kx + 4.6f, kf + 2.2f);
+            // Bandeiras pretas no telhado
+            var flags = director.flagPirateFrames;
+            if (flags != null && flags.Length > 0)
+                foreach (float fx in new[] { KeepCol + 0.6f, KeepCol + KeepW - 0.6f })
+                {
+                    var f = Sprite(flags[0], new Vector2(fx, kf + 5.6f), -24);
+                    f.transform.localScale = Vector3.one * 1.3f;
+                    var anim = f.gameObject.AddComponent<SpriteAnim>();
+                    anim.frames = flags; anim.fps = 8f; anim.loop = true;
+                }
+            LegendChest(KeepCol + KeepW - 2, kf);
+            if (Node.cleared) return;
+
+            // Canhões na praia, guardas e o chefe (aparecem quando a ilha encosta)
+            pendingSpawns.Add((new Vector2(8.5f, floor), () => FortCannonAt(8.5f, floor, danger)));
+            pendingSpawns.Add((new Vector2(12.8f, floor), () => FortCannonAt(12.8f, floor, danger)));
+            var guards = new List<(float x, IdleActivity.Kind kind, bool right, Sprite prop)>
+            {
+                (9.6f, IdleActivity.Kind.Chat, false, null), (11.6f, IdleActivity.Kind.Drink, false, house.bottleGreen),
+                (KeepCol + 2.2f, IdleActivity.Kind.Eat, true, house.meat), (KeepCol + KeepW - 3.6f, IdleActivity.Kind.Sleep, true, null),
+            };
+            foreach (var g in guards)
+            {
+                var j = g;
+                pendingSpawns.Add((new Vector2(j.x, floor), () => PirateAt(j.x, floor, danger - 1, j.kind, j.right, j.prop)));
+            }
+            pendingSpawns.Add((new Vector2(kx + 0.2f, kf), () => LegendCaptain(kx + 0.2f, kf, danger)));
+        }
+
+        void FortCannonAt(float x, float floor, int danger)
+        {
+            var go = new GameObject("Canhao da Fortaleza");
+            go.transform.position = (Vector2)Root.transform.position + new Vector2(x, floor + 0.5f);
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = Block("Canhao")?.sprite;
+            sr.sortingOrder = 6;
+            var c = go.AddComponent<Combatant>();
+            c.team = Team.Enemy;
+            c.displayName = "Canhão";
+            c.maxHp = c.hp = 50 + danger * 8;
+            c.damage = Vector2Int.zero;
+            c.figureHeight = 0.6f;
+            c.FacingRight = false;
+            go.AddComponent<FortCannon>();
+            enemies.Add(c);
+        }
+
+        /// <summary>O Capitão Corvo Rubro: bebe no trono até alguém chegar perto (ou apanhar).</summary>
+        void LegendCaptain(float x, float floor, int danger)
+        {
+            Vector2 world = (Vector2)Root.transform.position + new Vector2(x, floor + 0.1f);
+            var lib = director.Looks;
+            var look = lib != null ? (lib.legendCaptain != null ? lib.legendCaptain : lib.enemyPirate) : null;
+            if (look == null) return;
+            var c = director.SpawnFighter(world, Team.Enemy, "Capitão Corvo Rubro", null, look);
+            c.maxHp = c.hp = 700 + danger * 20;
+            c.damage = new Vector2Int(12, 17);
+            c.attackCooldown = 1.2f;
+            c.attackRange = 1.6f;
+            c.maxTargets = 1;   // o golpe normal pega um só; quem acerta todo mundo é a pancada no chão (avisada)
+            c.FacingRight = false;
+            c.transform.localScale *= 1.45f;   // bem maior que todo mundo
+            c.figureHeight *= 1.45f;
+            var ai = c.GetComponent<CombatAI>();
+            ai.moveSpeed = 2.6f;
+            Guard(c);
+            var act = c.gameObject.AddComponent<IdleActivity>();
+            act.kind = IdleActivity.Kind.Drink;
+            act.prop = house.bottleRed;
+            act.deepSleep = true;     // o grito dos guardas não acorda o chefe: primeiro os guardas, depois ele
+            act.wakeRadius = 3.5f;
+            var boss = c.gameObject.AddComponent<LegendBoss>();
+            boss.title = "Capitão Corvo Rubro";
+            boss.reinforce = phase =>
+            {
+                // Reforços saem do fundo do salão (já acordados, vêm direto para a briga)
+                for (int k = 0; k < phase; k++)   // 1 pirata na primeira chamada, 2 na segunda
+                {
+                    float rx = KeepCol + KeepW - 1.5f - k * 0.8f;
+                    float rf = beachTop + tops[KeepCol];
+                    var p = director.SpawnFighter((Vector2)Root.transform.position + new Vector2(rx, rf + 0.1f), Team.Enemy, "Pirata", null, lib.enemyPirate);
+                    p.maxHp = p.hp = Mathf.RoundToInt(50 * (1f + (danger - 1) * 0.15f));   // iguais aos guardas
+                    p.damage = new Vector2Int(6 + danger, 10 + danger);
+                    p.FacingRight = false;
+                    Guard(p);
+                    p.GetComponent<CombatAI>().charge = true;
+                    Fx.Spawn(Fx.Puff, p.transform.position + Vector3.up * 0.5f, 0.5f, 2f);
+                }
+                sea.Say(phase == 1 ? "O Corvo Rubro chamou reforços!" : "Mais piratas! O Corvo Rubro está furioso!");
+            };
+            // O chefe empunha um sabre dourado (só o desenho)
+            var golden = Armory.Instance != null ? Armory.Instance.Find("SabreDourado") : null;
+            if (golden != null) HandWeapon.Set(c.gameObject, golden.icon);
+            c.Downed += _ => legendDown = true;
+            legend = c;
+        }
+
+        /// <summary>Baú do tesouro do Capitão Lendário: trancado até ele cair. Ouro, rum, uma peça lendária e mais uma rara.</summary>
+        void LegendChest(int col, float floor)
+        {
+            var sr = Sprite(Node.looted ? chestOpen : chestClosed, new Vector2(col + 0.5f, floor), -5);
+            sr.transform.localScale = Vector3.one * SceneryScale * 1.5f;
+            sr.color = new Color(1f, 0.85f, 0.5f);
+            if (Node.looted) return;
+            var it = sr.gameObject.AddComponent<Interactable>();
+            it.prompt = "E: abrir o tesouro do Corvo Rubro";
+            it.range = 2f;
+            it.onUse = () =>
+            {
+                if (Node.looted) return;   // já aberto (evita pegar duas vezes no mesmo instante)
+                if (!Node.cleared) { sea.Say("Trancado com sete cadeados... só o Capitão Corvo Rubro tem a chave!"); return; }
+                var loot = new Dictionary<string, int> { { "Rum", rng.Next(5, 11) } };
+                int got = sea.AddLoot(rng.Next(1000, 1401), loot);
+                var armory = Armory.Instance;
+                GearDef legendary = null;
+                if (armory != null)
+                {
+                    legendary = armory.Roll(6, GearRarity.Lendario);
+                    if (legendary != null) armory.Add(legendary);
+                }
+                var extra = sea.FindGear(1f, 6, sr.transform.position, GearRarity.Raro);
+                sea.Say($"O TESOURO DO CORVO RUBRO! +{got} ouro, {loot["Rum"]} Rum{SeaController.GearText(legendary)}{(extra != null ? $" e {extra.displayName}" : "")}!");
+                Fx.Spawn(Fx.Puff, sr.transform.position + Vector3.up * 0.8f, 0.6f, 2.2f);
+                sr.sprite = chestOpen;
+                GameStats.Add(GameStats.Chests);
+                AudioManager.Play(Sfx.Chest);
+                Destroy(it);
+                Node.looted = true;
+            };
+        }
+
+        /// <summary>O chefe caiu: a fortaleza é sua (os guardas que sobraram não importam mais).</summary>
+        void CheckLegend()
+        {
+            if (legendAnnounced || !legendDown) return;
+            legendAnnounced = true;
+            Node.cleared = true;
+            clearedAnnounced = true;
+            GameStats.Add(GameStats.Legends);
+            AudioManager.Play(Sfx.Quest);
+            sea.Say("VOCÊ DERROTOU O CAPITÃO CORVO RUBRO! A fortaleza é sua: o tesouro dele está destrancado.");
+            SeaDialog.Ask("Lenda derrotada!",
+                "O Capitão Corvo Rubro caiu! Os piratas dos sete mares vão contar essa história por anos.\n\nO tesouro dele, no fundo do salão, está destrancado.",
+                new SeaDialog.Option("Pegar o tesouro!", null));
+        }
+
         /// <summary>Mesa com comida e bebida, cadeiras, janela, barril e vela (Taverna).</summary>
         void Furnish(float cx, float floor, bool messy)
         {
             WallProp(house.window, cx, floor + 2.55f, -32, 0.7f);
             FloorProp(house.table, cx, floor, -29, 0.6f);
-            float tableTop = floor + house.table.bounds.size.y * 0.6f;
-            FloorProp(house.bottleRed, cx + 0.35f, tableTop - 0.04f, -28, 0.55f);
-            FloorProp(house.fish, cx - 0.3f, tableTop - 0.06f, -28, 1f);
-            if (messy) FloorProp(house.skull, cx + 0.05f, tableTop - 0.04f, -28, 0.7f);
-            var left = FloorProp(house.chair, cx - 1.55f, floor, -30, 0.55f);
-            var right = FloorProp(house.chair, cx + 1.55f, floor, -30, 0.55f);
+            float tableTop = floor + house.table.bounds.size.y * 0.6f * PropScale;
+            FloorProp(house.bottleRed, cx + 0.35f * PropScale, tableTop - 0.06f, -28, 0.55f);
+            FloorProp(house.fish, cx - 0.3f * PropScale, tableTop - 0.08f, -28, 1f);
+            if (messy) FloorProp(house.skull, cx + 0.05f, tableTop - 0.06f, -28, 0.7f);
+            var left = FloorProp(house.chair, cx - 1.75f, floor, -30, 0.55f);
+            var right = FloorProp(house.chair, cx + 1.75f, floor, -30, 0.55f);
             right.flipX = true;
             left.flipX = false;
-            FloorProp(house.barrel, cx + 3.0f, floor, -28, 0.6f);
-            Candle(cx - 2.5f, floor + 1.9f);
+            FloorProp(house.barrel, cx + 3.1f, floor, -28, 0.6f);
+            Candle(cx - 2.7f, floor + 2.1f);
         }
 
         SpriteRenderer FloorProp(Sprite s, float x, float floor, int order, float scale)
         {
             if (s == null) return Sprite(null, new Vector2(x, floor), order);
+            scale *= PropScale;
             var sr = Sprite(s, new Vector2(x, floor + s.bounds.extents.y * scale), order);
             sr.transform.localScale = Vector3.one * scale;
             return sr;
@@ -620,7 +815,7 @@ namespace Pixel.Ship
         SpriteRenderer WallProp(Sprite s, float x, float y, int order, float scale)
         {
             var sr = Sprite(s, new Vector2(x, y), order);
-            sr.transform.localScale = Vector3.one * scale;
+            sr.transform.localScale = Vector3.one * scale * PropScale;
             return sr;
         }
 
@@ -639,6 +834,7 @@ namespace Pixel.Ship
         void Fire(int col)
         {
             var sr = Sprite(campfire, Top(col), -24);
+            sr.transform.localScale = Vector3.one * SceneryScale;
             Glow.Add(sr.transform, new Vector2(0, 0.4f), Glow.Fire, 5.5f, 1.5f);
         }
 
@@ -778,14 +974,22 @@ namespace Pixel.Ship
         void Decor(Sprite s, int col, int order, float scale)
         {
             var sr = Sprite(s, Top(col), order);
-            sr.transform.localScale = Vector3.one * scale;
+            sr.transform.localScale = Vector3.one * scale * SceneryScale;
         }
 
         static (string, int, int)[] Items(params (string, int, int)[] list) => list;
 
+        int islandDanger;
+
+        /// <summary>Móveis e objetos das casas acompanham o tamanho dos personagens (1,5 bloco de altura).</summary>
+        static float PropScale => LookFigure.SideScale;
+        /// <summary>Coqueiros, tendas, barracas, baús e fogueiras: um pouco maiores que o desenho original.</summary>
+        const float SceneryScale = 1.35f;
+
         void Chest(int col, int gold, (string name, int min, int max)[] items, bool treasure = false)
         {
             var sr = Sprite(Node.looted ? chestOpen : chestClosed, Top(col), -5);
+            sr.transform.localScale = Vector3.one * SceneryScale;
             if (treasure) sr.color = new Color(1f, 0.9f, 0.6f);
             if (Node.looted) return;
             chestsTotal++;
@@ -795,9 +999,13 @@ namespace Pixel.Ship
             {
                 var loot = new Dictionary<string, int>();
                 foreach (var (name, min, max) in items) loot[name] = rng.Next(min, max + 1);
-                sea.AddLoot(gold, loot);
-                string txt = $"+{gold} ouro";
+                int got = sea.AddLoot(gold, loot);
+                string txt = $"+{got} ouro";
                 foreach (var kv in loot) txt += $", {kv.Value} {kv.Key}";
+                // Equipamento: baú comum às vezes, tesouro sempre (e pelo menos "Bom")
+                var gear = sea.FindGear(treasure ? 1f : 0.3f + islandDanger * 0.06f, islandDanger, sr.transform.position,
+                                        treasure ? GearRarity.Bom : GearRarity.Comum);
+                txt += SeaController.GearText(gear);
                 sea.Say((treasure ? "TESOURO! " : "Baú aberto: ") + txt);
                 Fx.Spawn(Fx.Puff, sr.transform.position + Vector3.up * 0.6f, 0.5f, 1.6f);
                 sr.sprite = chestOpen;
@@ -955,6 +1163,7 @@ namespace Pixel.Ship
                 if (Mathf.Abs(p.x - targetX) < 0.01f) Land();
                 return;
             }
+            CheckLegend();
             if (!clearedAnnounced && enemies.Count > 0 && AllEnemiesDown())
             {
                 clearedAnnounced = true;

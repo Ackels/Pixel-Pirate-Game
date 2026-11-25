@@ -187,6 +187,7 @@ namespace Pixel.Village
         void RemoveFromCrew(CrewMember m)
         {
             crew.Remove(m);
+            Armory.Instance?.ReturnGear(m);   // o que ele usava fica no arsenal
             m.workplace?.Workers.Remove(m);
             m.workplace = null;
             m.home = null;

@@ -41,6 +41,11 @@ namespace Pixel.Village
         // Crônicas e contadores
         public int chronicle;
         public List<ItemCount> stats = new List<ItemCount>();
+
+        // Equipamento (1 = já tem; saves sem isto ganham o kit de começo)
+        public int gearVersion;
+        public List<ItemCount> armory = new List<ItemCount>();
+        public List<string> captainGear = new List<string>();
     }
 
     [Serializable] public class ItemCount { public string item; public int count; }
@@ -64,6 +69,7 @@ namespace Pixel.Village
         public bool fed, paid;
         public Color skin, outfit, hair;
         public string look;
+        public List<string> gear = new List<string>();   // arma, chapéu, amuleto (nome do asset; "" = nada)
 
         public static CrewSave From(CrewMember m)
         {
@@ -73,6 +79,7 @@ namespace Pixel.Village
                 fed = m.fedToday, paid = m.paidToday, skin = m.skin, outfit = m.outfit, hair = m.hair, look = m.look,
             };
             foreach (var t in m.traits) s.traits.Add((int)t);
+            s.gear = m.gear.Names();
             return s;
         }
 
@@ -84,6 +91,8 @@ namespace Pixel.Village
                 fedToday = fed, paidToday = paid, skin = skin, outfit = outfit, hair = hair, look = look,
             };
             foreach (var t in traits) m.traits.Add((Trait)t);
+            if (gear != null && Armory.Instance != null)
+                foreach (var n in gear) { var g = Armory.Instance.Find(n); if (g != null) m.gear.Set(g.slot, g); }
             return m;
         }
     }

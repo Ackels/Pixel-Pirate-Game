@@ -18,6 +18,8 @@ namespace Pixel.Village
         public int cost = 50;
         [Tooltip("Se o capitão e o resto colidem com ela (hortas não bloqueiam).")]
         public bool blocksMovement = true;
+        [Tooltip("Plana no chão (ex.: Horta): a colisão cobre a área toda, para ninguém andar \"por trás\" dela.")]
+        public bool flat;
 
         [Tooltip("Precisa encostar na água (ex.: Cabana de Pesca).")]
         public bool requiresWater;
@@ -33,6 +35,12 @@ namespace Pixel.Village
         public ItemDef outputItem;
         public int outputAmount = 1;
         public float cycleSeconds = 10f;
+
+        [Header("Forja (Producer sem item de saída)")]
+        [Tooltip("Faz peças de equipamento (armas e chapéus) em vez de um item do estoque.")]
+        public bool forgesGear;
+        [Tooltip("Ouro gasto em cada peça forjada.")]
+        public int goldPerPiece = 25;
 
         [Header("Moradia (só para House)")]
         public int housing = 2;

@@ -25,12 +25,15 @@ namespace Pixel.Village
         /// <summary>Ponto onde visitantes e trabalhadores param (em frente à construção).</summary>
         public Vector2 Door => (Vector2)transform.position + Vector2.down * 0.4f;
 
-        public bool HasInput(VillageManager vm) =>
-            def.inputItem == null || vm.GetStock(def.inputItem) >= def.inputAmount;
+        public bool HasInput(VillageManager vm) => def.forgesGear
+            ? vm.Gold >= def.goldPerPiece
+            : def.inputItem == null || vm.GetStock(def.inputItem) >= def.inputAmount;
+
+        string MissingText => def.forgesGear ? $"{def.goldPerPiece} ouro" : def.inputItem.displayName;
 
         void Update()
         {
-            if (def == null || def.kind != BuildingKind.Producer || def.outputItem == null) return;
+            if (def == null || def.kind != BuildingKind.Producer || (def.outputItem == null && !def.forgesGear)) return;
             var vm = VillageManager.Instance;
             if (vm == null) return;
 
@@ -43,10 +46,10 @@ namespace Pixel.Village
 
             if (!HasInput(vm))
             {
-                Status = $"Parado: falta {def.inputItem.displayName}";
+                Status = $"Parado: falta {MissingText}";
                 if (!waitingWarned)
                 {
-                    FloatingText.Spawn(TopOfSprite(), $"Falta {def.inputItem.displayName}", new Color(1f, 0.6f, 0.5f));
+                    FloatingText.Spawn(TopOfSprite(), $"Falta {MissingText}", new Color(1f, 0.6f, 0.5f));
                     waitingWarned = true;
                 }
                 return;
@@ -58,11 +61,31 @@ namespace Pixel.Village
             if (timer < def.cycleSeconds) return;
             timer = 0f;
 
-            if (def.inputItem != null && !vm.TryTakeStock(def.inputItem, def.inputAmount)) return;
-            vm.AddStock(def.outputItem, def.outputAmount);
-            FloatingText.Spawn(TopOfSprite(), $"+{def.outputAmount} {def.outputItem.displayName}", def.outputItem.textColor);
+            if (def.forgesGear) { if (!Forge(vm)) return; }
+            else
+            {
+                if (def.inputItem != null && !vm.TryTakeStock(def.inputItem, def.inputAmount)) return;
+                vm.AddStock(def.outputItem, def.outputAmount);
+                FloatingText.Spawn(TopOfSprite(), $"+{def.outputAmount} {def.outputItem.displayName}", def.outputItem.textColor);
+            }
             var cm = CrewManager.Instance;
             if (cm != null) foreach (var w in Workers.ToArray()) cm.GiveWorkXp(w, this);
+        }
+
+        /// <summary>Forja: gasta ouro e faz uma arma ou chapéu. Ferreiro de nível alto faz peças melhores.</summary>
+        bool Forge(VillageManager vm)
+        {
+            var armory = Armory.Instance;
+            if (armory == null || !vm.TrySpendGold(def.goldPerPiece)) return false;
+            int best = 1;
+            foreach (var w in Workers) best = Mathf.Max(best, w.level);
+            var g = armory.Roll(0, GearRarity.Comum, forge: true, bonus: best / 2);
+            if (g == null) return false;
+            armory.Add(g);
+            FloatingText.Spawn(TopOfSprite(), $"+{g.displayName}", g.Color);
+            AudioManager.Play(Sfx.Build);
+            CrewManager.Instance?.Report($"A Forja fez: {g.displayName} ({GearDef.RarityName(g.rarity)}). Está no Arsenal (tecla I).", g.Color);
+            return true;
         }
 
         public Vector3 TopOfSprite()

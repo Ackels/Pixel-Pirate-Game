@@ -409,10 +409,12 @@ namespace Pixel.Combat
             var captainCol = sea.captain != null ? sea.captain.GetComponent<Collider2D>() : null;
             if (captainCol != null) capsule.sharedMaterial = captainCol.sharedMaterial;
             go.AddComponent<LookFigure>().Init(look, team == Team.Player ? 9 : 8);
+            // Inimigos seguram uma arma (só o desenho); marinheiros mercantes, uma arma simples
+            if (team == Team.Enemy && Armory.Instance != null) HandWeapon.Set(go, Armory.Instance.EnemyWeapon(name != "Marinheiro"));
             var c = go.AddComponent<Combatant>();
             c.team = team;
             c.displayName = name;
-            c.figureHeight = 1f;
+            c.figureHeight = LookFigure.SideScale;
             c.knockOutInsteadOfDeath = team == Team.Player;
             var ai = go.AddComponent<CombatAI>();
             ai.homeShip = home;
@@ -724,11 +726,12 @@ namespace Pixel.Combat
         void Win()
         {
             // A rendição dá o ouro do cofre deles; a carga (itens) só vem saqueando o navio
-            int gold = pirate ? Random.Range(80, 161) : Random.Range(35, 71);
-            sea.AddLoot(gold, new Dictionary<string, int>());
+            int gold = sea.AddLoot(pirate ? Random.Range(80, 161) : Random.Range(35, 71), new Dictionary<string, int>());
+            var gear = sea.FindGear(pirate ? 0.5f : 0.35f, legDanger, sea.captain.transform.position);
             GameStats.Add(GameStats.SeaVictories);
             AudioManager.Play(Sfx.Chest);
-            Say($"VITÓRIA! O {EnemyName.ToLower()} se rendeu: +{gold} ouro. Capture o navio, ou volte para o seu (clique no seu navio) e saqueie a carga!");
+            sea.CheckLegendRumor();
+            Say($"VITÓRIA! O {EnemyName.ToLower()} se rendeu: +{gold} ouro{SeaController.GearText(gear)}. Capture o navio, ou volte para o seu (clique no seu navio) e saqueie a carga!");
             sea.ReviveCrew();
             sea.ClearCrewOrders();
             // A tripulação volta pela prancha; ela só é recolhida quando todos estiverem a bordo
@@ -795,10 +798,11 @@ namespace Pixel.Combat
             Chance("Rum", 0.8f, pirate ? 4 : 2, pirate ? 10 : 6);
             Chance("Peixe", pirate ? 0.4f : 0.9f, 3, 10);
             Chance("Cana", pirate ? 0.3f : 0.8f, 3, 9);
-            sea.AddLoot(gold, items);
+            gold = sea.AddLoot(gold, items);
+            var gear = sea.FindGear(pirate ? 0.8f : 0.6f, legDanger + 1, sea.captain.transform.position);
             AudioManager.PlayVaried(Sfx.Boom, 1f, 0.05f);
             if (seaCamera) seaCamera.Shake(0.45f);
-            Say($"Saque! +{gold} ouro{ItemsText(items)}. BUM! O navio deles foi pelos ares.");
+            Say($"Saque! +{gold} ouro{ItemsText(items)}{SeaController.GearText(gear)}. BUM! O navio deles foi pelos ares.");
             ClearEnemyCrew();
             RemoveBridge();
             SetState(EncounterState.Sinking);
@@ -867,8 +871,7 @@ namespace Pixel.Combat
 
         void Sink()
         {
-            int gold = (pirate ? Random.Range(80, 161) : Random.Range(35, 71)) / 2;
-            sea.AddLoot(gold, new Dictionary<string, int>());
+            int gold = sea.AddLoot((pirate ? Random.Range(80, 161) : Random.Range(35, 71)) / 2, new Dictionary<string, int>());
             GameStats.Add(GameStats.SeaVictories);
             AudioManager.PlayVaried(Sfx.Boom, 1f, 0.05f);
             if (seaCamera) seaCamera.Shake(0.4f);

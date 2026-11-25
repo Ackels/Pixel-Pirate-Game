@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f17ad4f8f366ac64983e29e7cd93e621, type: 3}
+  m_Name: Florete
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.GearDef
+  displayName: Florete
+  icon: {fileID: 21300000, guid: bd7b8388b62aa65489fb6a6ea34aca03, type: 3}
+  slot: 0
+  rarity: 1
+  price: 65
+  damage: {x: 3, y: 4}
+  hp: 0
+  speed: 0.25
+  range: 0
+  loot: 0
+  digs: 0
+  flavor: "Fino e muito r\xE1pido."

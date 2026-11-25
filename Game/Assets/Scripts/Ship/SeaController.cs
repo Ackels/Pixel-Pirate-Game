@@ -69,6 +69,17 @@ namespace Pixel.Ship
             if (Instance == this) Instance = null;
             if (Layout != null) Layout.Changed -= OnLayoutChanged;
             if (VillageManager.Instance != null) VillageManager.Instance.Changed -= RaiseChanged;
+            if (Armory.Instance != null) Armory.Instance.Changed -= ApplyGear;
+        }
+
+        /// <summary>Equipamento mudou (janela de Equipamento): refaz os números do capitão e de quem está a bordo.</summary>
+        void ApplyGear()
+        {
+            var armory = Armory.Instance;
+            if (armory == null) return;
+            if (captainCombatant != null) Armory.ApplyTo(captainCombatant, armory.Captain);
+            foreach (var c in CrewFighters)
+                if (c != null && c.link is CrewMember m) Armory.ApplyTo(c, m.gear);
         }
 
         void Start()
@@ -83,9 +94,11 @@ namespace Pixel.Ship
             captain.Teleport(shipView.SpawnPoint());
             captain.FellOverboard += () => Say("Homem ao mar! O capitão voltou pro convés encharcado.");
             if (VillageManager.Instance != null) VillageManager.Instance.Changed += RaiseChanged;
+            if (Armory.Instance != null) Armory.Instance.Changed += ApplyGear;
             if (GetComponent<ShipLife>() == null) gameObject.AddComponent<ShipLife>();   // vida a bordo
             if (Damage > 0) shipView.ScatterDamage(Mathf.Clamp(Damage / 12, 1, 10));     // avarias da última viagem
             SpawnCrew();
+            ApplyGear();
             Location = World.Home;
             Changed?.Invoke();
         }
@@ -109,8 +122,9 @@ namespace Pixel.Ship
             var c = look != null
                 ? EncounterDirector.Instance.SpawnFighter(pos, Team.Player, m.name, shipView, look)
                 : EncounterDirector.Instance.SpawnFighter(pos, Team.Player, m.name, shipView, m.outfit, m.hair, m.skin);
-            c.maxHp = c.hp = m.CombatHp;
-            c.damage = m.CombatDamage;
+            c.maxHp = c.hp = m.BaseHp;
+            c.damage = m.BaseDamage;
+            Armory.ApplyTo(c, m.gear);   // arma, chapéu e amuleto
             c.link = m;
             c.Downed += _ => m.injured = true;
             c.gameObject.AddComponent<CrewLife>().member = m;
@@ -216,16 +230,37 @@ namespace Pixel.Ship
             else { testGold += amount; Changed?.Invoke(); }
         }
 
-        public void AddLoot(int gold, Dictionary<string, int> items)
+        /// <summary>Guarda o saque. O ouro ganha o bônus dos amuletos; devolve quanto ouro entrou de fato.</summary>
+        public int AddLoot(int gold, Dictionary<string, int> items)
         {
+            if (Armory.Instance != null) gold = Mathf.RoundToInt(gold * Armory.Instance.LootFactor());
             Refund(gold);
             if (GameFlow.Instance != null) GameFlow.Instance.VoyageGold += gold;
             var vm = VillageManager.Instance;
-            if (vm == null) return;
-            foreach (var kv in items)
-                foreach (var item in vm.items)
-                    if (item != null && item.displayName == kv.Key) vm.AddStock(item, kv.Value);
+            if (vm != null)
+                foreach (var kv in items)
+                    foreach (var item in vm.items)
+                        if (item != null && item.displayName == kv.Key) vm.AddStock(item, kv.Value);
+            return gold;
         }
+
+        /// <summary>
+        /// Talvez ache uma peça de equipamento (chance de 0 a 1). Vai para o Arsenal, com um aviso colorido
+        /// em cima de onde foi achada. Devolve a peça (ou null).
+        /// </summary>
+        public GearDef FindGear(float chance, int danger, Vector2 at, GearRarity min = GearRarity.Comum)
+        {
+            var armory = Armory.Instance;
+            if (armory == null || UnityEngine.Random.value >= chance) return null;
+            var g = armory.Roll(danger, min);
+            if (g == null) return null;
+            armory.Add(g);
+            if (captain != null) SpeechBubble.Say(captain.transform, $"Achei: {g.displayName}!", 3f);
+            AudioManager.Play(Sfx.Quest);
+            return g;
+        }
+
+        public static string GearText(GearDef g) => g == null ? "" : $" e {UIKit.Colored(g.displayName, g.Color)} ({GearDef.RarityName(g.rarity)})";
 
         // ---------- Vida do navio ----------
         int Damage
@@ -437,6 +472,20 @@ namespace Pixel.Ship
             Changed?.Invoke();
         }
 
+        /// <summary>
+        /// Depois de 3 vitórias no mar, um pirata rendido conta onde fica a fortaleza do Capitão Lendário
+        /// (ela é marcada no mapa). Se você já a achou explorando, nada acontece.
+        /// </summary>
+        public void CheckLegendRumor()
+        {
+            var f = World.Fortress;
+            if (f == null || f.revealed || GameStats.Get(GameStats.SeaVictories) < 3) return;
+            f.revealed = true;
+            SeaDialog.Ask("Um segredo dos mares",
+                "Um pirata rendido conta, tremendo:\n\"O Capitão Corvo Rubro tem uma fortaleza no leste... Canhões na praia, os piores piratas destes mares, e o maior tesouro que você já viu.\"\n\nA fortaleza foi marcada no seu mapa.",
+                new SeaDialog.Option("Marcar no mapa", null));
+        }
+
         /// <summary>Chamado quando a ilha terminou de encostar e a prancha está posta.</summary>
         public void OnIslandReady(IslandBuilder b)
         {
@@ -445,6 +494,7 @@ namespace Pixel.Ship
             {
                 IslandType.Port => "Um porto amigo: fale com o comerciante (E).",
                 IslandType.PirateCamp => b.Node.cleared ? "O acampamento está abandonado." : "Um acampamento pirata! Eles vêm aí...",
+                IslandType.Fortress => b.Node.cleared ? "A fortaleza caiu: o Corvo Rubro não manda mais aqui." : "A FORTALEZA DO CORVO RUBRO! Cuidado com os canhões da praia...",
                 _ => b.Node.cleared ? "A ilha está calma." : "Cuidado com os caranguejos!",
             };
             Say($"Chegamos em {b.Node.name}. {what}");
@@ -498,6 +548,7 @@ namespace Pixel.Ship
         {
             if (digging) return;
             if (Mode != SeaMode.Landed || islands == null || islands.Root == null) { Say("Só dá pra cavar em terra firme, numa ilha."); return; }
+            if (Armory.Instance != null && !Armory.Instance.CanDig()) { Say("Precisa de uma pá! Equipe a pá no capitão ou em alguém a bordo (I: Equipamento)."); return; }
             StartCoroutine(DigRoutine());
         }
 

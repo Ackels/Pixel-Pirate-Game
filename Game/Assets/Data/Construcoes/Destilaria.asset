@@ -20,6 +20,7 @@ MonoBehaviour:
   footprint: {x: 3, y: 2}
   cost: 80
   blocksMovement: 1
+  flat: 0
   requiresWater: 0
   profession: 3
   workerSlots: 1
@@ -28,4 +29,6 @@ MonoBehaviour:
   outputItem: {fileID: 11400000, guid: a8fd4b0d2bd29e241b91246ebc0033fd, type: 2}
   outputAmount: 1
   cycleSeconds: 10
+  forgesGear: 0
+  goldPerPiece: 25
   housing: 2

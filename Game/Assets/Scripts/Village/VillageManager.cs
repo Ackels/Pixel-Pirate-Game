@@ -240,7 +240,8 @@ namespace Pixel.Village
             if (def.blocksMovement)
             {
                 var col = go.AddComponent<BoxCollider2D>();
-                col.size = new Vector2(def.footprint.x - 0.2f, Mathf.Max(0.6f, def.footprint.y - 0.8f));
+                col.size = def.flat ? new Vector2(def.footprint.x - 0.2f, def.footprint.y - 0.2f)
+                                    : new Vector2(def.footprint.x - 0.2f, Mathf.Max(0.6f, def.footprint.y - 0.8f));
                 col.offset = new Vector2(0, col.size.y / 2f);
             }
             var b = go.AddComponent<Building>();

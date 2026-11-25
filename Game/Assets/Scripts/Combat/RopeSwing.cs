@@ -107,7 +107,7 @@ namespace Pixel.Combat
                     body.bodyType = RigidbodyType2D.Kinematic;
                 }
                 from = transform.position;
-                hand = from + Vector2.up * 0.6f;
+                hand = from + Vector2.up * 0.6f * Mathf.Max(1f, transform.lossyScale.y);
                 duration = Mathf.Clamp(Vector2.Distance(from, to) / WalkSpeed, 0.5f, 3.5f);
                 hook = new GameObject("PontaDoGancho").AddComponent<SpriteRenderer>();
                 hook.sprite = Fx.White;

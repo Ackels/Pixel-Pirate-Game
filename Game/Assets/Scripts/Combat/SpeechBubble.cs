@@ -83,7 +83,7 @@ namespace Pixel.Combat
             if (follow == null) { Destroy(gameObject); return; }
             timeLeft -= Time.deltaTime;
             if (timeLeft <= 0f) { gameObject.SetActive(false); return; }
-            transform.position = follow.position + Vector3.up * height;
+            transform.position = follow.position + Vector3.up * height * Mathf.Max(1f, follow.lossyScale.y);
             group.alpha = Mathf.Clamp01(timeLeft / 0.35f) * Mathf.Clamp01((total - timeLeft) / 0.12f);
         }
 

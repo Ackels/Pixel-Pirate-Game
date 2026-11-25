@@ -11,7 +11,7 @@ namespace Pixel.Ship
     /// </summary>
     public class MapPanel : MonoBehaviour
     {
-        public Sprite paper, homeIcon, portIcon, wildIcon, campIcon, unknownIcon, shipIcon;
+        public Sprite paper, homeIcon, portIcon, wildIcon, campIcon, unknownIcon, shipIcon, fortIcon;
 
         SeaController sea;
         RectTransform mapArea;
@@ -29,6 +29,7 @@ namespace Pixel.Ship
             panel.sea = sea;
             panel.paper = icons[0]; panel.homeIcon = icons[1]; panel.portIcon = icons[2]; panel.wildIcon = icons[3];
             panel.campIcon = icons[4]; panel.unknownIcon = icons[5]; panel.shipIcon = icons[6];
+            panel.fortIcon = icons.Length > 7 ? icons[7] : icons[4];
 
             panel.mapArea = UIKit.Rect("AreaDoMapa", content);
             panel.mapArea.anchorMin = panel.mapArea.anchorMax = new Vector2(0.5f, 1f);
@@ -113,6 +114,7 @@ namespace Pixel.Ship
             IslandType.Home => homeIcon,
             IslandType.Port => portIcon,
             IslandType.Wild => wildIcon,
+            IslandType.Fortress => fortIcon,
             _ => campIcon,
         };
 

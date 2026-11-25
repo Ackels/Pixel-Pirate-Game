@@ -70,6 +70,7 @@ namespace Pixel.Village
             }
             if (ChronicleManager.Instance != null) d.chronicle = ChronicleManager.Instance.Current;
             d.stats = GameStats.Export();
+            Armory.Instance?.Collect(d);
             return d;
         }
 
@@ -118,6 +119,9 @@ namespace Pixel.Village
                 var def = Array.Find(vm.buildable, x => x != null && x.name == b.def);
                 if (def != null) vm.Place(def, new Vector2Int(b.x, b.y));
             }
+
+            // Equipamento (antes da tripulação: cada tripulante acha as peças dele pelo nome)
+            Armory.Instance?.Restore(d);
 
             // Tripulação
             var members = new List<CrewMember>();

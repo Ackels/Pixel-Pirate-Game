@@ -48,7 +48,8 @@ namespace Pixel.Village
         readonly List<(BuildingDef def, Button button, Image bg, Text cost)> buildButtons = new List<(BuildingDef, Button, Image, Text)>();
         readonly List<Image> tabs = new List<Image>();
         int category;
-        Image demolishBg, buildDock, crewDock, expDock, chronDock;
+        Image demolishBg, buildDock, crewDock, expDock, chronDock, equipDock;
+        EquipPanel equipPanel;
         RectTransform expBadge;
         BuildingInfoPanel infoPanel;
         TavernPanel tavernPanel;
@@ -132,7 +133,7 @@ namespace Pixel.Village
                 "WASD / setas: andar com o capitão\n" +
                 "Martelo (B): construir · Shift: vários · botão direito: cancelar\n" +
                 "Clique num prédio: ver detalhes\n" +
-                "C: tripulação · X: expedições · J: crônicas\n" +
+                "C: tripulação · I: equipamento · X: expedições · J: crônicas\n" +
                 "Esc: menu (salvar, sair)", 14, TextAnchor.MiddleLeft);
             UIKit.Stretch(helpText.rectTransform, 14);
             UIKit.Fit(helpText, 10);
@@ -149,6 +150,7 @@ namespace Pixel.Village
             dock.gameObject.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
             buildDock = DockButton(dock, UIKit.Skin.Icon("martelo"), "B", "Construir (B)", ToggleBuildMenu);
             crewDock = DockButton(dock, crewIcon, "C", "Tripulação (C)", ToggleCrew);
+            equipDock = DockButton(dock, UIKit.Skin.Icon("espada"), "I", "Equipamento (I): armas, chapéus e amuletos", ToggleEquip);
             expDock = DockButton(dock, UIKit.Skin.Icon("pergaminho"), "X", "Expedições (X)\nPrecisa do Quadro de Expedições.", ToggleExpeditions);
             UIKit.Tip(expDock, () =>
             {
@@ -186,6 +188,7 @@ namespace Pixel.Village
             // --- Janelas ---
             tavernPanel = TavernPanel.Create(root);
             crewPanel = CrewPanel.Create(root);
+            equipPanel = EquipPanel.Create(root, false, Toast);
             expeditionPanel = ExpeditionPanel.Create(root);
             ExpeditionStrip.Create(root);
             infoPanel = BuildingInfoPanel.Create(root, () => { infoPanel.Hide(); tavernPanel.Show(); }, () => { infoPanel.Hide(); expeditionPanel.Show(); });
@@ -326,6 +329,7 @@ namespace Pixel.Village
             // Botões da barra ficam verdes enquanto a janela deles está aberta
             Mark(buildDock, BuildMenuOpen || buildMode.Active);
             Mark(crewDock, crewPanel.gameObject.activeSelf);
+            Mark(equipDock, equipPanel.IsOpen);
             Mark(expDock, expeditionPanel.IsOpen);
             var exm = ExpeditionManager.Instance;
             bool pending = exm != null && exm.Reports.Count > 0;
@@ -350,12 +354,13 @@ namespace Pixel.Village
 
             if (kb != null && kb.bKey.wasPressedThisFrame) ToggleBuildMenu();
             if (kb != null && kb.cKey.wasPressedThisFrame) ToggleCrew();
+            if (kb != null && kb.iKey.wasPressedThisFrame) ToggleEquip();
             if (kb != null && kb.xKey.wasPressedThisFrame) ToggleExpeditions();
             if (kb != null && kb.jKey.wasPressedThisFrame) ToggleChronicles();
             if (kb != null && kb.escapeKey.wasPressedThisFrame && sandbox != null && sandbox.IsOpen) { sandbox.Hide(); return; }
             if (kb != null && kb.escapeKey.wasPressedThisFrame)
             {
-                bool anyOpen = tavernPanel.gameObject.activeSelf || crewPanel.gameObject.activeSelf || infoPanel.gameObject.activeSelf
+                bool anyOpen = tavernPanel.gameObject.activeSelf || crewPanel.gameObject.activeSelf || infoPanel.gameObject.activeSelf || equipPanel.IsOpen
                                || expeditionPanel.IsOpen || chronicles.WindowOpen || BuildMenuOpen || helpPanel.gameObject.activeSelf;
                 if (anyOpen) { CloseWindows(); CloseBuildMenu(); helpPanel.gameObject.SetActive(false); }
                 else menu.OpenPause();
@@ -399,6 +404,14 @@ namespace Pixel.Village
             if (!open) crewPanel.Show();
         }
 
+        void ToggleEquip()
+        {
+            bool open = equipPanel.IsOpen;
+            CloseWindows();
+            CloseBuildMenu();
+            if (!open) equipPanel.Show();
+        }
+
         void ToggleExpeditions()
         {
             bool open = expeditionPanel.IsOpen;
@@ -423,6 +436,7 @@ namespace Pixel.Village
             chronicles.HideWindow();
             tavernPanel.Hide();
             crewPanel.Hide();
+            equipPanel.Hide();
             infoPanel.Hide();
         }
 

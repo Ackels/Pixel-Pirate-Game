@@ -9,6 +9,7 @@ namespace Pixel.Village
         public const string Voyages = "viagens";
         public const string IslandsVisited = "ilhas";
         public const string SeaVictories = "vitorias_mar";
+        public const string Legends = "lendarios";
         public const string Chests = "baus";
         public const string Hires = "contratacoes";
 

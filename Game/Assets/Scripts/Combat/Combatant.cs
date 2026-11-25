@@ -23,10 +23,12 @@ namespace Pixel.Combat
         public Vector2Int damage = new Vector2Int(8, 12);
         public float attackCooldown = 0.8f;
         public float attackRange = 1.1f;
+        [Tooltip("Quantos adversários um golpe acerta no máximo (os mais perto primeiro).")]
+        public int maxTargets = 99;
         [Tooltip("Jogador: nocauteia em vez de morrer. Inimigo: morre e some.")]
         public bool knockOutInsteadOfDeath;
         [Tooltip("Altura do boneco (unidades): posiciona a barra de vida e o golpe.")]
-        public float figureHeight = 1.5f;
+        public float figureHeight = 1.5f;   // altura do desenho em blocos do mundo (barra de vida, golpe, ordens)
 
         public bool IsDown => hp <= 0;
         public bool FacingRight { get; set; } = true;
@@ -71,12 +73,13 @@ namespace Pixel.Combat
         {
             bar = new GameObject("BarraDeVida").transform;
             bar.SetParent(transform, false);
-            bar.localPosition = new Vector3(0, figureHeight + 0.25f, 0);
+            float s = Mathf.Max(0.01f, Mathf.Abs(transform.lossyScale.y));   // figureHeight é em blocos do mundo
+            bar.localPosition = new Vector3(0, (figureHeight + 0.25f) / s, 0);
             var bg = bar.gameObject.AddComponent<SpriteRenderer>();
             bg.sprite = Fx.White;
             bg.color = new Color(0, 0, 0, 0.7f);
             bg.sortingOrder = 50;
-            bar.localScale = new Vector3(1f, 0.14f, 1f);
+            bar.localScale = new Vector3(1f / s, 0.14f / s, 1f);
             barFill = new GameObject("Preenchimento").transform;
             barFill.SetParent(bar, false);
             var fill = barFill.gameObject.AddComponent<SpriteRenderer>();
@@ -125,13 +128,17 @@ namespace Pixel.Combat
             Fx.Spawn(Fx.Slash, pos + new Vector2(dir * 0.7f, figureHeight * 0.5f), 0.18f, 1.1f, !FacingRight, 40);
             Attacked?.Invoke();
             AudioManager.Play(Sfx.Swing, 0.5f);
+            var hits = new List<Combatant>();
             foreach (var other in All.ToArray())
             {
                 if (other == this || other.team == team || other.IsDown) continue;
                 Vector2 d = (Vector2)other.transform.position - pos;
                 if (d.x * dir < -0.2f || Mathf.Abs(d.x) > attackRange || Mathf.Abs(d.y) > 1.2f) continue;
-                other.TakeDamage(UnityEngine.Random.Range(damage.x, damage.y + 1), this);
+                hits.Add(other);
             }
+            if (hits.Count > maxTargets) hits.Sort((a, b) => Mathf.Abs(a.transform.position.x - pos.x).CompareTo(Mathf.Abs(b.transform.position.x - pos.x)));
+            for (int i = 0; i < hits.Count && i < maxTargets; i++)
+                hits[i].TakeDamage(UnityEngine.Random.Range(damage.x, damage.y + 1), this);
             return true;
         }
 
@@ -178,6 +185,9 @@ namespace Pixel.Combat
             hp = Mathf.Min(maxHp, hp + amount);
             UpdateBar();
         }
+
+        /// <summary>Atualiza a barra de vida depois de mudar vida/vida máxima por fora.</summary>
+        public void RefreshBar() => UpdateBar();
 
         public void HealFull()
         {

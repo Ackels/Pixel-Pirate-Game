@@ -117,6 +117,7 @@ O que é **nosso**: tema pirata em tudo, a vila é um **porto pirata** (não uma
 - **Criação**: nome, **Origem** (no lugar de "raça": ex. Marujo do Porto, Ex-Marinha, Náufrago, Filho de Contrabandista — cada uma com bônus), **Estilo de luta** (no lugar de "classe": Duelista, Atirador, Brigão, Curandeiro de bordo, Feiticeiro Vodu, Canhoneiro), **Ofício** inicial, **Visual** (pele, cabelo, barba, chapéu, tapa-olho, perna de pau, cicatrizes, papagaio no ombro) e **Dificuldade**.
 - Pergunta-história no início (estilo "como você lembra do seu pai?") que dá um bônus inicial.
 - **Equipamento**: arma corpo-a-corpo, arma de fogo, chapéu, casaco, acessório (amuleto), animal de estimação.
+  - **Feito (25/11/2026):** arma, chapéu e amuleto para o capitão e cada tripulante, em 4 raridades (Comum, Bom, Raro, Lendário). Armas dão dano (algumas golpeiam mais rápido ou mais longe; a pá serve para cavar o X), chapéus dão vida e amuletos dão bônus (dano, vida, velocidade, mais ouro nos saques). As peças vêm de baús, navios vencidos ou saqueados, expedições, da loja dos portos e da **Forja** da vila. A arma aparece na mão do boneco no mar. Ficam guardadas no Arsenal (tecla I); peças repetidas podem ser vendidas no porto ou no Mercado da vila. Ainda faltam: arma de fogo, casaco e animal de estimação.
 - Atributos: Força, Vigor, Destreza, Agilidade, Inteligência, Sorte.
 - Se o capitão cair no combate: modo normal = acorda ferido e perde parte do saque; modo difícil = um tripulante leal assume como novo capitão (legado).
 
@@ -187,6 +188,7 @@ Dois modos, para agradar os dois estilos:
 
 ### 6.10 Objetivo final
 Derrotar os **5 Capitães Lendários** que dominam os mares — cada um em uma região, exigindo uma estratégia diferente (navio rápido, navio blindado, tripulação de abordagem, artilharia, expedição em masmorra).
+- **Feito (25/11/2026): o 1º, Capitão Corvo Rubro**, na Fortaleza do Corvo (leste do mapa, perigo 5). Ela aparece explorando ou por um boato depois de 3 vitórias no mar. Canhões na praia atiram no bando; 4 guardas; o chefe dorme no trono até os guardas caírem (ou alguém chegar perto). Ele é grande, dá uma pancada no chão que acerta todo mundo em volta (avisada), chama reforços com 2/3 e 1/3 da vida e fica furioso no fim. Barra de vida grande no topo. Prêmio: muito ouro, uma peça lendária garantida e mais uma rara; crônica "O Corvo Rubro". Faltam os outros 4 (cada um com um desafio diferente).
 
 ### 6.8 Economia e progressão
 - Moedas: **Ouro** (principal), **Dobrões** (raros, para coisas especiais), **Infâmia** (reputação pirata: desbloqueia recrutas melhores, ilhas, construções).
@@ -202,6 +204,8 @@ Derrotar os **5 Capitães Lendários** que dominam os mares — cada um em uma r
 ## 7. Visual e áudio
 
 - **Pixel art**. Resolução de referência **640×360** (escala perfeita para 1080p ×3 e 4K ×6).
+  - Vila (25/11/2026): a câmera usa zoom inteiro e mostra ~16 blocos de altura em qualquer janela; a rodinha do mouse aproxima ou afasta.
+  - Mar e ilhas (25/11/2026): personagens com 1,5 bloco de altura (antes 1), como no Pixel Piracy, onde as pessoas são mais altas que os blocos do navio.
 - Personagens 16×16 px (estilo "chibi" do Ninja Adventure), tiles de 16×16 px na vila.
 - **Arte (decidido em 23/11/2026): packs CC0 do itch.io**, todos de uso comercial livre e sem crédito obrigatório:
   - **Ninja Adventure** (Pixel-boy): vila de cima e **todos os personagens** (capitão, tripulantes, visitantes, esqueletos).

@@ -336,7 +336,8 @@ namespace Pixel.EditorTools
             capFighter.attackCooldown = 0.45f;
             capFighter.attackRange = 1.25f;
             capFighter.knockOutInsteadOfDeath = true;
-            capFighter.figureHeight = 1f;
+            capFighter.figureHeight = Pixel.Combat.LookFigure.SideScale;
+            Pixel.Combat.LookFigure.ApplySideScale(capGo);   // 1,5× maior, colisor do mesmo tamanho
 
             // Controle e HUD
             var seaGo = new GameObject("Mar");
@@ -428,7 +429,7 @@ namespace Pixel.EditorTools
             hud.mapIcons = new[]
             {
                 Ninja("Icons/mapa_papel"), Ninja("Icons/mapa_casa"), Ninja("Icons/mapa_porto"), Ninja("Icons/mapa_selvagem"),
-                Ninja("Icons/mapa_acampamento"), Ninja("Icons/mapa_desconhecida"), Ninja("Icons/mapa_navio"),
+                Ninja("Icons/mapa_acampamento"), Ninja("Icons/mapa_desconhecida"), Ninja("Icons/mapa_navio"), Ninja("Icons/mapa_fortaleza"),
             };
             hud.sea = sea;
 

@@ -15,7 +15,10 @@ namespace Pixel.Ship
         [Tooltip("Papel, casa, porto, selvagem, acampamento, desconhecido, navio")]
         public Sprite[] mapIcons;
         MapPanel map;
-        RectTransform trade;
+        RectTransform trade, shopRow;
+        EquipPanel equip;
+        /// <summary>Peças já compradas nesta sessão (ilha:peça), para a loja não vender de novo.</summary>
+        static readonly System.Collections.Generic.HashSet<string> bought = new System.Collections.Generic.HashSet<string>();
 
         Text goldText, fishText, rumText, crewText, titleText, dayText, hintText, helpText, shipLine;
         Image dayBar, legBar, hullBar, captainBar;
@@ -31,7 +34,9 @@ namespace Pixel.Ship
         readonly System.Collections.Generic.List<Button> builtButtons = new System.Collections.Generic.List<Button>();
         bool builtPaused, builtDeciding, builtPlunder, builtAway;
         CrewCommander commander;
-        Text enemyText;
+        Text enemyText, bossText;
+        Image bossFill;
+        RectTransform bossPanel;
         string message;
         float messageTimer;
 
@@ -96,6 +101,22 @@ namespace Pixel.Ship
             hrt.sizeDelta = new Vector2(44, 50);
             hrt.anchoredPosition = new Vector2(-12 - 150 - 12, -12);
             UIKit.Tip(helpBtn, "Ajuda: teclas e comandos");
+            // Equipamento (I): botão com a espada, ao lado da ajuda
+            var eqRt = UIKit.Rect("Equipamento", root);
+            var (eqBtn, _) = UIKit.ButtonBase(eqRt);
+            eqRt.anchorMin = eqRt.anchorMax = eqRt.pivot = new Vector2(1, 1);
+            eqRt.sizeDelta = new Vector2(50, 50);
+            eqRt.anchoredPosition = new Vector2(-12 - 150 - 12 - 44 - 8, -12);
+            var eqIcon = UIKit.Rect("Icone", eqRt);
+            eqIcon.anchorMin = eqIcon.anchorMax = eqIcon.pivot = new Vector2(0.5f, 0.5f);
+            eqIcon.anchoredPosition = new Vector2(0, 3);
+            eqIcon.sizeDelta = new Vector2(28, 28);
+            var eqImg = eqIcon.gameObject.AddComponent<Image>();
+            eqImg.sprite = UIKit.Skin.Icon("espada");
+            eqImg.preserveAspect = true;
+            eqImg.raycastTarget = false;
+            eqBtn.onClick.AddListener(ToggleEquip);
+            UIKit.Tip(eqRt, "Equipamento (I): armas, chapéus e amuletos");
             helpPanel = UIKit.Panel("Ajuda", root, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-12, -74), new Vector2(330, 0));
             UIKit.Vertical(helpPanel.gameObject, 14, 0);
             helpPanel.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
@@ -117,6 +138,17 @@ namespace Pixel.Ship
                 new Color(0.35f, 0.1f, 0.08f, 0.9f));
             enemyText = UIKit.Text(enemy, "", 16, TextAnchor.MiddleCenter);
             UIKit.Stretch(enemyText.rectTransform, 6);
+
+            // Barra do Capitão Lendário (aparece quando ele acorda)
+            bossPanel = UIKit.Panel("Chefe", root, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -70), new Vector2(520, 58),
+                new Color(0.3f, 0.06f, 0.06f, 0.92f));
+            var bv = UIKit.Vertical(bossPanel.gameObject, 8, 4);
+            bv.padding = new RectOffset(14, 14, 6, 10);
+            bossText = UIKit.Text(bossPanel, "", 17, TextAnchor.MiddleCenter, UIKit.GoldColor);
+            UIKit.Size(bossText, height: 22);
+            bossFill = BarFill(bossPanel, new Color(0.9f, 0.2f, 0.18f));
+            UIKit.Size(bossFill.transform.parent.GetComponent<RectTransform>(), height: 12);
+            bossPanel.gameObject.SetActive(false);
 
             // --- Embaixo: ações ---
             actionBar = UIKit.Panel("Acoes", root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 12), new Vector2(0, 84));
@@ -146,7 +178,8 @@ namespace Pixel.Ship
             map = MapPanel.Create(root, sea, mapIcons);
             sea.MapRequested += map.Show;
             BuildTrade(root);
-            sea.TradeRequested += () => { trade.gameObject.SetActive(true); trade.SetAsLastSibling(); };
+            equip = EquipPanel.Create(root, true, sea.Say);
+            sea.TradeRequested += () => { RefreshShop(); trade.gameObject.SetActive(true); trade.SetAsLastSibling(); };
             sea.Changed += () => { if (sea.Mode != SeaMode.Landed && trade != null) trade.gameObject.SetActive(false); };
             Refresh();
         }
@@ -173,6 +206,14 @@ namespace Pixel.Ship
             }
 
             enemyText.transform.parent.gameObject.SetActive(est != EncounterState.None);
+            var boss = LegendBoss.Active;
+            bool showBoss = boss != null && boss.IsAwake && est == EncounterState.None;
+            if (bossPanel.gameObject.activeSelf != showBoss) bossPanel.gameObject.SetActive(showBoss);
+            if (showBoss)
+            {
+                bossText.text = boss.title + (boss.Enraged ? UIKit.Colored("  (FURIOSO!)", new Color(1f, 0.5f, 0.4f)) : "");
+                ((RectTransform)bossFill.transform).anchorMax = new Vector2(boss.HpFraction, 1);
+            }
             if (director != null && est != EncounterState.None)
             {
                 string crewInfo = $" · Tripulação: {director.EnemyCrewAlive}";
@@ -185,7 +226,9 @@ namespace Pixel.Ship
                 if (sea.editor.Selected != null) { sea.editor.Selected = null; BuildShipyard(); }
                 else sea.StopEditing();
             }
+            else if (kb != null && kb.escapeKey.wasPressedThisFrame && equip != null && equip.IsOpen) equip.Hide();
             else if (kb != null && kb.escapeKey.wasPressedThisFrame && helpPanel.gameObject.activeSelf) helpPanel.gameObject.SetActive(false);
+            if (kb != null && kb.iKey.wasPressedThisFrame && sea.Mode != SeaMode.Editing && !Pixel.Village.GameMenu.IsOpen) ToggleEquip();
 
             messageTimer -= Time.unscaledDeltaTime;
             string hint = messageTimer > 0 ? message
@@ -378,7 +421,7 @@ namespace Pixel.Ship
         void BuildTrade(Transform root)
         {
             RectTransform win = null;
-            var (w, content) = UIKit.Window("Comerciante", root, "Comerciante do Porto", new Vector2(460, 300), () => win.gameObject.SetActive(false));
+            var (w, content) = UIKit.Window("Comerciante", root, "Comerciante do Porto", new Vector2(480, 390), () => win.gameObject.SetActive(false));
             win = w;
             trade = w;
             UIKit.Vertical(content.gameObject, 4, 8);
@@ -391,7 +434,69 @@ namespace Pixel.Ship
             Btn($"Comprar {SeaController.FishPackSize} peixes ({SeaController.FishPackPrice} ouro)", sea.BuyFish);
             Btn($"Vender 1 rum ({SeaController.PortRumPrice} ouro)", () => sea.SellRum(false));
             Btn($"Vender todo o rum ({SeaController.PortRumPrice} ouro cada)", () => sea.SellRum(true));
+            var shopTitle = UIKit.Text(content, "Armas e acessórios", 16, TextAnchor.MiddleLeft, UIKit.GoldColor);
+            UIKit.Size(shopTitle, height: 24);
+            shopRow = CrewCards.Row(content, 86, 8).GetComponent<RectTransform>();
+            shopRow.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleCenter;
             w.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// Loja de equipamento do porto: 3 peças sorteadas pela semente da ilha (sempre as mesmas naquela ilha);
+        /// portos mais perigosos vendem coisas melhores. O que foi comprado some até o jogo ser reaberto.
+        /// </summary>
+        void RefreshShop()
+        {
+            if (shopRow == null) return;
+            UIKit.Clear(shopRow);
+            var armory = Pixel.Village.Armory.Instance;
+            var node = sea.Location;
+            if (armory == null || armory.catalog == null || node == null) return;
+            var rng = new System.Random(node.seed * 31 + 7);
+            int danger = node.Danger(sea.World.Home.pos);
+            var pool = new System.Collections.Generic.List<GearDef>();
+            foreach (var g in armory.catalog)
+                if (g != null && g.rarity <= (danger >= 3 ? GearRarity.Raro : GearRarity.Bom)) pool.Add(g);
+            for (int i = 0; i < 3 && pool.Count > 0; i++)
+            {
+                var g = pool[rng.Next(pool.Count)];
+                pool.Remove(g);
+                string key = node.id + ":" + g.name;
+                var rt = UIKit.Rect("Peca", shopRow);
+                var (btn, _) = UIKit.ButtonBase(rt);
+                UIKit.Size(rt, 132, 82);
+                var v = UIKit.Vertical(rt.gameObject, 0, 0);
+                v.padding = new RectOffset(4, 4, 4, 10);
+                v.childAlignment = TextAnchor.MiddleCenter;
+                v.childForceExpandHeight = false;
+                CrewCards.Icon(rt, g.icon, 30, 30);
+                bool sold = bought.Contains(key);
+                var label = CrewCards.Label(rt, sold ? "Vendido" : $"{g.displayName}\n{g.price} ouro", 12, sold ? UIKit.ButtonMuted : UIKit.ButtonText, 120, 34);
+                label.alignment = TextAnchor.MiddleCenter;
+                btn.interactable = !sold;
+                UIKit.Tip(rt, () => g.Tooltip(bought.Contains(key) ? null : $"Clique: comprar por {g.price} ouro"));
+                btn.onClick.AddListener(() =>
+                {
+                    if (bought.Contains(key)) return;
+                    if (!sea.Spend(g.price)) { sea.Say($"Falta ouro: {g.displayName} custa {g.price}."); return; }
+                    bought.Add(key);
+                    armory.Add(g);
+                    AudioManager.Play(Sfx.Coin);
+                    sea.Say($"Comprou {g.displayName}! Está no Arsenal (I: Equipamento).");
+                    RefreshShop();
+                });
+            }
+        }
+
+        void ToggleEquip()
+        {
+            if (equip == null) return;
+            if (equip.IsOpen) { equip.Hide(); return; }
+            var d = EncounterDirector.Instance;
+            var st = d != null ? d.State : EncounterState.None;
+            if (st == EncounterState.Approaching || st == EncounterState.Engaged || st == EncounterState.Closing || st == EncounterState.Boarding)
+            { sea.Say("Não dá para trocar de equipamento no meio da briga!"); return; }
+            equip.Show();
         }
 
         // ---------- Estaleiro: abas, peças, cores, girar e espelho ----------

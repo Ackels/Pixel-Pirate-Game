@@ -141,7 +141,7 @@ namespace Pixel.EditorTools
         }
 
         // ---------- Dados do jogo ----------
-        struct GameData { public ItemDef[] items; public BuildingDef[] buildings; public ItemDef food, rum; public Pixel.Ship.ShipBlockDef[] shipBlocks; public DungeonDef[] dungeons; }
+        struct GameData { public ItemDef[] items; public BuildingDef[] buildings; public ItemDef food, rum; public Pixel.Ship.ShipBlockDef[] shipBlocks; public DungeonDef[] dungeons; public GearDef[] gear; }
 
         static GameData CreateData()
         {
@@ -176,11 +176,14 @@ namespace Pixel.EditorTools
             var farm = GetOrCreate<BuildingDef>("Construcoes/Horta", b =>
             {
                 b.displayName = "Horta"; b.kind = BuildingKind.Producer; b.sprite = LoadSprite("obj_farm");
-                b.footprint = new Vector2Int(2, 2); b.cost = 30; b.blocksMovement = false;
+                b.footprint = new Vector2Int(2, 2); b.cost = 30;
                 b.profession = Profession.Agricultor; b.workerSlots = 1;
                 b.outputItem = cane; b.outputAmount = 1; b.cycleSeconds = 6f;
                 b.description = "Agricultor planta cana: +1 Cana a cada 6 s.";
             });
+            farm.blocksMovement = true;
+            farm.flat = true;   // ninguém atravessa a horta (antes o capitão passava por cima dela)
+            EditorUtility.SetDirty(farm);
             var fishing = GetOrCreate<BuildingDef>("Construcoes/CabanaDePesca", b =>
             {
                 b.displayName = "Cabana de Pesca"; b.kind = BuildingKind.Producer; b.sprite = LoadSprite("obj_fishing_hut");
@@ -209,6 +212,14 @@ namespace Pixel.EditorTools
                 b.footprint = new Vector2Int(2, 1); b.cost = 80;
                 b.description = "Mande grupos de até 4 tripulantes para masmorras. Combate automático!";
             });
+            var forge = GetOrCreate<BuildingDef>("Construcoes/Forja", b =>
+            {
+                b.displayName = "Forja"; b.kind = BuildingKind.Producer;
+                b.footprint = new Vector2Int(4, 2); b.cost = 90;
+                b.profession = Profession.Marujo; b.workerSlots = 1;
+                b.forgesGear = true; b.goldPerPiece = 25; b.cycleSeconds = 45f;
+                b.description = "Um ferreiro forja armas e chapéus: 1 peça a cada 45 s por 25 ouro. Quanto maior o nível dele, melhores as peças. Vão para o Arsenal (tecla I).";
+            });
             var market = GetOrCreate<BuildingDef>("Construcoes/Mercado", b =>
             {
                 b.displayName = "Mercado"; b.kind = BuildingKind.Market; b.sprite = LoadSprite("obj_market");
@@ -219,12 +230,54 @@ namespace Pixel.EditorTools
             return new GameData
             {
                 items = new[] { rum, fish, cane },
-                buildings = new[] { house, tavern, farm, fishing, distillery, market, shipyard, board },
+                buildings = new[] { house, tavern, farm, fishing, distillery, forge, market, shipyard, board },
+                gear = CreateGear(),
                 dungeons = CreateDungeons(),
                 shipBlocks = CreateShipBlocks(),
                 food = fish,
                 rum = rum,
             };
+        }
+
+        /// <summary>As peças de equipamento (Assets/Data/Equipamento). Só são criadas se ainda não existirem.</summary>
+        static GearDef[] CreateGear()
+        {
+            GearDef G(string asset, string name, string icon, GearSlot slot, GearRarity rarity, int price, System.Action<GearDef> stats, string flavor = null) =>
+                GetOrCreate<GearDef>("Equipamento/" + asset, g =>
+                {
+                    g.displayName = name; g.icon = Ninja("Equip/" + icon); g.slot = slot; g.rarity = rarity; g.price = price; g.flavor = flavor;
+                    stats(g);
+                });
+            var W = GearSlot.Weapon; var H = GearSlot.Hat; var C = GearSlot.Charm;
+            var c = GearRarity.Comum; var b = GearRarity.Bom; var r = GearRarity.Raro; var l = GearRarity.Lendario;
+            var list = new[]
+            {
+                // Armas
+                G("Pa", "Pá", "pa", W, c, 15, g => { g.damage = new Vector2Int(0, 1); g.digs = true; }, "Cava o X do tesouro. Como arma, quebra um galho."),
+                G("Porrete", "Porrete", "arma_porrete", W, c, 20, g => { g.damage = new Vector2Int(2, 3); g.speed = -0.05f; }),
+                G("Adaga", "Adaga", "arma_adaga", W, c, 25, g => { g.damage = new Vector2Int(1, 2); g.speed = 0.2f; }, "Pequena e rápida."),
+                G("Sabre", "Sabre", "arma_sabre", W, b, 60, g => { g.damage = new Vector2Int(4, 6); }, "A arma de todo pirata."),
+                G("Florete", "Florete", "arma_florete", W, b, 65, g => { g.damage = new Vector2Int(3, 4); g.speed = 0.25f; }, "Fino e muito rápido."),
+                G("Machado", "Machado", "arma_machado", W, b, 70, g => { g.damage = new Vector2Int(6, 9); g.speed = -0.15f; }),
+                G("Marreta", "Marreta", "arma_marreta", W, b, 70, g => { g.damage = new Vector2Int(7, 11); g.speed = -0.25f; }, "Pesada: bate forte, mas devagar."),
+                G("EspadaLarga", "Espada Larga", "arma_espada_larga", W, r, 140, g => { g.damage = new Vector2Int(8, 12); g.speed = -0.05f; }),
+                G("Arpao", "Arpão", "arma_arpao", W, r, 130, g => { g.damage = new Vector2Int(6, 9); g.range = 0.6f; }, "Acerta de mais longe."),
+                G("Tridente", "Tridente", "arma_tridente", W, r, 150, g => { g.damage = new Vector2Int(7, 10); g.range = 0.4f; g.speed = 0.05f; }, "Dizem que era de um deus do mar."),
+                G("SabreDourado", "Sabre Dourado", "arma_sabre_dourado", W, l, 400, g => { g.damage = new Vector2Int(10, 14); g.speed = 0.15f; g.loot = 0.1f; }, "Lâmina de ouro de um almirante afundado."),
+                // Chapéus
+                G("Bandana", "Bandana", "chapeu_bandana", H, c, 15, g => { g.hp = 10; }),
+                G("ChapeuDeCouro", "Chapéu de Couro", "chapeu_chapeu_couro", H, b, 50, g => { g.hp = 22; }),
+                G("Tricornio", "Tricórnio", "chapeu_tricornio", H, r, 120, g => { g.hp = 35; g.damage = new Vector2Int(1, 1); }, "Chapéu de capitão de verdade."),
+                G("TricornioDoAlmirante", "Tricórnio do Almirante", "chapeu_tricornio_almirante", H, l, 350, g => { g.hp = 50; g.speed = 0.1f; }),
+                // Amuletos
+                G("MoedaDaSorte", "Moeda da Sorte", "amuleto_moeda_sorte", C, c, 30, g => { g.loot = 0.1f; }, "Mais ouro nos baús e saques."),
+                G("Rubi", "Rubi", "amuleto_rubi", C, b, 70, g => { g.damage = new Vector2Int(2, 3); }),
+                G("Safira", "Safira", "amuleto_safira", C, b, 70, g => { g.hp = 18; }),
+                G("Esmeralda", "Esmeralda", "amuleto_esmeralda", C, r, 120, g => { g.speed = 0.18f; }),
+                G("CaveiraDourada", "Caveira Dourada", "amuleto_caveira_dourada", C, l, 380, g => { g.damage = new Vector2Int(3, 4); g.hp = 10; g.loot = 0.2f; }, "Amaldiçoada? Talvez. Lucrativa? Com certeza."),
+            };
+            AssetDatabase.SaveAssets();
+            return list;
         }
 
         static DungeonDef[] CreateDungeons()
@@ -331,13 +384,10 @@ namespace Pixel.EditorTools
             cam.allowDynamicResolution = false;
             camGo.AddComponent<UniversalAdditionalCameraData>().renderPostProcessing = true;   // brilho, vinheta e cores
             AddPostProcessing();
-            var ppc = camGo.AddComponent<PixelPerfectCamera>();
-            ppc.assetsPPU = PPU;
-            ppc.refResolutionX = 640;
-            ppc.refResolutionY = 360;
-            ppc.gridSnapping = PixelPerfectCamera.GridSnapping.PixelSnapping;
-            ppc.cropFrame = PixelPerfectCamera.CropFrame.None;
+            // Sem Pixel Perfect Camera: o CameraFollow escolhe um zoom inteiro (cada pixel da arte = 2, 3, 4... da tela)
+            // que mostre ~16 blocos de altura em qualquer tamanho de janela, e a rodinha aproxima/afasta.
             var follow = camGo.AddComponent<CameraFollow>();
+            follow.pixelsPerUnit = PPU;
             follow.target = captain.transform;
             follow.bounds = new Rect(0, 0, MapW, MapH);
 
@@ -360,6 +410,7 @@ namespace Pixel.EditorTools
             vm.detailMap = detailMap;
             vm.shadowSprite = Ninja("Natureza/sombra_g");
             var buildMode = village.AddComponent<BuildMode>();
+            village.AddComponent<Armory>().catalog = data.gear;   // equipamento guardado + o do capitão
 
             var visitors = new GameObject("Visitantes");
             visitors.transform.SetParent(village.transform, false);

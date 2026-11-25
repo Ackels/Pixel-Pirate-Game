@@ -81,8 +81,13 @@ namespace Pixel.Village
         /// <summary>Fora numa expedição (masmorra).</summary>
         public bool onExpedition;
 
-        public int CombatHp => 50 + level * 8;
-        public Vector2Int CombatDamage => new Vector2Int(7 + level * 2, 10 + level * 2);
+        /// <summary>Arma, chapéu e amuleto que ele usa (vem do Arsenal).</summary>
+        public Loadout gear = new Loadout();
+
+        public int BaseHp => 50 + level * 8;
+        public Vector2Int BaseDamage => new Vector2Int(7 + level * 2, 10 + level * 2);
+        public int CombatHp => BaseHp + gear.Hp;
+        public Vector2Int CombatDamage => BaseDamage + gear.Damage;
 
         public bool Has(Trait t) => traits.Contains(t);
 
