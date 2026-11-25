@@ -1,10 +1,12 @@
+using Pixel.Village;
 using UnityEngine;
 
 namespace Pixel.Combat
 {
     /// <summary>
-    /// Abordagem no cipó: o lutador se pendura numa corda presa no alto e balança em arco até o outro navio.
-    /// Enquanto balança, a IA e a física ficam em pausa; ao pousar, volta tudo ao normal.
+    /// Gancho de abordagem (como no Pixel Piracy): o personagem lança o gancho até o outro navio, a corda
+    /// fica esticada e ele atravessa andando por cima dela. Enquanto isso, a IA e a física ficam em pausa.
+    /// (O nome da classe ficou do tempo em que eles balançavam num cipó.)
     /// </summary>
     public class RopeSwing : MonoBehaviour
     {
@@ -24,7 +26,7 @@ namespace Pixel.Combat
         /// <summary>Esta pessoa está pendurada (ou prestes a se pendurar) numa corda.</summary>
         public static bool IsBusy(GameObject go) => go != null && go.GetComponent<RopeSwing>() != null;
 
-        /// <summary>Faz alguém balançar de onde está até <paramref name="target"/>, com a corda presa em <paramref name="anchorPoint"/>.</summary>
+        /// <summary>Faz alguém lançar o gancho e atravessar até <paramref name="target"/> (anchorPoint não é mais usado).</summary>
         public static RopeSwing Begin(Component who, Vector2 target, Vector2 anchorPoint, float delay = 0f, System.Action landed = null)
         {
             if (who == null) return null;
@@ -71,12 +73,21 @@ namespace Pixel.Combat
         }
 
         bool started;
+        float hookTime;
+        Vector2 hand;
+        SpriteRenderer hook;
+        IPose pose;
+        Combatant fighter;
+        const float HookFlight = 0.3f, WalkSpeed = 5.5f;
 
         void Start()
         {
             body = GetComponent<Rigidbody2D>();
             ai = GetComponent<CombatAI>();
-            line = MakeRope(null, "Corda", 2, 0.05f);
+            pose = GetComponent<IPose>();
+            fighter = GetComponent<Combatant>();
+            line = MakeRope(null, "Gancho", 3, 0.08f);
+            line.startColor = line.endColor = new Color32(0x5a, 0x3a, 0x22, 255);
             line.enabled = false;
         }
 
@@ -86,7 +97,7 @@ namespace Pixel.Combat
             if (t < 0f) return;
             if (!started)
             {
-                // Agarra a corda: congela a IA e a física e parte de onde estiver agora
+                // Para, mira e lança o gancho a partir de onde está agora
                 started = true;
                 if (ai != null) ai.externalControl = true;
                 if (body != null)
@@ -96,18 +107,44 @@ namespace Pixel.Combat
                     body.bodyType = RigidbodyType2D.Kinematic;
                 }
                 from = transform.position;
-                duration = Mathf.Clamp(Vector2.Distance(from, to) / 7f, 0.6f, 1.2f);
+                hand = from + Vector2.up * 0.6f;
+                duration = Mathf.Clamp(Vector2.Distance(from, to) / WalkSpeed, 0.5f, 3.5f);
+                hook = new GameObject("PontaDoGancho").AddComponent<SpriteRenderer>();
+                hook.sprite = Fx.White;
+                hook.color = new Color(0.25f, 0.25f, 0.3f);
+                hook.transform.localScale = Vector3.one * 0.16f;
+                hook.sortingOrder = 8;
+                if (fighter != null) fighter.FacingRight = to.x > from.x;
+                AudioManager.PlayVaried(Sfx.Swing, 0.6f, 0.2f);
                 t = 0f;
             }
+            bool right = to.x > from.x;
+            line.enabled = true;
+            if (hookTime < HookFlight)
+            {
+                // 1) O gancho voa em arco até o convés do outro navio
+                hookTime += Time.deltaTime;
+                float k = Mathf.Clamp01(hookTime / HookFlight);
+                var tip = Vector2.Lerp(hand, to, k) + Vector2.up * (Mathf.Sin(k * Mathf.PI) * 1.2f);
+                line.SetPosition(0, hand);
+                line.SetPosition(1, Vector2.Lerp(hand, tip, 0.5f) + Vector2.down * 0.2f * (1f - k));
+                line.SetPosition(2, tip);
+                hook.transform.position = tip;
+                if (pose != null) pose.Pose(false, true, right);
+                if (k >= 1f) { t = 0f; AudioManager.PlayVaried(Sfx.Wood, 0.4f, 0.2f); }
+                return;
+            }
+            // 2) Corda esticada: anda por cima dela até o outro lado
             float u = Mathf.Clamp01(t / duration);
-            // Arco: sai do ponto de partida, desce pela "barriga" do balanço e sobe até o outro convés
-            var mid = new Vector2((from.x + to.x) / 2f, Mathf.Min(from.y, to.y) - 0.6f);
-            var p = Bezier(from, mid, to, Smooth(u)) + Vector2.up * (Mathf.Sin(u * Mathf.PI) * 0.4f);
+            var p = Vector2.Lerp(from, to, u);
             if (body != null) body.position = p;
             transform.position = p;
-            line.enabled = u < 0.98f;
-            line.SetPosition(0, anchor);
-            line.SetPosition(1, p + Vector2.up * 0.8f);
+            line.SetPosition(0, from);
+            line.SetPosition(1, p + Vector2.down * 0.06f);
+            line.SetPosition(2, to);
+            hook.transform.position = to;
+            if (pose != null) pose.Pose(true, true, right);
+            if (fighter != null) fighter.FacingRight = right;
             if (u >= 1f) Land();
         }
 
@@ -127,6 +164,7 @@ namespace Pixel.Combat
         void OnDestroy()
         {
             if (line != null) Destroy(line.gameObject);
+            if (hook != null) Destroy(hook.gameObject);
             if (!Done && started)
             {
                 if (body != null) body.bodyType = oldType;

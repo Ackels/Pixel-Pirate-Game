@@ -29,6 +29,7 @@ namespace Pixel.Village
         SpriteRenderer ghostSprite;
         SpriteRenderer ghostFootprint;
         Building hovered;
+        NatureObject hoveredNature;
 
         void Awake()
         {
@@ -65,7 +66,7 @@ namespace Pixel.Village
         {
             Select(null);
             Demolishing = true;
-            Hint = "Clique numa construção para demolir (devolve metade do custo).";
+            Hint = "Clique numa construção para demolir (devolve metade do custo) ou numa árvore, pedra ou arbusto para limpar o terreno.";
             SelectionChanged?.Invoke();
         }
 
@@ -97,7 +98,25 @@ namespace Pixel.Village
             if (Demolishing)
             {
                 var b = overUI ? null : vm.BuildingAt(world);
-                if (b != hovered) { ClearHover(); hovered = b; if (b) b.GetComponent<SpriteRenderer>().color = new Color(1f, 0.5f, 0.5f); }
+                var nat = overUI || b != null ? null : vm.NatureAt(world);
+                if (b != hovered || nat != hoveredNature)
+                {
+                    ClearHover();
+                    hovered = b;
+                    hoveredNature = nat;
+                    if (b) b.GetComponent<SpriteRenderer>().color = new Color(1f, 0.5f, 0.5f);
+                    if (nat) nat.GetComponent<SpriteRenderer>().color = new Color(1f, 0.55f, 0.55f);
+                }
+                Hint = nat != null ? $"Clique para limpar: {nat.DisplayName}." : b != null ? $"Demolir {b.def.displayName} (devolve {Mathf.RoundToInt(b.def.cost * vm.demolishRefund)} ouro)."
+                    : "Clique numa construção para demolir (devolve metade do custo) ou numa árvore, pedra ou arbusto para limpar o terreno.";
+                if (nat != null && mouse.leftButton.wasPressedThisFrame)
+                {
+                    FloatingText.Spawn(nat.transform.position + Vector3.up, "Terreno limpo!", new Color(0.85f, 1f, 0.7f));
+                    hoveredNature = null;
+                    LastActionFrame = Time.frameCount;
+                    vm.ClearNature(nat);
+                    return;
+                }
                 if (b != null && mouse.leftButton.wasPressedThisFrame)
                 {
                     int refund = Mathf.RoundToInt(b.def.cost * vm.demolishRefund);
@@ -136,8 +155,11 @@ namespace Pixel.Village
         {
             if (hovered != null) hovered.GetComponent<SpriteRenderer>().color = Color.white;
             hovered = null;
+            if (hoveredNature != null) { var sr = hoveredNature.GetComponent<SpriteRenderer>(); if (sr) sr.color = hoveredNature.baseColor; }
+            hoveredNature = null;
         }
 
+        static readonly Color natureTint = Color.white;
         static Sprite whiteSprite;
         static Sprite WhiteSprite()
         {

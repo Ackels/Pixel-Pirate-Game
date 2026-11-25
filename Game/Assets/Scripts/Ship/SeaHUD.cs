@@ -28,7 +28,8 @@ namespace Pixel.Ship
         EncounterState builtEncounter = (EncounterState)(-1);
         bool builtCanBoard, builtFiring, builtHostile;
         int buttonsBuilt;
-        bool builtPaused, builtDeciding, builtPlunder;
+        readonly System.Collections.Generic.List<Button> builtButtons = new System.Collections.Generic.List<Button>();
+        bool builtPaused, builtDeciding, builtPlunder, builtAway;
         CrewCommander commander;
         Text enemyText;
         string message;
@@ -159,8 +160,9 @@ namespace Pixel.Ship
             bool firing = director != null && director.PlayerFiring, hostile = director != null && director.Hostile;
             if (builtFor != sea.Mode || builtEncounter != est || canBoard != builtCanBoard || firing != builtFiring || hostile != builtHostile
                 || CrewCommander.Paused != builtPaused
-                || (director != null && (director.Deciding != builtDeciding || director.CanPlunder != builtPlunder)))
+                || (director != null && (director.Deciding != builtDeciding || director.CanPlunder != builtPlunder || director.CaptainAway != builtAway)))
             {
+                builtAway = director != null && director.CaptainAway;
                 builtPaused = CrewCommander.Paused;
                 builtDeciding = director != null && director.Deciding;
                 builtPlunder = director != null && director.CanPlunder;
@@ -173,7 +175,7 @@ namespace Pixel.Ship
             enemyText.transform.parent.gameObject.SetActive(est != EncounterState.None);
             if (director != null && est != EncounterState.None)
             {
-                string crewInfo = est == EncounterState.Approaching ? "" : $" · Tripulação: {director.EnemyCrewAlive}";
+                string crewInfo = $" · Tripulação: {director.EnemyCrewAlive}";
                 enemyText.text = UIKit.Colored(director.EnemyName, UIKit.GoldColor) + $"\nCasco: {director.EnemyHp}/{director.EnemyMaxHp}{crewInfo}";
             }
 
@@ -305,6 +307,7 @@ namespace Pixel.Ship
             builtEncounter = director != null ? director.State : EncounterState.None;
             UIKit.Clear(actionBar);
             buttonsBuilt = 0;
+            builtButtons.Clear();
             BuildShipyard();
 
             switch (sea.Mode)
@@ -335,13 +338,14 @@ namespace Pixel.Ship
                     {
                         // Ordens do capitão (como no Pixel Piracy): nada acontece até você mandar
                         if (director.HasCannons) ActionButton(director.PlayerFiring ? "Cessar fogo" : "Atirar!\n(canhões)", director.ToggleFire, true);
-                        ActionButton(director.CanBoard ? "Abordar!\n(cordas)" : $"Abordar\n({director.BoardHint})", director.Board, director.CanBoard);
+                        ActionButton("Abordar!\n(ganchos)", director.Board, director.CanBoard);
                     }
                     if (director != null && director.CanFlee) ActionButton(director.Hostile ? "Fugir" : "Seguir viagem", director.Flee, true);
                     if (director != null && director.Deciding)
                     {
                         // Navio rendido: o capitão decide (como no Pixel Piracy)
                         ActionButton("Capturar\no navio", director.Capture, true);
+                        if (director.CaptainAway) ActionButton("Voltar ao\nnavio", director.ReturnAll, true);
                         ActionButton(director.CanPlunder ? "Saquear\n(e explodir)" : "Saquear\n(todos a bordo)", director.Plunder, director.CanPlunder);
                         ActionButton("Deixar\nir", director.LetGo, true);
                     }
@@ -359,6 +363,9 @@ namespace Pixel.Ship
             if (sea.Mode != SeaMode.Editing)
             {
                 actionBar.gameObject.SetActive(buttonsBuilt > 0);
+                // Muitos botões: ficam mais estreitos para não cobrir o painel do personagem nem a barra de comandos
+                float w = buttonsBuilt >= 5 ? 126f : buttonsBuilt == 4 ? 150f : 170f;
+                foreach (var b in builtButtons) if (b != null) UIKit.Size(b, w, 64);
             }
         }
 
@@ -510,9 +517,11 @@ namespace Pixel.Ship
         void ActionButton(string label, UnityEngine.Events.UnityAction onClick, bool interactable)
         {
             buttonsBuilt++;
-            var (btn, _, _) = UIKit.Button(actionBar, label, onClick, 16);
+            var (btn, text, _) = UIKit.Button(actionBar, label, onClick, 16);
             btn.interactable = interactable;
             UIKit.Size(btn, 170, 64);
+            UIKit.Fit(text, 11);
+            builtButtons.Add(btn);
         }
     }
 }

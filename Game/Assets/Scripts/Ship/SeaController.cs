@@ -290,7 +290,7 @@ namespace Pixel.Ship
             Changed?.Invoke();
         }
 
-        float cameraY = float.NaN;
+        float cameraY = float.NaN, cameraSize;
         /// <summary>
         /// No estaleiro a câmera afasta (mostra 22 blocos de altura) e desce um bloco: a grade inteira cabe entre a
         /// dica de cima e a barra de peças. O "pixel perfeito" fica desligado só enquanto edita
@@ -305,11 +305,11 @@ namespace Pixel.Ship
             var p = cam.transform.position;
             if (on)
             {
-                if (float.IsNaN(cameraY)) cameraY = p.y;
+                if (float.IsNaN(cameraY)) { cameraY = p.y; cameraSize = cam.orthographicSize; }
                 p.y = cameraY - 1f;
                 cam.orthographicSize = 11f;
             }
-            else if (!float.IsNaN(cameraY)) { p.y = cameraY; cameraY = float.NaN; }
+            else if (!float.IsNaN(cameraY)) { p.y = cameraY; cam.orthographicSize = cameraSize; cameraY = float.NaN; }
             cam.transform.position = p;
         }
 

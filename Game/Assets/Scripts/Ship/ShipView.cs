@@ -95,6 +95,7 @@ namespace Pixel.Ship
             sr.flipX = fx; sr.flipY = fy;
             if (def.role == BlockRole.Sail) sr.color = sailTint;
             if (def.role == BlockRole.Cannon) sr.flipX = facingLeft;
+            if (def.name == "Lanterna") Pixel.Combat.Glow.Add(go.transform, Vector2.zero, Pixel.Combat.Glow.Candle, 4f, 1.2f);
 
             if (def.solid)
             {

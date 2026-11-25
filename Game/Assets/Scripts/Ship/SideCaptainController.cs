@@ -130,6 +130,7 @@ namespace Pixel.Ship
                         AutoTarget = enemy;
                         Orders.Flash((Vector2)transform.position + Vector2.up * 0.8f, (Vector2)enemy.transform.position + Vector2.up * 0.5f, Orders.AttackColor);
                     }
+                    else if (ally == null && clicked && Camera.main != null && TryHookTo(Camera.main.ScreenToWorldPoint(mouse.position.ReadValue()))) { }
                     else if (ally == null && !CrewCommander.Paused && combatant.TryAttack()) attackShow = 0.18f;
                 }
                 if (AutoTarget != null) ChaseTarget();
@@ -160,6 +161,16 @@ namespace Pixel.Ship
             float x = AutoTarget != null ? autoMoveX : inputX;
             if (climbing) body.linearVelocity = new Vector2(inputX * moveSpeed * 0.5f, inputY * 4f);
             else body.linearVelocity = new Vector2(x * moveSpeed, body.linearVelocity.y);
+        }
+
+        /// <summary>Clicou no outro navio (o inimigo ou, estando nele, o seu): o capitão lança o gancho até lá.</summary>
+        bool TryHookTo(Vector2 w)
+        {
+            var dir = EncounterDirector.Instance;
+            if (dir == null || !dir.NeedsCrossing(transform.position, w)) return false;
+            ClearAutoTarget();
+            dir.TryCross(this, w);
+            return true;
         }
 
         /// <summary>Vai atrás do inimigo clicado: anda, pula degraus, atravessa na corda e golpeia quando alcança.</summary>

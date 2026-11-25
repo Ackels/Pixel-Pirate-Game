@@ -23,7 +23,8 @@ namespace Pixel.Combat
         [Header("Ritmo")]
         [Tooltip("Chance base de encontro por trecho de viagem (+5% por nível de perigo).")]
         public float encounterChance = 0.55f;
-        public float holdGap = 5f;
+        [Tooltip("Distância (blocos) entre os dois navios no combate. Como no Pixel Piracy, bem afastados.")]
+        public float shipGap = 11f;
 
         [Header("Visual")]
         public Sprite flagPirate, flagMerchant, plankSprite;
@@ -39,11 +40,9 @@ namespace Pixel.Combat
         public bool Busy => State != EncounterState.None;
         /// <summary>Abordar só depois de amolecer o inimigo com os canhões (sem canhão no navio: depois de um tempo).</summary>
         public const float BoardHullFraction = 0.6f;
-        public bool CanBoard => State == EncounterState.Engaged &&
-            (EnemyHp <= EnemyMaxHp * BoardHullFraction || (sea.shipView.CannonMuzzles().Count == 0 && stateTimer > 12f));
-        public string BoardHint => CanBoard ? null
-            : sea.shipView.CannonMuzzles().Count == 0 ? "aguarde um instante"
-            : $"casco dele até {Mathf.RoundToInt(BoardHullFraction * 100)}%";
+        /// <summary>Abordar a qualquer hora (como no Pixel Piracy). Com muitos inimigos é arriscado: os canhões derrubam tripulantes deles.</summary>
+        public bool CanBoard => State == EncounterState.Engaged;
+        public string BoardHint => null;
         public bool CanFlee => State == EncounterState.Approaching || State == EncounterState.Engaged;
         /// <summary>Os seus canhões estão atirando (botão Atirar / Cessar fogo).</summary>
         public bool PlayerFiring { get; private set; }
@@ -124,13 +123,10 @@ namespace Pixel.Combat
                     MoveEnemyTowards(holdX, 6f);
                     if (Mathf.Abs(enemyShip.origin.x - holdX) < 0.05f)
                     {
-                        SpawnEnemyCrew();
                         SetState(EncounterState.Engaged);
                         Say(pirate
-                            ? "Piratas! Vão abrir fogo. Atirar = canhões · Abordar (casco deles até 60%) · Fugir."
-                            : HasCannons
-                                ? "Um mercante parado. Atirar para atacar (depois aborde e leve a carga toda), ou Seguir viagem."
-                                : "Um mercante parado. Sem canhões: a abordagem libera em instantes. Ou Seguir viagem.");
+                            ? $"Piratas! {EnemyCrewAlive} no convés deles. Atire para derrubar alguns antes de abordar (ou aborde já, se for corajoso)."
+                            : $"Um mercante com {EnemyCrewAlive} marinheiro(s). Atirar, Abordar com ganchos, ou Seguir viagem.");
                     }
                     break;
 
@@ -155,17 +151,12 @@ namespace Pixel.Combat
 
                 case EncounterState.Victory:
                     if (!leaving) break;   // esperando o capitão decidir: Capturar, Saquear ou Deixar ir
-                    if (bridge != null)
+                    // Espera todo mundo voltar pelos ganchos (no máximo 8 s; quem ficou é trazido de volta) e só então parte
+                    if (float.IsPositiveInfinity(leaveAt) && (AllAboard() || stateTimer > 8f))
                     {
-                        // Espera todo mundo voltar (no máximo 7 s; quem ficou é trazido de volta) e só então recolhe a prancha
-                        if (stateTimer > 1f && (AllAboard() || stateTimer > 7f))
-                        {
-                            BringEveryoneBack();
-                            RemoveBridge();
-                            leaveAt = stateTimer + 1f;
-                        }
+                        BringEveryoneBack();
+                        leaveAt = stateTimer + 0.8f;
                     }
-                    else if (float.IsPositiveInfinity(leaveAt)) leaveAt = stateTimer + 1f;
                     if (stateTimer > leaveAt) MoveEnemyTowards(enemyShip.origin.x + 30f, 5f);
                     if (stateTimer > leaveAt + 3.5f) EndEncounter();
                     break;
@@ -203,7 +194,13 @@ namespace Pixel.Combat
             }
 
             if (enemyShip != null && seaCamera != null && State != EncounterState.None)
-                seaCamera.targetX = Mathf.Max(0f, (sea.shipView.LeftEdge + enemyShip.RightEdge) / 2f);
+            {
+                float enemyRight = enemyShip.RightEdge - enemyShip.origin.x + holdX;   // onde ele vai ficar
+                float left = sea.shipView.LeftEdge - 1.5f, right = enemyRight + 1.5f;
+                seaCamera.targetX = (left + right) / 2f;
+                seaCamera.targetWidth = right - left;
+            }
+            else if (seaCamera != null) seaCamera.targetWidth = 0f;
         }
 
         // ---------- Inimigo ----------
@@ -225,11 +222,13 @@ namespace Pixel.Combat
             view.Bind(layout);
 
             view.TryGetBounds(out int minX, out _);
-            holdX = sea.shipView.RightEdge + holdGap - minX;
+            holdX = sea.shipView.RightEdge + shipGap - minX;
             float startX = holdX + 30f;
             go.transform.position = new Vector3(startX, sea.shipView.origin.y, 0);
             enemyShip = view;
             AddFlag(view, layout);
+            Physics2D.SyncTransforms();
+            SpawnEnemyCrew();   // a tripulação já aparece no convés enquanto o navio se aproxima
 
             var stats = layout.ComputeStats();
             EnemyMaxHp = EnemyHp = Mathf.RoundToInt(stats.hp * (pirate ? 0.35f : 0.45f));
@@ -495,6 +494,7 @@ namespace Pixel.Combat
                     if (enemyShip == null) return;
                     enemyShip.AddDamageDecal(target);
                     HurtAround(target, Team.Enemy);
+                    if (Random.value < 0.3f) SplinterHit();
                     DamageEnemy(Random.Range(8, 13));
                 }, true);
             }
@@ -530,6 +530,17 @@ namespace Pixel.Combat
                 if (people.Count > 0) return (Vector2)people[Random.Range(0, people.Count)].transform.position + Vector2.up * 0.5f;
             }
             return ship.RandomBlockPoint();
+        }
+
+        /// <summary>Estilhaços: um tripulante inimigo qualquer leva um bom dano (é assim que os canhões "afinam" a tripulação deles antes da abordagem).</summary>
+        void SplinterHit()
+        {
+            var alive = enemyCrew.FindAll(c => c != null && !c.IsDown && enemyShip != null && enemyShip.ContainsX(c.transform.position.x));
+            if (alive.Count == 0) return;
+            var v = alive[Random.Range(0, alive.Count)];
+            v.TakeDamage(Random.Range(18, 31), null);
+            Fx.Splinters((Vector2)v.transform.position + Vector2.up * 0.5f, 4);
+            if (v.IsDown) Say($"Estilhaços derrubaram um {v.displayName.ToLower()}! Restam {EnemyCrewAlive}.");
         }
 
         /// <summary>A explosão da bala fere e empurra quem estiver perto (do time atingido).</summary>
@@ -593,7 +604,7 @@ namespace Pixel.Combat
         public void Board()
         {
             if (!CanBoard) return;
-            Say("Lançar cordas! Todos para o navio deles! (Capitão: atravesse pela prancha · F, J ou clique para golpear)");
+            Say("Lançar ganchos! Todos para o navio deles! (Capitão: clique num inimigo para ir até ele · F/J: golpear)");
             StartBoarding(false);
         }
 
@@ -633,7 +644,8 @@ namespace Pixel.Combat
             if (who == null) return false;
             if (State == EncounterState.Engaged)
             {
-                if (!CanBoard) { Say($"Ainda não dá pra abordar ({BoardHint})."); return false; }
+                var team = who.GetComponent<Combatant>();
+                if (team == null || team.team != Team.Player) return false;
                 Board();
             }
             if (State != EncounterState.Boarding && State != EncounterState.Victory) return false;
@@ -663,30 +675,21 @@ namespace Pixel.Combat
         void StartBoarding(bool byEnemy)
         {
             PlayerFiring = false;
-            Vector2 mine = sea.shipView.EdgeDeck(true), theirs = enemyShip.EdgeDeck(false);
-            bridge = Gangplank.Create(mine, theirs, plankSprite, "PranchaDeAbordagem");
-            for (int k = 0; k < 3; k++)
-            {
-                var rope = RopeSwing.MakeRope(bridge.transform, "Gancho", 12);
-                Vector2 a = mine + new Vector2(-0.25f - k * 0.5f, 0.35f + k * 0.25f);
-                Vector2 b = theirs + new Vector2(0.25f + k * 0.5f, 0.35f + k * 0.25f);
-                RopeSwing.Sag(rope, a, b, 0.35f + k * 0.1f);
-            }
-            // As cordas de balanço ficam presas no topo do mastro de quem ataca (sem mastro: bem no alto, no meio)
+            // Sem ponte: cada um joga o próprio gancho no outro navio e atravessa andando pela corda (RopeSwing)
             ropeAnchor = AnchorFor(byEnemy);
-            AudioManager.PlayVaried(Sfx.Wood, 0.6f);
 
             int i = 0;
             foreach (var c in sea.CrewFighters)
             {
                 if (c == null) continue;
                 var ai = c.GetComponent<CombatAI>();
-                if (ai) ai.charge = true;
+                if (ai) ai.charge = !byEnemy;   // abordados pelo inimigo: defendem o próprio navio
                 if (!byEnemy && !c.IsDown)
                     RopeSwing.Begin(c, enemyShip.SpawnPoint(Random.Range(-2.5f, 1.5f)) + Vector2.up * 0.1f, ropeAnchor, 0.2f + i++ * 0.2f);
             }
             i = 0;
-            if (pirate || byEnemy)
+            // Quem é abordado defende o próprio navio (senão os dois grupos trocam de navio sem lutar)
+            if (byEnemy)
                 foreach (var c in enemyCrew)
                 {
                     if (c == null) continue;
@@ -725,7 +728,7 @@ namespace Pixel.Combat
             sea.AddLoot(gold, new Dictionary<string, int>());
             GameStats.Add(GameStats.SeaVictories);
             AudioManager.Play(Sfx.Chest);
-            Say($"VITÓRIA! O {EnemyName.ToLower()} se rendeu: +{gold} ouro. Capture o navio, ou volte para o seu e saqueie a carga!");
+            Say($"VITÓRIA! O {EnemyName.ToLower()} se rendeu: +{gold} ouro. Capture o navio, ou volte para o seu (clique no seu navio) e saqueie a carga!");
             sea.ReviveCrew();
             sea.ClearCrewOrders();
             // A tripulação volta pela prancha; ela só é recolhida quando todos estiverem a bordo
@@ -757,10 +760,30 @@ namespace Pixel.Combat
         {
             if (!Deciding) return;
             leaving = true;
-            stateTimer = 1.1f;
+            stateTimer = 0f;
+            leaveAt = float.PositiveInfinity;
+            ReturnAll();
             Say($"Deixamos o {EnemyName.ToLower()} ir embora.");
             Changed?.Invoke();
         }
+
+        /// <summary>Capitão e tripulação que estão no navio inimigo voltam para o nosso pelo gancho.</summary>
+        public void ReturnAll()
+        {
+            if (enemyShip == null) return;
+            int i = 0;
+            void Back(Component who)
+            {
+                if (who == null || !enemyShip.ContainsX(who.transform.position.x) || RopeSwing.IsBusy(who.gameObject)) return;
+                RopeSwing.Begin(who, sea.shipView.DeckNear(sea.shipView.RightEdge - 1.5f - i * 0.8f) + Vector2.up * 0.1f, ropeAnchor, i * 0.25f);
+                i++;
+            }
+            if (sea.captainCombatant != null && !sea.captainCombatant.IsDown) Back(sea.captain);
+            foreach (var c in sea.CrewFighters) if (c != null && !c.IsDown) Back(c);
+        }
+
+        /// <summary>O capitão está no navio inimigo (o HUD mostra "Voltar ao navio").</summary>
+        public bool CaptainAway => enemyShip != null && sea.captain != null && enemyShip.ContainsX(sea.captain.transform.position.x);
 
         /// <summary>Saquear: tira a carga e explode o navio rendido. Tem chance de cada mercadoria.</summary>
         public void Plunder()

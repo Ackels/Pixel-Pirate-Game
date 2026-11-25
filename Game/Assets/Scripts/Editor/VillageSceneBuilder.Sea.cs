@@ -186,17 +186,14 @@ namespace Pixel.EditorTools
             camGo.transform.position = new Vector3(SeaCenter.x, SeaCenter.y, -10f);
             var cam = camGo.AddComponent<Camera>();
             cam.orthographic = true;
-            cam.orthographicSize = 540f / 2f / SeaPPU;
+            // Visão mais aberta que antes (≈ 34 blocos de largura em 16:9): personagens menores, cena mais "cheia",
+            // como no Pixel Piracy. Sem Pixel Perfect no mar: ele travava o zoom e deixava tudo com cara de "pixelão".
+            cam.orthographicSize = SeaCameraSize;
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color32(0xdd, 0xc6, 0xa1, 255);   // céu do Treasure Hunters
             cam.allowHDR = false;
             cam.allowMSAA = false;
-            camGo.AddComponent<UniversalAdditionalCameraData>();
-            var ppc = camGo.AddComponent<PixelPerfectCamera>();
-            ppc.assetsPPU = SeaPPU;
-            ppc.refResolutionX = 960;
-            ppc.refResolutionY = 540;
-            ppc.gridSnapping = PixelPerfectCamera.GridSnapping.PixelSnapping;
+            camGo.AddComponent<UniversalAdditionalCameraData>().renderPostProcessing = true;   // brilho, vinheta e cores
             var seaCam = camGo.AddComponent<SeaCamera>();
 
             var light = new GameObject("Luz Global do Mar").AddComponent<Light2D>();
@@ -227,7 +224,7 @@ namespace Pixel.EditorTools
             var frontDeep = Tiled(scenery, "AguaFrente", Mar("Ceu/agua_baixo"), new Vector2(0, deepBottom + (deepHeight - 1f) / 2f), new Vector2(90, deepHeight - 1f), 20, Color.white);
             var frontTop = Tiled(scenery, "AguaSuperficie", Mar("Ceu/agua_topo"), new Vector2(0, waterline), new Vector2(90, 1), 21, Color.white);
 
-            var cloudSprites = new[] { Mar("Ceu/nuvem_0"), Mar("Ceu/nuvem_1"), Mar("Ceu/nuvem_2") };
+            var cloudSprites = new[] { Mar("Ceu/nuvem_0_borrada"), Mar("Ceu/nuvem_1_borrada"), Mar("Ceu/nuvem_2_borrada") };
             var clouds = new Transform[6];
             var rng = new System.Random(3);
             for (int i = 0; i < clouds.Length; i++)
@@ -244,7 +241,7 @@ namespace Pixel.EditorTools
             {
                 var c = new GameObject("NuvemGrande").AddComponent<SpriteRenderer>();
                 c.transform.SetParent(scenery, false);
-                c.sprite = Mar("Ceu/nuvem_grande");
+                c.sprite = Mar("Ceu/nuvem_grande_borrada");
                 c.sortingOrder = -92;
                 c.transform.position = new Vector3(-40f + i * 14f, waterline + 3.6f, 0);
                 bigClouds[i] = c.transform;
@@ -262,6 +259,12 @@ namespace Pixel.EditorTools
             foreach (var t in clouds) cloudRenderers.Add(t.GetComponent<SpriteRenderer>());
             foreach (var t in bigClouds) cloudRenderers.Add(t.GetComponent<SpriteRenderer>());
             sky.clouds = cloudRenderers.ToArray();
+
+            // Reflexo na água (câmera de reflexo + shader Pixel/WaterReflection)
+            var refl = new GameObject("Reflexo da Agua").AddComponent<WaterReflection>();
+            refl.mainCam = cam;
+            refl.waterline = waterline + 0.15f;
+            refl.material = WaterReflectionMaterial();
 
             // Docas da Enseada (à esquerda do navio, ficam para trás ao zarpar)
             var dock = new GameObject("Docas").transform;
@@ -394,10 +397,25 @@ namespace Pixel.EditorTools
             islands.tent = Ninja("Props/tenda_lado");   // a tenda do pacote é vista de cima
             islands.campfire = Ninja("Props/fogueira");
             islands.palm = Mar("Ilha/coqueiro");
-            islands.backPalms = new[] { Mar("Ilha/coqueiro_fundo_0"), Mar("Ilha/coqueiro_fundo_1"), Mar("Ilha/coqueiro_fundo_2") };
+            islands.backPalms = new[] { Mar("Ilha/coqueiro_fundo_0_borrado"), Mar("Ilha/coqueiro_fundo_1_borrado"), Mar("Ilha/coqueiro_fundo_2_borrado") };
+            islands.farPalms = new[] { Mar("Ilha/coqueiro_longe_0"), Mar("Ilha/coqueiro_longe_1"), Mar("Ilha/coqueiro_longe_2") };
             islands.grassDecor = Mar("Ilha/grama");
             islands.market = Ninja("Props/barraca_lado");   // barraca vista de lado
             islands.plank = Mar("Navio/prancha");
+            Sprite C(string n) => Mar("Casa/" + n);
+            islands.house = new IslandBuilder.HouseArt
+            {
+                back = C("parede_fundo"), pillar = C("pilar"), pillarTop = C("pilar_topo"), pillarBase = C("pilar_base"),
+                beam = C("viga"), beamLeft = C("viga_esq"), beamRight = C("viga_dir"),
+                roof = C("telhado"), roofLeft = C("telhado_esq"), roofRight = C("telhado_dir"),
+                table = C("mesa"), chair = C("cadeira"), window = C("janela"), barrel = C("barril"),
+                barrelSide = C("barril_deitado"), barrelFront = C("barril_frente"),
+                bottleBlue = C("garrafa_azul"), bottleGreen = C("garrafa_verde"), bottleRed = C("garrafa_vermelha"),
+                skull = C("caveira"), shelf = C("prateleira"),
+                fish = C("comida_peixe"), meat = C("comida_carne"), steak = C("comida_bife"), shrimp = C("comida_camarao"),
+                sword = C("arma_espada"), axe = C("arma_machado"), lance = C("arma_lanca"),
+                candle = new[] { C("vela_1"), C("vela_2"), C("vela_3"), C("vela_4"), C("vela_5"), C("vela_6") },
+            };
             islands.creatures = new[]
             {
                 new IslandBuilder.Creature { name = "Caranguejo", frames = MarFrames("Bichos/caranguejo") },

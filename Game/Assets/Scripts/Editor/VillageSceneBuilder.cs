@@ -23,7 +23,7 @@ namespace Pixel.EditorTools
         const string DataDir = "Assets/Data";
         const string ScenePath = "Assets/Scenes/Village.unity";
         const int PPU = 16;
-        const int MapW = 64, MapH = 40;
+        const int MapW = 72, MapH = 48;   // a ilha com mar em volta (era 64x40, com mar só embaixo e à esquerda)
 
         [MenuItem("Pixel/Montar cena da Vila")]
         public static void BuildAll()
@@ -285,103 +285,10 @@ namespace Pixel.EditorTools
             var looks = CreateLibrary();
             BuildSeaScene(data.shipBlocks);
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-            var rng = new System.Random(42);
-
-            var grass = new[] { NinjaTileAsset("Tiles/grass_0"), NinjaTileAsset("Tiles/grass_1"), NinjaTileAsset("Tiles/grass_2"),
-                                NinjaTileAsset("Tiles/grass_3"), NinjaTileAsset("Tiles/grass_4") };
-            var sandDetail = new[] { NinjaTileAsset("Tiles/sand_detail_0"), NinjaTileAsset("Tiles/sand_detail_1") };
-            var dock = NinjaTileAsset("Tiles/dock");
-
-            var grid = new GameObject("Grid", typeof(Grid));
-            Tilemap groundMap = CreateTilemap(grid.transform, "Chao", -22);
-            Tilemap sandMap = CreateTilemap(grid.transform, "Areia", -21);
-            Tilemap waterMap = CreateTilemap(grid.transform, "Agua", -21);
-            Tilemap detailMap = CreateTilemap(grid.transform, "Caminhos_Docas", -19);
-
-            var waterCol = waterMap.gameObject.AddComponent<TilemapCollider2D>();
-            var waterBody = waterMap.gameObject.AddComponent<Rigidbody2D>();
-            waterBody.bodyType = RigidbodyType2D.Static;
-            waterMap.gameObject.AddComponent<CompositeCollider2D>();
-            waterCol.compositeOperation = Collider2D.CompositeOperation.Merge;
-
-            bool IsWater(int x, int y) => y < 6 || (x < 5 && y < 26) || (x < 9 && y < 10);
-            bool IsSand(int x, int y) => !IsWater(x, y) && (IsWater(x, y - 2) || IsWater(x - 2, y) || IsWater(x - 2, y - 2));
-            bool IsDock(int x, int y) => x >= 30 && x <= 32 && y >= 0 && y < 9;
-            // Fora do mapa conta como o vizinho de dentro (sem bordas estranhas nas pontas).
-            int Cx(int x) => Mathf.Clamp(x, 0, MapW - 1);
-            int Cy(int y) => Mathf.Clamp(y, 0, MapH - 1);
-            bool WaterR(int x, int y) => IsWater(Cx(x), Cy(y));
-            bool SandR(int x, int y) => IsWater(Cx(x), Cy(y)) || IsSand(Cx(x), Cy(y));
-
-            var pathCells = new HashSet<Vector2Int>();
-            for (int y = 8; y < 32; y++) for (int x = 30; x <= 32; x++) pathCells.Add(new Vector2Int(x, y));
-            for (int x = 10; x < 58; x++) for (int y = 19; y <= 20; y++) pathCells.Add(new Vector2Int(x, y));
-            bool PathR(int x, int y) => pathCells.Contains(new Vector2Int(x, y));
-
-            for (int x = 0; x < MapW; x++)
-            for (int y = 0; y < MapH; y++)
-            {
-                var cell = new Vector3Int(x, y, 0);
-                if (IsWater(x, y))
-                {
-                    var w = AutoTile("water", Mask(WaterR, x, y));
-                    if (IsDock(x, y)) { groundMap.SetTile(cell, w); detailMap.SetTile(cell, dock); }
-                    else waterMap.SetTile(cell, w);
-                    continue;
-                }
-                groundMap.SetTile(cell, grass[rng.Next(100) < 75 ? 0 : rng.Next(1, grass.Length)]);
-                if (IsSand(x, y))
-                {
-                    int m = Mask(SandR, x, y);
-                    sandMap.SetTile(cell, m == 255 && rng.Next(100) < 12 ? sandDetail[rng.Next(sandDetail.Length)] : AutoTile("sand", m));
-                }
-            }
-            foreach (var c in pathCells) detailMap.SetTile((Vector3Int)c, AutoTile("path", Mask(PathR, c.x, c.y)));
-            AssetDatabase.SaveAssets();
-
-            // Objetos do cenário
-            var objects = new GameObject("Cenario").transform;
-            foreach (var p in new[] { new Vector2(28.5f, 9.2f), new Vector2(28.5f, 10.4f), new Vector2(34.5f, 9.4f) })
-                CreateProp(objects, "Barril", Ninja("Props/barril"), p, new Vector2(0.6f, 0.4f), new Vector2(0, 0.25f));
-            CreateProp(objects, "Caixa", Ninja("Props/caixa"), new Vector2(34.5f, 10.5f), new Vector2(0.8f, 0.4f), new Vector2(0, 0.25f));
-
-            // Coqueiros: mais nas bordas, uma clareira no meio para construir.
-            var palm = Ninja("Props/coqueiro");
-            var trees = new[] { Ninja("Props/arvore_0"), Ninja("Props/arvore_1"), Ninja("Props/arvore_2") };
-            var small = new[] { Ninja("Props/moita_0"), Ninja("Props/moita_1"), Ninja("Props/flor_0"), Ninja("Props/flor_1") };
-            int placed = 0;
-            for (int tries = 0; tries < 3000 && placed < 50; tries++)
-            {
-                int x = rng.Next(1, MapW - 1), y = rng.Next(1, MapH - 1);
-                if (IsWater(x, y) || IsDock(x, y)) continue;
-                bool nearPath = false;
-                for (int dx = -2; dx <= 2 && !nearPath; dx++)
-                    for (int dy = -1; dy <= 3 && !nearPath; dy++)
-                        if (pathCells.Contains(new Vector2Int(x + dx, y + dy))) nearPath = true;
-                if (nearPath) continue;
-                bool clearing = x > 11 && x < 55 && y > 8 && y < 31;
-                if (clearing && rng.Next(100) < 85) continue;
-                // Coqueiros perto da praia; árvores redondas no interior.
-                bool beach = IsSand(x, y) || IsSand(x, y - 1) || IsSand(x - 1, y) || y < 12;
-                if (beach || rng.Next(100) < 35)
-                    CreateProp(objects, "Coqueiro", palm, new Vector2(x + 0.5f, y), new Vector2(0.4f, 0.3f), new Vector2(0, 0.15f));
-                else
-                    CreateProp(objects, "Arvore", trees[rng.Next(trees.Length)], new Vector2(x + 1f, y), new Vector2(1.2f, 0.4f), new Vector2(0, 0.2f));
-                placed++;
-            }
-
-            // Moitas e flores soltas (sem colisão)
-            for (int i = 0; i < 70; i++)
-            {
-                int x = rng.Next(1, MapW - 1), y = rng.Next(1, MapH - 1);
-                if (IsWater(x, y) || IsSand(x, y) || PathR(x, y)) continue;
-                var go = new GameObject("Planta");
-                go.transform.SetParent(objects, false);
-                go.transform.position = new Vector2(x + 0.5f, y);
-                var psr = go.AddComponent<SpriteRenderer>();
-                psr.sprite = small[rng.Next(small.Length)];
-                psr.spriteSortPoint = SpriteSortPoint.Pivot;
-            }
+            // Ilha de verdade: costa, praia, grama com variação, mata, campo e natureza (VillageSceneBuilder.Island.cs)
+            var island = BuildIsland();
+            var waterMap = island.water;
+            var detailMap = island.detail;
 
             var bounds = new GameObject("LimitesDoMapa").transform;
             AddWall(bounds, new Vector2(MapW / 2f, -0.5f), new Vector2(MapW, 1));
@@ -418,11 +325,12 @@ namespace Pixel.EditorTools
             cam.orthographic = true;
             cam.orthographicSize = 360f / 2f / PPU;
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = new Color32(0x1d, 0x7a, 0x96, 0xff);
+            cam.backgroundColor = new Color32(0x3a, 0x8c, 0xc4, 0xff);   // mesma cor do mar fundo
             cam.allowHDR = false;
             cam.allowMSAA = false;
             cam.allowDynamicResolution = false;
-            camGo.AddComponent<UniversalAdditionalCameraData>();
+            camGo.AddComponent<UniversalAdditionalCameraData>().renderPostProcessing = true;   // brilho, vinheta e cores
+            AddPostProcessing();
             var ppc = camGo.AddComponent<PixelPerfectCamera>();
             ppc.assetsPPU = PPU;
             ppc.refResolutionX = 640;
@@ -450,6 +358,7 @@ namespace Pixel.EditorTools
             vm.mapHeight = MapH;
             vm.waterMap = waterMap;
             vm.detailMap = detailMap;
+            vm.shadowSprite = Ninja("Natureza/sombra_g");
             var buildMode = village.AddComponent<BuildMode>();
 
             var visitors = new GameObject("Visitantes");

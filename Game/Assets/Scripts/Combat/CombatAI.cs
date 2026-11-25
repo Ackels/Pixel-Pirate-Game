@@ -91,6 +91,21 @@ namespace Pixel.Combat
                 target = moveOrder ? null : PickTarget();
             }
 
+            // Alvo no outro navio: quem está atacando atravessa no gancho; os outros esperam (não andam até cair no mar)
+            if (!moveOrder && target != null)
+            {
+                var dir2 = EncounterDirector.Instance;
+                if (dir2 != null && dir2.NeedsCrossing(transform.position, target.transform.position))
+                {
+                    if ((charge || orderTarget != null) && crossCheck <= 0f)
+                    {
+                        crossCheck = 0.3f;
+                        if (dir2.TryCross(this, target.transform.position)) { moveX = 0f; return; }
+                    }
+                    target = null;
+                }
+            }
+
             bool grounded = Grounded();
             moveX = 0f;
             if (moveOrder)

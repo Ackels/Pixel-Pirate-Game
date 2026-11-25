@@ -25,6 +25,8 @@ namespace Pixel.Village
         public int mapHeight = 40;
         public Tilemap waterMap;
         public Tilemap detailMap;   // caminhos e docas: não dá pra construir em cima
+        [Tooltip("Sombra macia posta embaixo das construções.")]
+        public Sprite shadowSprite;
 
         public int Gold { get; private set; }
         public IReadOnlyList<Building> Buildings => buildings;
@@ -43,6 +45,75 @@ namespace Pixel.Village
         readonly Dictionary<Vector2Int, Building> occupied = new Dictionary<Vector2Int, Building>();
         readonly List<Building> buildings = new List<Building>();
         readonly Collider2D[] overlapResults = new Collider2D[16];
+
+        // ---------- Natureza (árvores, pedras...): ocupa a grade até ser limpa com Demolir ----------
+        readonly Dictionary<Vector2Int, NatureObject> nature = new Dictionary<Vector2Int, NatureObject>();
+        readonly List<NatureObject> natureAll = new List<NatureObject>();
+        readonly HashSet<int> clearedNature = new HashSet<int>();
+        /// <summary>Ids das peças de natureza já limpas (vão no save).</summary>
+        public IEnumerable<int> ClearedNature => clearedNature;
+
+        public void RegisterNature(NatureObject n)
+        {
+            if (n == null) return;
+            if (n.blocks && clearedNature.Contains(n.id)) { Destroy(n.gameObject); return; }
+            natureAll.Add(n);
+            foreach (var c in Cells(n)) if (!nature.ContainsKey(c) || n.blocks) nature[c] = n;
+            // Já tem construção em cima (jogo carregado)? Some.
+            foreach (var c in Cells(n)) if (occupied.ContainsKey(c)) { RemoveNature(n, false); return; }
+        }
+
+        static IEnumerable<Vector2Int> Cells(NatureObject n)
+        {
+            for (int x = 0; x < n.size.x; x++)
+                for (int y = 0; y < n.size.y; y++)
+                    yield return new Vector2Int(n.cell.x + x, n.cell.y + y);
+        }
+
+        /// <summary>Natureza que bloqueia nesta célula (ou desenhada embaixo do mouse).</summary>
+        public NatureObject NatureAt(Vector2 world)
+        {
+            var cell = new Vector2Int(Mathf.FloorToInt(world.x), Mathf.FloorToInt(world.y));
+            if (nature.TryGetValue(cell, out var n) && n != null && n.blocks) return n;
+            NatureObject best = null;
+            float bestY = float.MaxValue;
+            foreach (var o in natureAll)
+            {
+                if (o == null || !o.blocks) continue;
+                var sr = o.GetComponent<SpriteRenderer>();
+                if (sr == null) continue;
+                var b = sr.bounds;
+                if (b.Contains(new Vector3(world.x, world.y, b.center.z)) && o.transform.position.y < bestY) { best = o; bestY = o.transform.position.y; }
+            }
+            return best;
+        }
+
+        /// <summary>Limpa o terreno: a peça some com um "puf" e fica marcada no save.</summary>
+        public void ClearNature(NatureObject n)
+        {
+            if (n == null) return;
+            AudioManager.Play(n.kind == NatureObject.Kind.Rock ? Sfx.Build : Sfx.Swing);
+            RemoveNature(n, true);
+            Changed?.Invoke();
+        }
+
+        void RemoveNature(NatureObject n, bool animate)
+        {
+            if (n.blocks) clearedNature.Add(n.id);
+            foreach (var c in Cells(n)) if (nature.TryGetValue(c, out var o) && o == n) nature.Remove(c);
+            natureAll.Remove(n);
+            if (animate) n.gameObject.AddComponent<VanishPuff>();
+            else Destroy(n.gameObject);
+        }
+
+        /// <summary>Ao carregar: some com o que o jogador já tinha limpado.</summary>
+        public void RestoreClearedNature(IEnumerable<int> ids)
+        {
+            clearedNature.Clear();
+            if (ids != null) foreach (var id in ids) clearedNature.Add(id);
+            foreach (var n in natureAll.ToArray())
+                if (n != null && n.blocks && clearedNature.Contains(n.id)) RemoveNature(n, false);
+        }
 
         void Awake()
         {
@@ -125,6 +196,8 @@ namespace Pixel.Village
                 if (waterMap != null && waterMap.HasTile((Vector3Int)c)) { reason = "Não dá pra construir na água."; return false; }
                 if (detailMap != null && detailMap.HasTile((Vector3Int)c)) { reason = "Não construa em cima do caminho."; return false; }
                 if (occupied.ContainsKey(c)) { reason = "Já tem uma construção aqui."; return false; }
+                if (nature.TryGetValue(c, out var nat) && nat != null && nat.blocks)
+                { reason = $"Tem {(nat.kind == NatureObject.Kind.Rock ? "uma rocha" : nat.kind == NatureObject.Kind.Stump ? "um toco" : nat.kind == NatureObject.Kind.Bush ? "um arbusto" : nat.kind == NatureObject.Kind.Palm ? "um coqueiro" : "uma árvore")} aqui: use Demolir (bomba) para limpar o terreno."; return false; }
             }
 
             if (def.requiresWater && waterMap != null)
@@ -148,6 +221,7 @@ namespace Pixel.Village
                 var col = overlapResults[i];
                 if (col.attachedRigidbody != null && col.attachedRigidbody.bodyType == RigidbodyType2D.Dynamic) continue;
                 if (col.GetComponentInParent<Tilemap>() != null) continue;
+                if (col.GetComponentInParent<NatureObject>() != null) continue;   // natureza já foi vista pela grade
                 reason = col.name == "Coqueiro" ? "Tem um coqueiro no caminho." : "Tem algo no caminho.";
                 return false;
             }
@@ -172,6 +246,26 @@ namespace Pixel.Village
             var b = go.AddComponent<Building>();
             b.def = def;
             b.origin = origin;
+            // Sombra macia embaixo (dá "peso" à construção no chão)
+            if (shadowSprite != null)
+            {
+                var sh = new GameObject("Sombra").AddComponent<SpriteRenderer>();
+                sh.transform.SetParent(go.transform, false);
+                sh.transform.localPosition = new Vector3(0, 0.15f, 0);
+                sh.transform.localScale = new Vector3(def.footprint.x * 16f / 40f, 1.4f, 1f);
+                sh.sprite = shadowSprite;
+                sh.sortingOrder = -10;
+            }
+            // Casas e taverna acendem a luz da janela à noite
+            if (def.kind == BuildingKind.House || def.kind == BuildingKind.Tavern)
+                Pixel.Combat.Glow.Add(go.transform, new Vector2(0, def.footprint.y * 0.6f), Pixel.Combat.Glow.Candle, 2.6f + def.footprint.x * 0.4f, 0.9f);
+            // Flores e capim embaixo somem; natureza grande (só em jogo carregado) também
+            for (int x = 0; x < def.footprint.x; x++)
+                for (int y = 0; y < def.footprint.y; y++)
+                    if (nature.TryGetValue(new Vector2Int(origin.x + x, origin.y + y), out var n) && n != null) RemoveNature(n, false);
+            foreach (var n in natureAll.ToArray())
+                if (n != null && !n.blocks && n.cell.x >= origin.x && n.cell.x < origin.x + def.footprint.x && n.cell.y >= origin.y && n.cell.y < origin.y + def.footprint.y)
+                    RemoveNature(n, false);
 
             for (int x = 0; x < def.footprint.x; x++)
                 for (int y = 0; y < def.footprint.y; y++)
