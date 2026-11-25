@@ -38,7 +38,7 @@ namespace Pixel.Combat
         {
             look = l;
             ApplySideScale(gameObject);
-            sr = gameObject.AddComponent<SpriteRenderer>();
+            sr = CharacterSprite.Create(gameObject);   // num filho, com desempate da ordem de desenho
             sr.sortingOrder = order;
             combatant = GetComponent<Combatant>();
             Pose(false, true, true);

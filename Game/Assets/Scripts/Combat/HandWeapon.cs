@@ -48,7 +48,7 @@ namespace Pixel.Combat
 
         void LateUpdate()
         {
-            if (body == null) body = GetComponent<SpriteRenderer>();
+            if (body == null) body = Pixel.Village.CharacterSprite.Of(this);
             if (idle == null) idle = GetComponent<IdleActivity>();
             bool lying = Mathf.Abs(Mathf.DeltaAngle(transform.eulerAngles.z, 0f)) > 1f;
             bool show = weapon.sprite != null && !lying && (combatant == null || !combatant.IsDown)

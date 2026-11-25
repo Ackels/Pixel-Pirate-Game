@@ -35,7 +35,7 @@ namespace Pixel.Village
             var go = new GameObject("Visitante");
             go.transform.SetParent(transform, false);
             go.transform.position = spawnPoint;
-            var sr = go.AddComponent<SpriteRenderer>();
+            var sr = CharacterSprite.Create(go);
             sr.spriteSortPoint = SpriteSortPoint.Pivot;
             var v = go.AddComponent<Visitor>();
             var look = looks != null && looks.Length > 0 ? looks[Random.Range(0, looks.Length)] : null;

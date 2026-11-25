@@ -23,7 +23,7 @@ namespace Pixel.Village
             market = targetMarket;
             exitPoint = exit;
             state = State.Going;
-            sr = GetComponent<SpriteRenderer>();
+            sr = CharacterSprite.Of(this);
         }
 
         void Update()

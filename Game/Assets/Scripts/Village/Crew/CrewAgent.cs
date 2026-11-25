@@ -26,7 +26,7 @@ namespace Pixel.Village
             member = m;
             look = characterLook;
             m.agent = this;
-            sr = gameObject.AddComponent<SpriteRenderer>();
+            sr = CharacterSprite.Create(gameObject);   // num filho, com desempate da ordem de desenho
             sr.spriteSortPoint = SpriteSortPoint.Pivot;
             wanderTarget = transform.position;
             if (look != null) sr.sprite = look.Idle(Vector2.down);

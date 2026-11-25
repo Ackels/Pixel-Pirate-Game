@@ -19,7 +19,7 @@ namespace Pixel.Combat
         public void Init(Sprite[] f, int order)
         {
             frames = f;
-            sr = gameObject.AddComponent<SpriteRenderer>();
+            sr = Pixel.Village.CharacterSprite.Create(gameObject);
             sr.sprite = f[0];
             sr.sortingOrder = order;
         }

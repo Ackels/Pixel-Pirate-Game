@@ -23,6 +23,7 @@
   - Capitão controlado por `CaptainController` (WASD, setas ou controle); câmera com `CameraFollow`.
   - **Câmera da vila (25/11/2026):** sem Pixel Perfect Camera. O `CameraFollow` escolhe um zoom **inteiro** (1 pixel da arte = 2, 3, 4… pixels da tela, então a arte continua nítida) que mostre ~16 blocos de altura em qualquer janela (`tilesTall`); a rodinha do mouse aproxima/afasta entre 7 e 36 blocos (`tilesTallRange`), ignorada em cima da interface ou com o menu aberto. Antes, na janela pequena do usuário (~509 px), a Pixel Perfect ficava em 1× e mostrava a ilha quase inteira, com bonecos minúsculos.
   - Ordenação top-down por eixo Y, configurada no Renderer2D.
+  - **Bonecos não podem empatar na ordem de desenho** (25/11/2026): com o eixo Y valendo também no mar, dois bonecos na mesma altura (convés, ou parados na mesma linha na vila) trocavam de ordem a cada quadro e "piscavam". Todo boneco cria o desenho com `Village/CharacterSprite.Create` (filho "Desenho" deslocado 0,0025–0,03 para cima, diferente para cada um); para achar o desenho use `CharacterSprite.Of`. Vale para `LookFigure`, `SimpleFigure`, `CrewAgent` e visitantes; os capitães continuam com o desenho no próprio objeto (são únicos).
 - **Fase 1 (concluída em 23/11/2026), em `Assets/Scripts/Village/`:**
   - `VillageManager`: ouro, estoque, ocupação da grade e regras de onde se pode construir.
   - `Building`: produção automática; na Fase 2 ela vai depender dos tripulantes.
