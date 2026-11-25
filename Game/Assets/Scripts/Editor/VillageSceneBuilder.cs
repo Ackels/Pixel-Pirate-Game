@@ -161,6 +161,23 @@ namespace Pixel.EditorTools
                 i.textColor = new Color(0.6f, 0.85f, 1f);
             });
 
+            // Materiais (não são vendidos no Mercado: servem para construir e para a Forja)
+            var wood = GetOrCreate<ItemDef>("Itens/Madeira", i =>
+            {
+                i.displayName = "Madeira"; i.icon = Ninja("Icons/madeira"); i.sellPrice = 0;
+                i.textColor = new Color(0.9f, 0.68f, 0.42f);
+            });
+            var stone = GetOrCreate<ItemDef>("Itens/Pedra", i =>
+            {
+                i.displayName = "Pedra"; i.icon = Ninja("Icons/pedra"); i.sellPrice = 0;
+                i.textColor = new Color(0.78f, 0.8f, 0.85f);
+            });
+            var iron = GetOrCreate<ItemDef>("Itens/Ferro", i =>
+            {
+                i.displayName = "Ferro"; i.icon = Ninja("Icons/ferro"); i.sellPrice = 0;
+                i.textColor = new Color(0.68f, 0.8f, 0.98f);
+            });
+
             var house = GetOrCreate<BuildingDef>("Construcoes/Casa", b =>
             {
                 b.displayName = "Casa"; b.kind = BuildingKind.House; b.sprite = LoadSprite("obj_house");
@@ -220,17 +237,75 @@ namespace Pixel.EditorTools
                 b.forgesGear = true; b.goldPerPiece = 25; b.cycleSeconds = 45f;
                 b.description = "Um ferreiro forja armas e chapéus: 1 peça a cada 45 s por 25 ouro. Quanto maior o nível dele, melhores as peças. Vão para o Arsenal (tecla I).";
             });
+            var lumber = GetOrCreate<BuildingDef>("Construcoes/Lenhador", b =>
+            {
+                b.displayName = "Cabana do Lenhador"; b.kind = BuildingKind.Producer;
+                b.footprint = new Vector2Int(4, 2); b.cost = 25;
+                b.profession = Profession.Marujo; b.workerSlots = 1;
+                b.outputItem = wood; b.outputAmount = 1; b.cycleSeconds = 7f;
+                b.description = "Um lenhador corta árvores do mato: +1 Madeira a cada 7 s.";
+            });
+            var quarry = GetOrCreate<BuildingDef>("Construcoes/Pedreira", b =>
+            {
+                b.displayName = "Pedreira"; b.kind = BuildingKind.Producer;
+                b.footprint = new Vector2Int(4, 2); b.cost = 30;
+                b.profession = Profession.Marujo; b.workerSlots = 1;
+                b.outputItem = stone; b.outputAmount = 1; b.cycleSeconds = 9f;
+                b.description = "Um trabalhador quebra rochas: +1 Pedra a cada 9 s.";
+            });
+            var foundry = GetOrCreate<BuildingDef>("Construcoes/Fundicao", b =>
+            {
+                b.displayName = "Fundição"; b.kind = BuildingKind.Producer;
+                b.footprint = new Vector2Int(3, 2); b.cost = 70;
+                b.profession = Profession.Marujo; b.workerSlots = 1;
+                b.inputItem = stone; b.inputAmount = 3; b.outputItem = iron; b.outputAmount = 1; b.cycleSeconds = 12f;
+                b.description = "Derrete o minério de 3 Pedra em 1 Ferro a cada 12 s. A Forja usa ferro para fazer armas.";
+            });
+            BuildingDef Deco(string asset, string name, string sprite, Vector2Int size, int cost, int beauty, string desc,
+                             bool light = false, bool flat = false, bool blocks = true) =>
+                GetOrCreate<BuildingDef>("Decoracoes/" + asset, b =>
+                {
+                    b.displayName = name; b.kind = BuildingKind.Decoration; b.sprite = Ninja(sprite);
+                    b.footprint = size; b.cost = cost; b.beauty = beauty; b.lightAtNight = light; b.flat = flat; b.blocksMovement = blocks;
+                    b.description = desc;
+                });
+            var lamp = Deco("PosteDeLuz", "Poste de Luz", "Decor/poste", new Vector2Int(1, 1), 15, 1, "Uma lanterna que acende à noite.", light: true);
+            var bed = Deco("Canteiro", "Canteiro de Flores", "Decor/canteiro", new Vector2Int(2, 2), 10, 2, "Flores num canteiro de pedra.", flat: true);
+            var statue = Deco("Estatua", "Estátua", "Decor/estatua", new Vector2Int(2, 1), 60, 5, "Uma estátua antiga e misteriosa. Muito bonita!");
+            var column = Deco("Coluna", "Coluna de Pedra", "Decor/coluna", new Vector2Int(1, 1), 20, 2, "Uma coluna de pedra entalhada.");
+            var flagSkull = Deco("EstandarteCaveira", "Estandarte Pirata", "Decor/estandarte_caveira", new Vector2Int(1, 1), 15, 1, "A caveira do bando, para todo mundo ver.");
+            var flagRed = Deco("EstandarteVermelho", "Estandarte Vermelho", "Decor/estandarte_vermelho", new Vector2Int(1, 1), 15, 1, "Um estandarte vermelho de tecido.");
+            var pot = Deco("Vaso", "Vaso de Planta", "Decor/vaso", new Vector2Int(1, 1), 8, 1, "Uma plantinha num vaso.", blocks: false);
+            var crates = Deco("Caixotes", "Caixotes", "Decor/caixotes", new Vector2Int(2, 1), 10, 1, "Caixotes de mercadoria empilhados.");
+            var fire = Deco("Fogueira", "Fogueira", "Props/fogueira", new Vector2Int(1, 1), 10, 2, "Uma fogueira para as noites na vila.", light: true);
             var market = GetOrCreate<BuildingDef>("Construcoes/Mercado", b =>
             {
                 b.displayName = "Mercado"; b.kind = BuildingKind.Market; b.sprite = LoadSprite("obj_market");
                 b.footprint = new Vector2Int(3, 2); b.cost = 50;
                 b.description = "Visitantes desembarcam nas docas e compram seu estoque aqui.";
             });
+            // Custos em material (reaplicados a cada montagem: são valores de design definidos aqui)
+            void Cost(BuildingDef b, params (ItemDef item, int amount)[] list)
+            {
+                b.materials = new List<MaterialCost>();
+                foreach (var (item, amount) in list) b.materials.Add(new MaterialCost { item = item, amount = amount });
+                EditorUtility.SetDirty(b);
+            }
+            Cost(house, (wood, 6)); Cost(tavern, (wood, 10), (stone, 4)); Cost(farm, (wood, 3)); Cost(fishing, (wood, 6));
+            Cost(distillery, (wood, 8), (stone, 6)); Cost(market, (wood, 8)); Cost(shipyard, (wood, 15), (stone, 5)); Cost(board, (wood, 5));
+            Cost(forge, (wood, 6), (stone, 10)); Cost(lumber); Cost(quarry, (wood, 4)); Cost(foundry, (wood, 6), (stone, 8));
+            Cost(lamp, (wood, 2), (iron, 1)); Cost(bed, (stone, 3)); Cost(statue, (stone, 12)); Cost(column, (stone, 5));
+            Cost(flagSkull, (wood, 2)); Cost(flagRed, (wood, 2)); Cost(pot, (stone, 1)); Cost(crates, (wood, 3)); Cost(fire, (wood, 3));
+            // A Forja passa a gastar ferro (e menos ouro)
+            forge.inputItem = iron; forge.inputAmount = 2; forge.goldPerPiece = 10;
+            forge.description = "Um ferreiro forja armas e chapéus: 1 peça a cada 45 s com 2 Ferro e 10 ouro. Quanto maior o nível dele, melhores as peças. Vão para o Arsenal (tecla I).";
+            EditorUtility.SetDirty(forge);
             AssetDatabase.SaveAssets();
             return new GameData
             {
-                items = new[] { rum, fish, cane },
-                buildings = new[] { house, tavern, farm, fishing, distillery, forge, market, shipyard, board },
+                items = new[] { rum, fish, cane, wood, stone, iron },
+                buildings = new[] { house, tavern, farm, fishing, distillery, lumber, quarry, foundry, forge, market, shipyard, board,
+                                    lamp, bed, flagSkull, flagRed, pot, crates, fire, column, statue },
                 gear = CreateGear(),
                 dungeons = CreateDungeons(),
                 shipBlocks = CreateShipBlocks(),
@@ -409,6 +484,12 @@ namespace Pixel.EditorTools
             vm.waterMap = waterMap;
             vm.detailMap = detailMap;
             vm.shadowSprite = Ninja("Natureza/sombra_g");
+            var pm = new List<int>();
+            var pt = new List<TileBase>();
+            foreach (var f in Directory.GetFiles($"{NinjaDir}/Auto", "path2_*.png"))
+                if (int.TryParse(Path.GetFileNameWithoutExtension(f).Substring(6), out int m)) { pm.Add(m); pt.Add(AutoTile("path2", m)); }
+            vm.pathMasks = pm.ToArray();
+            vm.pathTiles = pt.ToArray();
             var buildMode = village.AddComponent<BuildMode>();
             village.AddComponent<Armory>().catalog = data.gear;   // equipamento guardado + o do capitão
 

@@ -27,6 +27,15 @@ namespace Pixel.Village
         public Tilemap detailMap;   // caminhos e docas: não dá pra construir em cima
         [Tooltip("Sombra macia posta embaixo das construções.")]
         public Sprite shadowSprite;
+        [Header("Caminhos (o jogador pode construir)")]
+        [Tooltip("Peças do caminho por máscara de vizinhos (1=N 2=NE 4=L 8=SE 16=S 32=SO 64=O 128=NO).")]
+        public int[] pathMasks;
+        public TileBase[] pathTiles;
+        public int pathCost = 1;
+        [Tooltip("Bonecos andam mais rápido em cima de caminhos e docas.")]
+        public float pathSpeed = 1.4f;
+        [Header("Começo do jogo")]
+        public int startingWood = 15, startingStone = 8;
 
         public int Gold { get; private set; }
         public IReadOnlyList<Building> Buildings => buildings;
@@ -93,6 +102,21 @@ namespace Pixel.Village
         {
             if (n == null) return;
             AudioManager.Play(n.kind == NatureObject.Kind.Rock ? Sfx.Build : Sfx.Swing);
+            // Árvore vira madeira; pedra vira pedra
+            var (mat, amount) = n.kind switch
+            {
+                NatureObject.Kind.Rock => (Item("Pedra"), 2 + n.size.x * n.size.y),
+                NatureObject.Kind.Tree => (Item("Madeira"), 1 + n.size.x * n.size.y),
+                NatureObject.Kind.Palm => (Item("Madeira"), 2),
+                NatureObject.Kind.Stump => (Item("Madeira"), 2),
+                NatureObject.Kind.Bush => (Item("Madeira"), 1),
+                _ => ((ItemDef)null, 0),
+            };
+            if (mat != null && amount > 0)
+            {
+                AddStock(mat, amount);
+                FloatingText.Spawn(n.transform.position + Vector3.up * 1.6f, $"+{amount} {mat.displayName}", mat.textColor);
+            }
             RemoveNature(n, true);
             Changed?.Invoke();
         }
@@ -119,6 +143,165 @@ namespace Pixel.Village
         {
             Instance = this;
             Gold = startingGold;
+        }
+
+        void Start()
+        {
+            AddStock(Item("Madeira"), startingWood);
+            AddStock(Item("Pedra"), startingStone);
+        }
+
+        /// <summary>Item do estoque pelo nome (ex.: "Madeira").</summary>
+        public ItemDef Item(string name)
+        {
+            if (items == null) return null;
+            foreach (var i in items) if (i != null && (i.name == name || i.displayName == name)) return i;
+            return null;
+        }
+
+        // ---------- Custos (ouro + materiais) ----------
+        /// <summary>Dá para pagar? Se não, diz o que falta.</summary>
+        public bool CanAfford(BuildingDef def, out string missing)
+        {
+            var parts = new List<string>();
+            if (Gold < def.cost) parts.Add($"{def.cost - Gold} ouro");
+            if (def.materials != null)
+                foreach (var m in def.materials)
+                    if (m.item != null && GetStock(m.item) < m.amount) parts.Add($"{m.amount - GetStock(m.item)} {m.item.displayName}");
+            missing = parts.Count > 0 ? "Falta " + string.Join(", ", parts) + "." : null;
+            return parts.Count == 0;
+        }
+
+        public bool TryPay(BuildingDef def)
+        {
+            if (!CanAfford(def, out _)) return false;
+            Gold -= def.cost;
+            if (def.materials != null)
+                foreach (var m in def.materials) if (m.item != null) stock[m.item] = GetStock(m.item) - m.amount;
+            Changed?.Invoke();
+            return true;
+        }
+
+        /// <summary>"40 ouro, 6 Madeira, 4 Pedra".</summary>
+        public static string CostText(BuildingDef def, float fraction = 1f)
+        {
+            var parts = new List<string> { $"{Mathf.RoundToInt(def.cost * fraction)} ouro" };
+            if (def.materials != null)
+                foreach (var m in def.materials)
+                    if (m.item != null && Mathf.RoundToInt(m.amount * fraction) > 0) parts.Add($"{Mathf.RoundToInt(m.amount * fraction)} {m.item.displayName}");
+            return string.Join(", ", parts);
+        }
+
+        // ---------- Beleza (decorações) ----------
+        /// <summary>Soma da beleza das decorações da vila.</summary>
+        public int Beauty { get { int b = 0; foreach (var x in buildings) if (x != null) b += x.def.beauty; return b; } }
+        /// <summary>Moral extra por dia para cada tripulante (1 a cada 2 de beleza, até +10).</summary>
+        public int BeautyMorale => Mathf.Min(10, Beauty / 2);
+
+        // ---------- Caminhos ----------
+        readonly HashSet<Vector2Int> playerPaths = new HashSet<Vector2Int>();
+        /// <summary>Caminhos feitos pelo jogador (vão no save).</summary>
+        public IEnumerable<Vector2Int> PlayerPaths => playerPaths;
+
+        bool IsPathTile(TileBase t)
+        {
+            if (t == null || pathTiles == null) return false;
+            foreach (var p in pathTiles) if (p == t) return true;
+            return false;
+        }
+
+        bool IsPathCell(Vector2Int c) => detailMap != null && IsPathTile(detailMap.GetTile((Vector3Int)c));
+
+        /// <summary>Tem caminho (ou doca) embaixo deste ponto? Bonecos andam mais rápido.</summary>
+        public bool OnPath(Vector2 world) =>
+            detailMap != null && detailMap.HasTile(new Vector3Int(Mathf.FloorToInt(world.x), Mathf.FloorToInt(world.y), 0));
+
+        public float SpeedAt(Vector2 world) => OnPath(world) ? pathSpeed : 1f;
+
+        public bool CanPlacePath(Vector2Int c, out string reason)
+        {
+            reason = null;
+            if (c.x < 1 || c.y < 1 || c.x >= mapWidth - 1 || c.y >= mapHeight - 1) { reason = "Fora da vila."; return false; }
+            if (waterMap != null && waterMap.HasTile((Vector3Int)c)) { reason = "Não dá para fazer caminho na água."; return false; }
+            if (detailMap != null && detailMap.HasTile((Vector3Int)c)) { reason = "Já tem caminho aqui."; return false; }
+            if (occupied.ContainsKey(c)) { reason = "Tem uma construção aqui."; return false; }
+            if (nature.TryGetValue(c, out var nat) && nat != null && nat.blocks) { reason = $"Tem {nat.DisplayName} aqui: limpe com Demolir."; return false; }
+            if (Gold < pathCost) { reason = $"Falta ouro ({pathCost} por bloco)."; return false; }
+            return true;
+        }
+
+        public bool PlacePath(Vector2Int c, bool pay = true)
+        {
+            if (detailMap == null || pathTiles == null || pathTiles.Length == 0) return false;
+            if (pay && !TrySpendGold(pathCost)) return false;
+            playerPaths.Add(c);
+            detailMap.SetTile((Vector3Int)c, pathTiles[0]);
+            // Flores e capim embaixo somem
+            foreach (var n in natureAll.ToArray())
+                if (n != null && !n.blocks && n.cell == c) RemoveNature(n, false);
+            RefreshPathsAround(c);
+            return true;
+        }
+
+        /// <summary>Tira um caminho feito pelo jogador (os da ilha original ficam).</summary>
+        public bool RemovePath(Vector2Int c)
+        {
+            if (!playerPaths.Remove(c)) return false;
+            detailMap.SetTile((Vector3Int)c, null);
+            RefreshPathsAround(c);
+            Gold += pathCost / 2;
+            Changed?.Invoke();
+            return true;
+        }
+
+        public bool IsPlayerPath(Vector2Int c) => playerPaths.Contains(c);
+
+        /// <summary>Refaz a borda das peças de caminho nesta célula e nas 8 vizinhas.</summary>
+        void RefreshPathsAround(Vector2Int c)
+        {
+            for (int dx = -1; dx <= 1; dx++)
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    var n = new Vector2Int(c.x + dx, c.y + dy);
+                    if (IsPathCell(n)) detailMap.SetTile((Vector3Int)n, PathTileFor(PathMask(n)));
+                }
+        }
+
+        int PathMask(Vector2Int c)
+        {
+            bool P(int x, int y) => IsPathCell(new Vector2Int(x, y));
+            int x0 = c.x, y0 = c.y, m = 0;
+            bool N = P(x0, y0 + 1), E = P(x0 + 1, y0), S = P(x0, y0 - 1), W = P(x0 - 1, y0);
+            if (N) m |= 1;
+            if (N && E && P(x0 + 1, y0 + 1)) m |= 2;
+            if (E) m |= 4;
+            if (S && E && P(x0 + 1, y0 - 1)) m |= 8;
+            if (S) m |= 16;
+            if (S && W && P(x0 - 1, y0 - 1)) m |= 32;
+            if (W) m |= 64;
+            if (N && W && P(x0 - 1, y0 + 1)) m |= 128;
+            return m;
+        }
+
+        TileBase PathTileFor(int mask)
+        {
+            int best = 0, bestScore = int.MaxValue;
+            for (int i = 0; i < pathMasks.Length; i++)
+            {
+                int diff = pathMasks[i] ^ mask;
+                int score = Bits(diff & 0b01010101) * 10 + Bits(diff & 0b10101010);
+                if (score < bestScore) { bestScore = score; best = i; }
+            }
+            return pathTiles[best];
+        }
+
+        static int Bits(int v) { int c = 0; while (v != 0) { c += v & 1; v >>= 1; } return c; }
+
+        /// <summary>Ao carregar: refaz os caminhos do jogador.</summary>
+        public void RestorePaths(IEnumerable<Vector2Int> cells)
+        {
+            if (cells == null) return;
+            foreach (var c in cells) if (detailMap != null && !detailMap.HasTile((Vector3Int)c)) PlacePath(c, false);
         }
 
         void OnDestroy()
@@ -260,6 +443,8 @@ namespace Pixel.Village
             // Casas e taverna acendem a luz da janela à noite
             if (def.kind == BuildingKind.House || def.kind == BuildingKind.Tavern)
                 Pixel.Combat.Glow.Add(go.transform, new Vector2(0, def.footprint.y * 0.6f), Pixel.Combat.Glow.Candle, 2.6f + def.footprint.x * 0.4f, 0.9f);
+            if (def.lightAtNight)
+                Pixel.Combat.Glow.Add(go.transform, new Vector2(0, 1.3f), Pixel.Combat.Glow.Candle, 4f, 1.1f);
             // Flores e capim embaixo somem; natureza grande (só em jogo carregado) também
             for (int x = 0; x < def.footprint.x; x++)
                 for (int y = 0; y < def.footprint.y; y++)
@@ -283,6 +468,7 @@ namespace Pixel.Village
         /// <summary>Apaga tudo (prédios, estoque) para carregar um jogo salvo.</summary>
         public void ClearForLoad(int gold)
         {
+            foreach (var c in new List<Vector2Int>(playerPaths)) { playerPaths.Remove(c); detailMap?.SetTile((Vector3Int)c, null); RefreshPathsAround(c); }
             foreach (var b in buildings) if (b != null) Destroy(b.gameObject);
             buildings.Clear();
             occupied.Clear();
@@ -320,6 +506,9 @@ namespace Pixel.Village
             foreach (var k in keys) occupied.Remove(k);
             buildings.Remove(b);
             Gold += Mathf.RoundToInt(b.def.cost * demolishRefund);
+            if (b.def.materials != null)
+                foreach (var m in b.def.materials)
+                    if (m.item != null) stock[m.item] = GetStock(m.item) + Mathf.RoundToInt(m.amount * demolishRefund);
             foreach (var w in b.Workers) w.workplace = null;
             b.Workers.Clear();
             Destroy(b.gameObject);

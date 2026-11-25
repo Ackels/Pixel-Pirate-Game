@@ -336,6 +336,7 @@ namespace Pixel.Village
                 delta += c.home != null ? 5 : -15;
                 if (c.Has(Trait.Alegre)) delta += 10;
                 if (c.Has(Trait.Rabugento)) delta -= 5;
+                delta += vm.BeautyMorale;   // decorações deixam o bando mais feliz
 
                 c.morale = Mathf.Clamp(c.morale + delta, 0, 100);
             }

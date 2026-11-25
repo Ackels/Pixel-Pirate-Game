@@ -56,7 +56,8 @@ namespace Pixel.Village
 
         void FixedUpdate()
         {
-            body.linearVelocity = input * moveSpeed;
+            float onPath = VillageManager.Instance != null ? VillageManager.Instance.SpeedAt(body.position) : 1f;
+            body.linearVelocity = input * moveSpeed * onPath;
         }
 
         void Animate()

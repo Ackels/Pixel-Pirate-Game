@@ -15,7 +15,8 @@ namespace Pixel.Village
         public int gold;
         public List<ItemCount> stock = new List<ItemCount>();
         public List<BuildingSave> buildings = new List<BuildingSave>();
-        public List<int> clearedNature = new List<int>();   // árvores/pedras da ilha já limpas (ids fixos da geração)
+        public List<int> clearedNature = new List<int>();
+        public List<Vector2Int> paths = new List<Vector2Int>();   // caminhos feitos pelo jogador   // árvores/pedras da ilha já limpas (ids fixos da geração)
         public float captainX, captainY;
 
         // Tripulação

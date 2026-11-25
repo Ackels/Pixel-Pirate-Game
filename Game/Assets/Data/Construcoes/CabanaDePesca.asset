@@ -19,6 +19,9 @@ MonoBehaviour:
   kind: 1
   footprint: {x: 2, y: 2}
   cost: 40
+  materials:
+  - item: {fileID: 11400000, guid: 535d09af0a976ee4e8cefdae98a5b876, type: 2}
+    amount: 6
   blocksMovement: 1
   flat: 0
   requiresWater: 1
@@ -31,4 +34,6 @@ MonoBehaviour:
   cycleSeconds: 8
   forgesGear: 0
   goldPerPiece: 25
+  beauty: 0
+  lightAtNight: 0
   housing: 2

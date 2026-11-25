@@ -31,11 +31,12 @@ namespace Pixel.Village
         public Font UIFont => UIKit.Font;
 
         const float DockY = 12, DockHeight = 76;
-        static readonly string[] Categories = { "Moradia", "Produção", "Serviços" };
+        static readonly string[] Categories = { "Moradia", "Produção", "Serviços", "Decoração" };
         static int CategoryOf(BuildingDef d) => d.kind switch
         {
             BuildingKind.House or BuildingKind.Tavern => 0,
             BuildingKind.Producer => 1,
+            BuildingKind.Decoration => 3,
             _ => 2,
         };
 
@@ -45,10 +46,12 @@ namespace Pixel.Village
         EventLog eventLog;
         bool trayOpen;
         readonly List<(ItemDef item, Text text)> itemTexts = new List<(ItemDef, Text)>();
-        readonly List<(BuildingDef def, Button button, Image bg, Text cost)> buildButtons = new List<(BuildingDef, Button, Image, Text)>();
+        readonly List<(BuildingDef def, Button button, Image bg, List<(Text text, ItemDef item, int need)> cost)> buildButtons = new List<(BuildingDef, Button, Image, List<(Text, ItemDef, int)>)>();
+        Image pathBg;
         readonly List<Image> tabs = new List<Image>();
         int category;
         Image demolishBg, buildDock, crewDock, expDock, chronDock, equipDock;
+        static readonly Color Lacking = new Color(0.65f, 0.12f, 0.1f);
         EquipPanel equipPanel;
         RectTransform expBadge;
         BuildingInfoPanel infoPanel;
@@ -103,7 +106,8 @@ namespace Pixel.Village
             crewText = Resource(top, crewIcon, UIKit.TextColor, () =>
             {
                 var c = CrewManager.Instance;
-                return c == null ? "Tripulação" : $"Tripulação: {c.Crew.Count}\nCamas: {VillageManager.Instance.HousingCapacity} ({c.FreeBeds} livres)\nTecla C abre a lista.";
+                var v = VillageManager.Instance;
+                return c == null ? "Tripulação" : $"Tripulação: {c.Crew.Count}\nCamas: {v.HousingCapacity} ({c.FreeBeds} livres)\nBeleza da vila: {v.Beauty} (+{v.BeautyMorale} de moral por dia)\nTecla C abre a lista.";
             });
 
             // --- Topo direito: dia + botão de ajuda ---
@@ -241,8 +245,29 @@ namespace Pixel.Village
                 im.sprite = bomb; im.preserveAspect = true; im.raycastTarget = false;
                 dlabel.rectTransform.offsetMin = new Vector2(30, 8);
             }
-            UIKit.Tip(db, "Demolir: clique num prédio para derrubar (devolve metade do custo).");
+            UIKit.Tip(db, "Demolir: clique num prédio para derrubar (devolve metade do custo), numa árvore ou pedra para limpar o terreno (rende madeira ou pedra), ou num caminho seu para tirar.");
             demolishBg = dbg;
+
+            // Caminho: pinta caminhos de terra (todo mundo anda mais rápido neles)
+            var (pb, plabel, pbg) = UIKit.Button(tabRow, "Caminho", () =>
+            {
+                CloseWindows();
+                if (buildMode.Paving) buildMode.Cancel(); else buildMode.StartPaving();
+            }, 15);
+            UIKit.Size(pb, 120, 36);
+            var shovel = UIKit.Skin.Icon("pa");
+            if (shovel != null)
+            {
+                var ic = UIKit.Rect("Icone", pb.transform);
+                ic.anchorMin = ic.anchorMax = ic.pivot = new Vector2(0, 0.5f);
+                ic.anchoredPosition = new Vector2(8, 2);
+                ic.sizeDelta = new Vector2(24, 24);
+                var im = ic.gameObject.AddComponent<Image>();
+                im.sprite = shovel; im.preserveAspect = true; im.raycastTarget = false;
+                plabel.rectTransform.offsetMin = new Vector2(30, 8);
+            }
+            UIKit.Tip(pb, () => $"Caminho: clique ou arraste para fazer caminhos de terra ({VillageManager.Instance.pathCost} ouro por bloco).\nTodo mundo anda {Mathf.RoundToInt((VillageManager.Instance.pathSpeed - 1f) * 100)}% mais rápido em cima deles.\nPara tirar: Demolir e clique no caminho.");
+            pathBg = pbg;
 
             // Cartões das construções (os de outras categorias ficam escondidos)
             var grid = UIKit.Rect("Cartoes", buildTray);
@@ -272,13 +297,31 @@ namespace Pixel.Village
                 var name = UIKit.Text(rt, def.displayName, 14, TextAnchor.MiddleCenter, UIKit.ButtonText);
                 UIKit.Size(name, height: 22);
                 UIKit.Fit(name, 10);
-                var cost = UIKit.Text(rt, "", 14, TextAnchor.MiddleCenter, UIKit.ButtonText);
-                UIKit.Size(cost, height: 18);
+                // Custo: ouro e materiais, cada um com ícone (fica vermelho o que falta)
+                var costRow = UIKit.Rect("Custo", rt);
+                var ch = UIKit.Horizontal(costRow.gameObject, 0, 3);
+                ch.childAlignment = TextAnchor.MiddleCenter;
+                UIKit.Size(costRow, height: 18);
+                var cost = new List<(Text, ItemDef, int)>();
+                void CostPart(Sprite icon, string label, ItemDef item, int need)
+                {
+                    var im = UIKit.Rect("Icone", costRow).gameObject.AddComponent<Image>();
+                    im.sprite = icon; im.preserveAspect = true; im.raycastTarget = false;
+                    UIKit.Size(im, 14, 14);
+                    var t = UIKit.Text(costRow, label, 13, TextAnchor.MiddleLeft, UIKit.ButtonText);
+                    t.horizontalOverflow = HorizontalWrapMode.Overflow;
+                    cost.Add((t, item, need));
+                }
+                CostPart(goldIcon, d.cost.ToString(), null, d.cost);
+                if (d.materials != null)
+                    foreach (var m in d.materials)
+                        if (m.item != null && m.amount > 0) CostPart(m.item.icon, m.amount.ToString(), m.item, m.amount);
 
                 UIKit.Tip(rt, () =>
                 {
-                    string s = $"{d.displayName} · {d.cost} ouro\n{d.description}\nTamanho: {d.footprint.x}x{d.footprint.y}";
-                    if (VillageManager.Instance.Gold < d.cost) s += "\n" + UIKit.Colored("Falta ouro!", new Color(1f, 0.5f, 0.45f));
+                    string s = $"{d.displayName} · {VillageManager.CostText(d)}\n{d.description}\nTamanho: {d.footprint.x}x{d.footprint.y}";
+                    if (d.beauty > 0) s += $"\nBeleza +{d.beauty}";
+                    if (!VillageManager.Instance.CanAfford(d, out string miss)) s += "\n" + UIKit.Colored(miss, new Color(1f, 0.5f, 0.45f));
                     return s;
                 });
                 buildButtons.Add((def, btn, bg, cost));
@@ -456,11 +499,16 @@ namespace Pixel.Village
             {
                 btn.gameObject.SetActive(CategoryOf(def) == category);
                 UIKit.SetSelected(bg, buildMode.Selected == def);
-                bool afford = vm.Gold >= def.cost;
+                bool afford = vm.CanAfford(def, out _);
                 btn.interactable = afford || buildMode.Selected == def;
-                cost.text = afford ? $"{def.cost} ouro" : UIKit.Colored($"{def.cost} ouro", new Color(0.65f, 0.12f, 0.1f));
+                foreach (var (t, item, need) in cost)
+                {
+                    int have = item == null ? vm.Gold : vm.GetStock(item);
+                    t.color = have >= need ? UIKit.ButtonText : Lacking;
+                }
             }
             UIKit.SetSelected(demolishBg, buildMode.Demolishing);
+            UIKit.SetSelected(pathBg, buildMode.Paving);
         }
 
         Text Resource(Transform parent, Sprite icon, Color color, System.Func<string> tip)

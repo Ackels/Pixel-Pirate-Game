@@ -47,6 +47,7 @@ namespace Pixel.Village
             foreach (var kv in vm.Stock) d.stock.Add(new ItemCount { item = kv.Key.name, count = kv.Value });
             foreach (var b in vm.Buildings) d.buildings.Add(new BuildingSave { def = b.def.name, x = b.origin.x, y = b.origin.y });
             d.clearedNature.AddRange(vm.ClearedNature);
+            d.paths.AddRange(vm.PlayerPaths);
             if (flow.captain != null) { d.captainX = flow.captain.transform.position.x; d.captainY = flow.captain.transform.position.y; }
 
             d.day = cm.Day;
@@ -109,6 +110,7 @@ namespace Pixel.Village
             // Vila
             vm.ClearForLoad(d.gold);
             vm.RestoreClearedNature(d.clearedNature);
+            vm.RestorePaths(d.paths);
             foreach (var s in d.stock)
             {
                 var item = Array.Find(vm.items, x => x != null && x.name == s.item);

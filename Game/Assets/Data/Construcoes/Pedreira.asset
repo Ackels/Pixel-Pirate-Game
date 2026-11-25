@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe22c2e2eabbbf6449a464d91e51af55, type: 3}
+  m_Name: Pedreira
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.BuildingDef
+  displayName: Pedreira
+  description: 'Um trabalhador quebra rochas: +1 Pedra a cada 9 s.'
+  sprite: {fileID: 21300000, guid: 849c60651deb6c8458be2c6f27871c0e, type: 3}
+  icon: {fileID: 0}
+  kind: 1
+  footprint: {x: 4, y: 2}
+  cost: 30
+  materials:
+  - item: {fileID: 11400000, guid: 535d09af0a976ee4e8cefdae98a5b876, type: 2}
+    amount: 4
+  blocksMovement: 1
+  flat: 0
+  requiresWater: 0
+  profession: 0
+  workerSlots: 1
+  inputItem: {fileID: 0}
+  inputAmount: 0
+  outputItem: {fileID: 11400000, guid: c2c371a3ab5edad42a196c7f6f6f9da4, type: 2}
+  outputAmount: 1
+  cycleSeconds: 9
+  forgesGear: 0
+  goldPerPiece: 25
+  beauty: 0
+  lightAtNight: 0
+  housing: 2

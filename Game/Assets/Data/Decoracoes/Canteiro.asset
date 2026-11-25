@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe22c2e2eabbbf6449a464d91e51af55, type: 3}
+  m_Name: Canteiro
+  m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.BuildingDef
+  displayName: Canteiro de Flores
+  description: Flores num canteiro de pedra.
+  sprite: {fileID: 21300000, guid: 1373d282fcce8ea45b8447e0511aa90c, type: 3}
+  icon: {fileID: 0}
+  kind: 6
+  footprint: {x: 2, y: 2}
+  cost: 10
+  materials:
+  - item: {fileID: 11400000, guid: c2c371a3ab5edad42a196c7f6f6f9da4, type: 2}
+    amount: 3
+  blocksMovement: 1
+  flat: 1
+  requiresWater: 0
+  profession: 0
+  workerSlots: 1
+  inputItem: {fileID: 0}
+  inputAmount: 0
+  outputItem: {fileID: 0}
+  outputAmount: 1
+  cycleSeconds: 10
+  forgesGear: 0
+  goldPerPiece: 25
+  beauty: 2
+  lightAtNight: 0
+  housing: 2

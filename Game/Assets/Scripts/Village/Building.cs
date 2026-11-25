@@ -25,11 +25,18 @@ namespace Pixel.Village
         /// <summary>Ponto onde visitantes e trabalhadores param (em frente à construção).</summary>
         public Vector2 Door => (Vector2)transform.position + Vector2.down * 0.4f;
 
-        public bool HasInput(VillageManager vm) => def.forgesGear
-            ? vm.Gold >= def.goldPerPiece
-            : def.inputItem == null || vm.GetStock(def.inputItem) >= def.inputAmount;
+        public bool HasInput(VillageManager vm) =>
+            (!def.forgesGear || vm.Gold >= def.goldPerPiece) && (def.inputItem == null || vm.GetStock(def.inputItem) >= def.inputAmount);
 
-        string MissingText => def.forgesGear ? $"{def.goldPerPiece} ouro" : def.inputItem.displayName;
+        string MissingText
+        {
+            get
+            {
+                var vm = VillageManager.Instance;
+                if (def.forgesGear && vm != null && vm.Gold < def.goldPerPiece) return $"{def.goldPerPiece} ouro";
+                return def.inputItem != null ? $"{def.inputAmount} {def.inputItem.displayName}" : "?";
+            }
+        }
 
         void Update()
         {
@@ -76,7 +83,9 @@ namespace Pixel.Village
         bool Forge(VillageManager vm)
         {
             var armory = Armory.Instance;
-            if (armory == null || !vm.TrySpendGold(def.goldPerPiece)) return false;
+            if (armory == null || !HasInput(vm)) return false;
+            if (def.inputItem != null && !vm.TryTakeStock(def.inputItem, def.inputAmount)) return false;
+            if (!vm.TrySpendGold(def.goldPerPiece)) return false;
             int best = 1;
             foreach (var w in Workers) best = Mathf.Max(best, w.level);
             var g = armory.Roll(0, GearRarity.Comum, forge: true, bonus: best / 2);

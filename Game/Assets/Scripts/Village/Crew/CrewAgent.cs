@@ -50,7 +50,7 @@ namespace Pixel.Village
 
             Vector2 pos = transform.position;
             Vector2 delta = target - pos;
-            float step = speed * Time.deltaTime;
+            float step = speed * Time.deltaTime * (VillageManager.Instance != null ? VillageManager.Instance.SpeedAt(pos) : 1f);
             if (delta.magnitude <= step)
             {
                 transform.position = target;

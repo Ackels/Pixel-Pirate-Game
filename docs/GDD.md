@@ -140,6 +140,7 @@ O que é **nosso**: tema pirata em tudo, a vila é um **porto pirata** (não uma
   - Estradas: visitantes andam por elas; bloquear = menos vendas.
 - **Visitantes**: mercadores, contrabandistas e piratas de fora chegam por terra/mar, compram no Mercado e às vezes trazem missões ou viram recrutas.
 
+- **Materiais e decorações (25/11/2026):** além de ouro, construir gasta **Madeira** e **Pedra** (e o Poste de Luz, **Ferro**). Madeira vem da Cabana do Lenhador e de limpar árvores; Pedra da Pedreira e de quebrar rochas; Ferro da Fundição (que derrete pedra). A Forja usa ferro. **Decorações** (postes, fogueira, canteiros, estátua, coluna, estandartes, vasos, caixotes) deixam a vila bonita: cada 2 pontos de beleza dão +1 de moral por dia ao bando (até +10). **Caminhos** de terra (pincel 2×2) podem ser construídos à vontade; em cima deles todo mundo anda 40% mais rápido.
 - **A ilha da vila (25/11/2026):** a vila fica numa ilha de verdade, com costa irregular, praia com coqueiros, uma faixa de mata em volta (árvores, bosques, arbustos, pedras, rochedos, tocos) e um campo aberto no meio cheio de flores e capim. Para construir onde há árvore, pedra ou arbusto, é preciso limpar o terreno antes com o Demolir. Casas acendem a luz à noite.
 
 ### 6.4 Ofícios e produção

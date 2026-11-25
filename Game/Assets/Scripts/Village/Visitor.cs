@@ -32,7 +32,7 @@ namespace Pixel.Village
             Vector2 target = state == State.Going ? market.Door : exitPoint;
             Vector2 pos = transform.position;
             Vector2 delta = target - pos;
-            float step = speed * Time.deltaTime;
+            float step = speed * Time.deltaTime * (VillageManager.Instance != null ? VillageManager.Instance.SpeedAt(transform.position) : 1f);
 
             if (delta.magnitude <= step)
             {

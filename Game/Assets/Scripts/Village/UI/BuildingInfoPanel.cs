@@ -116,6 +116,11 @@ namespace Pixel.Village
                     sb.AppendLine("lá, clique em \"Editar navio\".");
                     break;
 
+                case BuildingKind.Decoration:
+                    sb.AppendLine($"Beleza +{def.beauty}.");
+                    sb.AppendLine($"A vila tem beleza {VillageManager.Instance.Beauty}: cada tripulante ganha +{VillageManager.Instance.BeautyMorale} de moral no fim do dia (1 a cada 2 de beleza, até +10).");
+                    break;
+
                 case BuildingKind.Tavern:
                     if (cm != null)
                     {

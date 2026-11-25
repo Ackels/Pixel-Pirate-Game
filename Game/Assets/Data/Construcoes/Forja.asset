@@ -13,22 +13,29 @@ MonoBehaviour:
   m_Name: Forja
   m_EditorClassIdentifier: Assembly-CSharp::Pixel.Village.BuildingDef
   displayName: Forja
-  description: "Um ferreiro forja armas e chap\xE9us: 1 pe\xE7a a cada 45 s por 25 ouro. Quanto maior o n\xEDvel dele, melhores as pe\xE7as. V\xE3o para o Arsenal (tecla I)."
+  description: "Um ferreiro forja armas e chap\xE9us: 1 pe\xE7a a cada 45 s com 2 Ferro e 10 ouro. Quanto maior o n\xEDvel dele, melhores as pe\xE7as. V\xE3o para o Arsenal (tecla I)."
   sprite: {fileID: 21300000, guid: cddd05df3b13ed94da228f1e6a053f8e, type: 3}
   icon: {fileID: 0}
   kind: 1
   footprint: {x: 4, y: 2}
   cost: 90
+  materials:
+  - item: {fileID: 11400000, guid: 535d09af0a976ee4e8cefdae98a5b876, type: 2}
+    amount: 6
+  - item: {fileID: 11400000, guid: c2c371a3ab5edad42a196c7f6f6f9da4, type: 2}
+    amount: 10
   blocksMovement: 1
   flat: 0
   requiresWater: 0
   profession: 0
   workerSlots: 1
-  inputItem: {fileID: 0}
-  inputAmount: 0
+  inputItem: {fileID: 11400000, guid: 9254f92c117ed5645977c2924d81d102, type: 2}
+  inputAmount: 2
   outputItem: {fileID: 0}
   outputAmount: 1
   cycleSeconds: 45
   forgesGear: 1
-  goldPerPiece: 25
+  goldPerPiece: 10
+  beauty: 0
+  lightAtNight: 0
   housing: 2
